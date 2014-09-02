@@ -21,15 +21,20 @@ for directory in ./*; do
         for myfile in $(ls -d *_1.fastq);do
             fname=(${myfile//_1.fastq/ })
             date
-            echo -e "${blue}Starting $fname${NC}"
-            echo -e '\tMapping'
+            
+            echo -e "${blue}Processing $fname${NC}"
+
+            echo -e '\tStarting mapping'
             bowtie2 --local -p$1 --fr -q -R5 -N1 -x /dd_stage/userdata/lister/data/genomes/bowtie2_indexes/tair9 -X 5000 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" | samblaster -e -d "${fname}.disc.sam" | samtools view -bS - > "${fname}.disc.bam" | tee -a "${fname}.log"
-            echo -e '\tFinished mapping $fname'
+            echo -e '\tMapping complete'
+            
             echo -e '\tConverting to bedfile'
             samtools sort -n -o "${fname}.disc.bam" | bedtools bamtobed -i - -bedpe -mate1 > "${fname}.disc.bed"
-            sed -i.bak '/chrC/d;/chrM/d;s/chr//g' "${fname}.disc.bed"
+            
             echo -e '\tSorting bedfile, removing reads mapped to chloroplast or mitochondria'
+            sed -i.bak '/chrC/d;/chrM/d;s/chr//g' "${fname}.disc.bed"
             sort -k1,1 -nk2,2 "${fname}.disc.bed" > "${fname}_sorted.disc.bed"
+            
             echo -e '\tDeleting temp files'
             rm "${fname}.disc.bed"
             rm "${fname}.disc.bed.bak"
@@ -38,9 +43,11 @@ for directory in ./*; do
             rm "${fname}.sam"
             rm "{$fname}.bam"
             mv "${fname}_sorted.disc.bed" "${fname}.bed"
+            
             echo -e '\tCompressing fastq files'
             tar cvfz "${fname}.tgz" "${fname}_1.fastq" "${fname}_2.fastq"
-            echo -e "${blue}Finished $fname${NC}"
+            
+            echo -e "${blue}Finished processing $fname${NC}"
         done
     fi
 done
