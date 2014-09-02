@@ -23,7 +23,7 @@ for directory in ./*; do
             date
             echo -e "${blue}Starting $fname${NC}"
             echo -e '\tMapping'
-            bowtie2 --local -p$1 --fr -q -R5 -N1 -x /dd_stage/userdata/lister/data/genomes/bowtie2_indexes/tair9 -X 2000 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" | samblaster -e -d "${fname}.disc.sam" | samtools view -bS - > "${fname}.disc.bam" | tee -a "${fname}.log"
+            bowtie2 --local -p$1 --fr -q -R5 -N1 -x /dd_stage/userdata/lister/data/genomes/bowtie2_indexes/tair9 -X 5000 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" | samblaster -e -d "${fname}.disc.sam" | samtools view -bS - > "${fname}.disc.bam" | tee -a "${fname}.log"
             echo -e '\tFinished mapping $fname'
             echo -e '\tConverting to bedfile'
             bedtools bamtobed -i "${fname}.disc.bam" -bedpe > "${fname}.disc.bed"
