@@ -26,7 +26,7 @@ for directory in ./*; do
             bowtie2 --local -p$1 --fr -q -R5 -N1 -x /dd_stage/userdata/lister/data/genomes/bowtie2_indexes/tair9 -X 5000 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" | samblaster -e -d "${fname}.disc.sam" | samtools view -bS - > "${fname}.disc.bam" | tee -a "${fname}.log"
             echo -e '\tFinished mapping $fname'
             echo -e '\tConverting to bedfile'
-            bedtools bamtobed -i "${fname}.disc.bam" -bedpe > "${fname}.disc.bed"
+            samtools sort -n -o "${fname}.disc.bam" | bedtools bamtobed -i - -bedpe -mate1 > "${fname}.disc.bed"
             sed -i.bak '/chrC/d;/chrM/d;s/chr//g' "${fname}.disc.bed"
             echo -e '\tSorting bedfile, removing reads mapped to chloroplast or mitochondria'
             sort -k1,1 -nk2,2 "${fname}.disc.bed" > "${fname}_sorted.disc.bed"
