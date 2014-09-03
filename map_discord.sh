@@ -61,8 +61,6 @@ for directory in ./*; do
             rm "${fname}.disc.bed"
             rm "${fname}.disc.bed.bak"
             rm "${fname}.disc.sam"
-            rm "${fname}.sam"
-            rm "{$fname}.bam"
             mv "${fname}_sorted.disc.bed" "${fname}.bed"
             
             echo -e "${blue}Compressing fastq files${NC}"
