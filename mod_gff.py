@@ -1,4 +1,4 @@
-with open('TAIR9_Transposable_Elements.txt', 'r') as infile, open('TAIR9_TE.tsv', 'w+') as outfile:
+with open('TAIR9_Transposable_Elements.txt', 'r') as infile, open('TAIR9_TE.bed', 'w+') as outfile:
     for line in infile:
         line = line.rsplit()
         name = line[0]

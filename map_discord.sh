@@ -1,6 +1,6 @@
 # Created by Tim Stuart
 # Usage:
-#   sh map_discord.sh <proc>
+#   sh map_discord.sh -p <proc> -x <path/to/bowtie2/index> -g <path/to/TE_gff>
 #   where <proc> is number of processors to use
 # Does the following:
 #   1. Move into directory
@@ -16,6 +16,23 @@ blue='\033[94m'  # main output
 green='\033[92m'  # output for starting / completing files
 NC='\033[0m'  # output from samtools etc will be not coloured
 
+index=  proc=  gff=
+
+while getopts x:p:g: opt; do
+  case $opt in
+  x)
+      index=$OPTARG
+      ;;
+  p)
+      proc=$OPTARG
+      ;;
+  g)
+      gff=$OPTARG
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
 for directory in ./*; do
     if [ -d "$directory" ]; then
         cd $directory
@@ -26,12 +43,14 @@ for directory in ./*; do
             echo -e "${green}Processing $fname${NC}"
 
             echo -e "${blue}Starting mapping${NC}"
-            bowtie2 --local -p$1 --fr -q -R5 -N1 -x /dd_stage/userdata/lister/data/genomes/bowtie2_indexes/tair9 -X 5000 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" | samblaster -e -d "${fname}.disc.sam" | samtools view -bS - > "${fname}.disc.bam" | tee -a "${fname}.log"
+            bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X 3000 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" | samblaster -e -d "${fname}.disc.sam" > /dev/null
             echo -e "${blue}Mapping complete${NC}"
             
+            echo -e "${blue}Converting to bam file"
+            samtools view -bS "${fname}.disc.sam" | samtools sort -n - "${fname}.sort.disc"
+
             echo -e "${blue}Converting to bedfile{NC}"
-            samtools sort -n "${fname}.disc.bam" "${fname}.sort.disc"
-            bedtools bamtobed -i "${fname}.sort.disc.bam" -bedpe -mate1 > "${fname}.disc.bed"
+            bedtools bamtobed -bedpe -i "${fname}.sort.disc.bam" > "${fname}.disc.bed"
             
             echo -e "${blue}Sorting bedfile, removing reads mapped to chloroplast or mitochondria${NC}"
             sed -i.bak '/chrC/d;/chrM/d;s/chr//g' "${fname}.disc.bed"
@@ -42,7 +61,6 @@ for directory in ./*; do
             rm "${fname}.disc.bed"
             rm "${fname}.disc.bed.bak"
             rm "${fname}.disc.sam"
-            rm "${fname}.disc.bam"
             rm "${fname}.sam"
             rm "{$fname}.bam"
             mv "${fname}_sorted.disc.bed" "${fname}.bed"
@@ -51,6 +69,9 @@ for directory in ./*; do
             tar cvfz "${fname}.tgz" "${fname}_1.fastq" "${fname}_2.fastq"
             rm "${fname}_1.fastq"
             rm "${fname}_2.fastq"
+
+            echo -e "${blue}Finding TE overlaps${NC}"
+            bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $gff > "${fname}_TE_intersections.bed"
             
             echo -e "${green}Finished processing $fname${NC}"
         done
