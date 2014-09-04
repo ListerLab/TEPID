@@ -20,7 +20,7 @@ rm "${1}.disc.sam"
 mv "${1}_sorted.disc.bed" "${1}.bed"
 
 # Find TE intersections
-bedtools pairtobed -f 0.1 -type xor -a "${1}.bed" -b $gff > "${1}_TE_intersections.bed"
+bedtools pairtobed -f 0.1 -type xor -a "${1}.bed" -b $2 > "${1}_TE_intersections.bed"
 
 # Compress fastq files
 tar cvfz "${1}.tgz" "${1}_1.fastq" "${1}_2.fastq" --remove-files

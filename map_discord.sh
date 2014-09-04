@@ -36,7 +36,7 @@ for directory in ./*; do
             date
             echo -e "${green}Processing $fname${NC}"
             bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X 3000 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" | samblaster -e -d "${fname}.disc.sam" > /dev/null
-            sh process_files.sh $fname &
+            sh process_files.sh $fname $gff &
         done
         cd ..
     fi
