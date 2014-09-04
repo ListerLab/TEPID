@@ -1,1 +1,0 @@
-tar cvfz "${1}.tgz" "${1}_1.fastq" "${1}_2.fastq" --remove-files
