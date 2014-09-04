@@ -5,11 +5,16 @@
 # Does the following:
 #   1. Move into directory
 #   2. Maps PE sequencing data using bowtie2
-#   3. Extracts discordant reads
-#   4. Calls process_files.sh and starts mapping next accession
+#   3. Converts output to sorted bam file
+#   4. Splits discordant reads from bam file into new file
+#   5. Deletes concordant reads
+#   6. Compresses original fastq files
+#   7. Move into next directory and repeat
+# Outputs a sorted bedfile containing discordant read alignments and a log file
 
-green='\033[92m'
-NC='\033[0m'
+blue='\033[94m'  # main output
+green='\033[92m'  # output for starting / completing files
+NC='\033[0m'  # output from samtools etc will be not coloured
 
 index=  proc=  gff=
 
@@ -34,11 +39,11 @@ for directory in ./*; do
         for myfile in $(ls -d *_1.fastq);do
             fname=(${myfile//_1.fastq/ })
             date
+            
             echo -e "${green}Processing $fname${NC}"
+
+            echo -e "${blue}Starting mapping${NC}"
             bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X 3000 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" | samblaster -e -d "${fname}.disc.sam" > /dev/null
-<<<<<<< HEAD
-            sh process_files.sh $fname $gff &
-=======
             echo -e "${blue}Mapping complete${NC}"
             
             echo -e "${blue}Converting to bam file"
@@ -56,8 +61,6 @@ for directory in ./*; do
             rm "${fname}.disc.bed"
             rm "${fname}.disc.bed.bak"
             rm "${fname}.disc.sam"
-            rm "${fname}.sam"
-            rm "{$fname}.bam"
             mv "${fname}_sorted.disc.bed" "${fname}.bed"
             
             echo -e "${blue}Compressing fastq files${NC}"
@@ -69,7 +72,6 @@ for directory in ./*; do
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $gff > "${fname}_TE_intersections.bed"
             
             echo -e "${green}Finished processing $fname${NC}"
->>>>>>> parent of d558bc7... deleted unnecessary lines
         done
         cd ..
     fi
