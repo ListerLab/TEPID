@@ -49,7 +49,7 @@ for directory in ./*; do
             echo -e "${blue}Converting to bam file"
             samtools view -bS "${fname}.disc.sam" | samtools sort -n - "${fname}.sort.disc"
 
-            echo -e "${blue}Converting to bedfile{NC}"
+            echo -e "${blue}Converting to bedfile${NC}"
             bedtools bamtobed -bedpe -i "${fname}.sort.disc.bam" > "${fname}.disc.bed"
             
             echo -e "${blue}Sorting bedfile, removing reads mapped to chloroplast or mitochondria${NC}"
@@ -63,14 +63,11 @@ for directory in ./*; do
             rm "${fname}.disc.sam"
             mv "${fname}_sorted.disc.bed" "${fname}.bed"
             
-            echo -e "${blue}Compressing fastq files${NC}"
-            tar cvfz "${fname}.tgz" "${fname}_1.fastq" "${fname}_2.fastq"
-            rm "${fname}_1.fastq"
-            rm "${fname}_2.fastq"
-
             echo -e "${blue}Finding TE overlaps${NC}"
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $gff > "${fname}_TE_intersections.bed"
             
+            sh remove_files.sh $fname &
+
             echo -e "${green}Finished processing $fname${NC}"
         done
         cd ..
