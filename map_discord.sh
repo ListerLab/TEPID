@@ -46,10 +46,10 @@ for directory in ./*; do
             bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X 3000 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" | samblaster -e -d "${fname}.disc.sam" > /dev/null
             echo -e "${blue}Mapping complete${NC}"
             
-            echo -e "${blue}Converting to bam file"
+            echo -e "${blue}Converting to bam file${NC}"
             samtools view -bS "${fname}.disc.sam" | samtools sort -n - "${fname}.sort.disc"
 
-            echo -e "${blue}Converting to bedfile{NC}"
+            echo -e "${blue}Converting to bedfile${NC}"
             bedtools bamtobed -bedpe -i "${fname}.sort.disc.bam" > "${fname}.disc.bed"
             
             echo -e "${blue}Sorting bedfile, removing reads mapped to chloroplast or mitochondria${NC}"
