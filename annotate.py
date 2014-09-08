@@ -25,22 +25,19 @@ def collapse(insert_file):
         for x in range(i):
             line = lines[x]
             field = line.rsplit()
-            chrom1 = 
-            start1 = 
-            stop1 = 
-            strand1 = 
-            chrom2 = 
-            start2 = 
-            stop2 = 
-            strand2 = 
-            te = 
-            te_chrom = 
-            te_start = 
-            te_stop = 
-            te_strand = 
+            read1 = {'chrom': field[0], 'start': field[1], 'stop': field[2], 'strand': field[8]}
+            read2 = {'chrom': field[3], 'start': field[4], 'stop': field[5], 'strand': field[9]}
+            te_coords = {'chrom': field[10], 'start': field[11], 'stop': field[12], 'strand': field[13], 'name': field[14]}
+            # Merge overlapping coordinates where name of te_coords is the same
+            # Might be a problem is ancestral TE is in accession (multiple in Col-0 derived from insertion in accession)
+            # 1. go to next line
+            # 2. if te name is same check coords, else go to next line
+            # 3. if next.start < start and next.end > start  -->  start = next.start  (sorted by start coord so this shouldn't actually happen)
+            # 4. if next.start < end and next.end > end  --> end = next.end
+            # 5. Continue until not overlapping, then return merged coords for annotate function (write to file, return filename)
 
 
-def annotate(collapse_file):
+def annotate(collapse_dict):
     with open(collapse_file, 'r') as infile:
         lines = []
         for i, l in enumerate(infile):
@@ -49,9 +46,10 @@ def annotate(collapse_file):
             line = lines[x]
             line = line.rsplit()
             read1 = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[]}
-            read1 = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[]}
+            read2 = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[]}
             te_coords = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[], 'name': line[]}
             # Find out which read is in TE
+            # should more this to pre-processing step to make collapse simpler - use bedtools merge
             if te_coords['start'] < read1['start'] > te_coords['stop'] and read1['chrom'] == te_coords['chrom']:
                 te_read = read1
                 dna_read = read2
@@ -92,7 +90,7 @@ def findNext(lines, x, chrom, strand, start, stop, te):
     while True:
         line = lines[x+1]
         read1 = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[]}
-        read1 = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[]}
+        read2 = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[]}
         te_coords = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[], 'name': line[]}
         if strand == '+' and stop < dna_read['start'] + 200:
             return False
