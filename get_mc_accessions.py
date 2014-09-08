@@ -17,9 +17,9 @@ def add_data(accession, acc_file):
         total_mc = 0
         for line in acc_file:
             line = line.rsplit()
-            methylated_bases =  # find position of this value
-            position = 
-            chromosome = 
+            methylation_call = line[6]
+            position = line[1]
+            chromosome = line[0]
             if value['start'] < postion > value['stop'] and chromosome == value['chrom']:
                 total_mc += int(methylated_bases)
             else:
