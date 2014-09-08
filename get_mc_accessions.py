@@ -2,9 +2,11 @@ import os
 
 with open('c_dmrs.tsv', 'r') as dmr_file:
     dmrs = {}
-    num_lines = sum(1 for line in dmr_file)
-    for x in range(num_lines):
-        line = dmr_file[x]
+    lines = []
+    for i, l in enumerate(dmr_file):
+        lines.append(l)
+    for x in range(i):
+        line = lines[x]
         line = line.rsplit()
         chrom = line[0].strip('chr')
         start = line[1]
@@ -17,28 +19,38 @@ def add_data(accession, acc_file):
         total_mc = 0
         for line in acc_file:
             line = line.rsplit()
-            methylation_call = line[6]
-            position = line[1]
-            chromosome = line[0]
-            if value['start'] < postion > value['stop'] and chromosome == value['chrom']:
-                total_mc += int(methylated_bases)
+            if line[0] == 'chrom':
+                pass  # header
             else:
-                pass
-        levels.append(total_mc)
-        header.append(accession)  # keeps order correct
-
+                methylation_call = line[6]
+                position = line[1]
+                chromosome = line[0]
+                if value['chrom'] > chromosome:  # might make it a bit faster
+                    pass
+                elif value['start'] < position < value['stop'] and chromosome == value['chrom']:
+                    total_mc += int(methylation_call)
+                elif value['stop'] < position:
+                    break
+                else:
+                    pass
+        try:
+            levels[key]
+        except KeyError:
+            levels[key] = [total_mc]
+        else:
+            levels[key].append(total_mc)
 
 files = [f for f in os.listdir('.') if os.path.isfile(f)]
-levels = []
+levels = {}
 header = []
 
 for f in files:
-    with open(f, 'r') as infile:
-        accession_name = f.replace('calls_', '.')
-        accession_name = f.split('.')
-        accession_name = accession_name[1]
-        add_data(accession_name, infile)
-
+    if f.startswith('GSM'):
+        with open(f, 'r') as infile:
+            accession_name = f.replace('calls_', '.').split('.')
+            accession_name = accession_name[1]
+            header.append(accession_name)
+            add_data(accession_name, infile)
 
 with open('dmrs_acc.tsv', 'w+') as outfile:
     outfile.write('chr\tstart\tstop\t{a}\n'.format(a='\t'.join(header)))
@@ -46,4 +58,4 @@ with open('dmrs_acc.tsv', 'w+') as outfile:
         outfile.write("{chrom}\t{start}\t{stop}\t{a}\n".format(chrom=value["chrom"],
                                                                start=value["start"],
                                                                stop=value["stop"],
-                                                               a='\t'.join(levels)))
+                                                               a='\t'.join(map(str, levels[key]))))
