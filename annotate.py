@@ -30,13 +30,14 @@ def overlap(start1, stop1, start2, stop2):
 
 
 def get_len(infile):
+    """returns number of lines in file and all lines as part of list"""
     lines = []
     for i, l in enumerate(infile):
         lines.append(l)
     return i, lines
 
 
-def reorder(insert_file, reordered_file):  # should combine this with merge
+def reorder(insert_file, reordered_file):
     """
     Reorder columns so that TE read is in second position.
     """
@@ -52,127 +53,164 @@ def reorder(insert_file, reordered_file):  # should combine this with merge
             if overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
                 te_read = read1
                 dna_read = read2
+                mate = 1  # te read is mate 1 in paired data
             elif overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
                 te_read = read2
                 dna_read = read1
+                mate = 2
             else:
                 raise Exception('check coords')
-            merged = merge(x, lines, dna_read, remaining, outfile)  # need to sort first
+            outfile.write('{chr1}\t{start1}\t{stop1}\t{strand1}\t{chr2}\t{start2}\t{stop2}\t{strand2}\t{remain}\t{mate}\n'.format(chr1=dna_read['chrom'],
+                                                                                                                                  start1=dna_read['start'],
+                                                                                                                                  stop1=dna_read['stop'],
+                                                                                                                                  strand1=dna_read['strand'],
+                                                                                                                                  chr2=te_read['chrom'],
+                                                                                                                                  start2=te_read['start'],
+                                                                                                                                  stop2=te_read['stop'],
+                                                                                                                                  strand2=te_read['strand'],
+                                                                                                                                  remain='\t'.join(remaining),
+                                                                                                                                  mate=mate))
 
 
-def merge(x, lines, start, stop, te_name, strand, outfile):
+def merge(sorted_file, output_file):
     """
     merge coordinates that overlap where TE name and strand is same
-    takes position in file (x), file (lines), start and stop coordinates, strand and te name, outfile to write merged lines.
-    return list of read names, merged coordinates, and new position in file to start from
+    takes sorted output from reorder function and name of output file.
+    return file with of read names, merged coordinates, and new position in file to start from
     """
-    with open(sorted_file, 'r') as infile:
-        mark = False
+    with open(sorted_file, 'r') as infile, open(output_file, 'w+') as outfile:
         i, lines = get_len(infile)
-        x = 0
+        x = 1
+        readlist = []
+        done = True
         while True:
-            line = lines[x]
-            field = line.rsplit()
-            start = field[1]
-            end = field[2]
-            chrom = field[0]
-            strand = field[3]
-            te_name = field[10]
+            if done is True:
+                line = lines[x]
+                field = line.rsplit()
+                start = field[1]
+                end = field[2]
+                chrom = field[0]
+                strand = field[3]
+                te_name = field[10]
+                readname = field[8]
+                te_strand = field[7]
+                mate = field[12]  # needs to be a list matched with read names
+            else:
+                pass
             nextline = lines[x+1]
             nextfield = nextline.rsplit()
             next_dna_start = nextfield[1]
             next_dna_end = nextfield[2]
             next_dna_chrom = nextfield[0]
             next_dna_strand = nextfield[3]
-            next_te_start = nextfield[5]
-            next_te_end = nextfield[6]
-            next_te_chrom = nextfield[4]
-            next_te_strand = nextfield[7]
+            next_read_name = nextfield[8]
             next_te_name = nextfield[10]
-            if strand == next_dna_strand and te_name == next_te_name and chrom = next_dna_chrom:
-                if overlap(next_dna_start, next_dna_end, start, stop) is True:
-                    merge coordinates
+            if strand == next_dna_strand and te_name == next_te_name and chrom == next_dna_chrom:
+                if overlap(int(next_dna_start), int(next_dna_end), int(start), int(end)) is True:
+                    readlist.append(next_read_name)
+                    if start > next_dna_start:
+                        start = next_dna_strand
+                    elif end < next_dna_end:
+                        end = next_dna_end
+                    else:
+                        pass
                     x += 1
+                    done = False
                 else:
-                    # write merged data to file, then start again from mark
-                    # outfile.write('{chr1}\t{start1}\t{stop1}\t{strand1}\t{chr2}\t{start2}\t{stop2}\t{strand2}\t{remain}\n'.format(chr1=dna_read['chrom'],
-                    #                                                                                                               start1=dna_read['start'],
-                    #                                                                                                               stop1=dna_read['stop'],
-                    #                                                                                                               strand1=dna_read['strand'],
-                    #                                                                                                               chr2=te_read['chrom'],
-                    #                                                                                                               start2=te_read['start'],
-                    #                                                                                                               stop2=te_read['stop'],
-                    #                                                                                                               strand2=te_read['strand'],
-                    #                                                                                                               remain='\t'.join(remaining)))
-                    marked_line = lines[mark+1]
-                    marked_field = line.rsplit()
-                    chrom = marked_field[0]
-                    strand = marked_field[3]
-                    te_name = marked_field[10]
-                    x = mark
-                    mark = False
-            elif mark is False:
-                mark = x
-                x += 1
-                if x >= i:
-                    break
+                    if readlist:
+                        reads = ','.join(readlist)
+                    else:
+                        reads = readname
+                    outfile.write('{chr}\t{start}\t{end}\t{strand}\t{te}\t{orient}\t{reads}\t{mate}\n'.format(chr=chrom,
+                                                                                                              start=start,
+                                                                                                              end=end,
+                                                                                                              strand=strand,
+                                                                                                              te=te_name,
+                                                                                                              orient=te_strand,
+                                                                                                              reads=reads,
+                                                                                                              mate=mate))
+                    done = True
+                    x += 1
+                    readlist = []
             else:
+                if readlist:
+                    reads = ','.join(readlist)
+                else:
+                    reads = readname
+                outfile.write('{chr}\t{start}\t{end}\t{strand}\t{te}\t{orient}\t{reads}\t{mate}\n'.format(chr=chrom,
+                                                                                                          start=start,
+                                                                                                          end=end,
+                                                                                                          strand=strand,
+                                                                                                          te=te_name,
+                                                                                                          orient=te_strand,
+                                                                                                          reads=reads,
+                                                                                                          mate=mate))
+                done = True
                 x += 1
+                readlist = []
                 if x >= i:
                     break
 
 
-def annotate(collapse_dict):
+def annotate(collapse_dict, insertion_file, id_file):
     """
     Find insertion coordinates and TE orientation.
     """
-    with open(collapse_file, 'r') as infile:
+    with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile, open(id_file, 'w+') as unique_id_file:
         lines = []
         for i, l in enumerate(infile):
             lines.append(l)
         for x in range(i):
             line = lines[x]
             line = line.rsplit()
-            dna_read = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[]}
-            te_read = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[]}
-            te_coords = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[], 'name': line[]}
-            pair = findNext(lines, x, dna_read['chrom'], dna_read['start'], dna_read['stop'], te_read['name'])
+            chrom = line[0]
+            start = line[1]
+            stop = line[2]
+            strand = line[3]
+            te_name = line[4]
+            reads = line[6]
+            te_reads = line[7]
+            pair = findNext(lines, x, chrom, start, stop, te_name)
             if pair is False:
                 pass  # no reads at opposite end, do not include in annotation
             else:
-                pair_dna = pair[0]
-                pair_te = pair[1]
-                insertion = {'chrom': pair_dna['chrom'], 'start': dna_read['stop'], 'stop': pair_dna['start'], 'strand': te_read['strand']}
-                outfile.write('{chr}\t{start}\t{stop}\t{strand}\t{name}\t{id}\n'.format(chr=insertion['chrom'],
-                                                                                        start=insertion['start'],
-                                                                                        stop=insertion['stop'],
-                                                                                        strand=insertion['strand'],
-                                                                                        name=te_coords['name'],
+                outfile.write('{chr}\t{start}\t{stop}\t{strand}\t{name}\t{id}\n'.format(chr=chrom,
+                                                                                        start=stop,
+                                                                                        stop=pair,
+                                                                                        strand=strand,
+                                                                                        name=te_name,
                                                                                         id=))  # need to generate unique id
+                unique_id_file.write()  # write id, list of read names and which is the TE read, separated in fasta style. Can later add consensus sequence
                 else:
                     pass
 
 
 # As file is processed top to bottom, sorted by coords, + will come up first. This will avoid identifying each insertion twice (once for each end)
-def findNext(lines, x, chrom, strand, start, stop, te):
+def findNext(lines, x, chrom, strand, start, stop, te_name):
     """
-    Find next read linked to same TE.
+    Find next read linked to same TE. Looks in 200 bp window.
     """
     while True:
         line = lines[x+1]
-        dna_read = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[]}
-        te_read = {'chrom': line[], 'start': line[], 'stop': line[], 'strand': line[]}
-        te_name = line[]
-        if strand == '+' and stop < dna_read['start'] + 200:
+        line = line.rsplit()
+        next_chrom = line[0]
+        next_start = line[1]
+        next_stop = line[2]
+        next_strand = line[3]
+        next_te_name = line[4]
+        next_reads = line[6]
+        next_te_reads = line[7]
+        if strand == '+' and stop < next_start + 200:
             return False
-        elif strand == '-' and start > dna_read['stop'] - 200:
+        elif strand == '-' and start > next_stop - 200:
             return False
-        elif strand != dna_read['strand'] and te == te_read['name']:
-            return dna_read, te_read
+        elif strand != next_strand and te_name == next_te_read:
+            return next_start
         else:
             x += 1
 
 
 reorder('{b}.bed'.format(b=accession_name, 'ordered_{b}.bed'.format(b=accession_name)))
 call('sort -n1,1 -nk2,2 ordered_{b}.bed > sorted_{b}.bed'.format(b=accession_name), shell=True)
-annotate('sorted_{b}.bed'.format(b=accession_name))  # insert filename
+merge('sorted_{b}.bed'.format(b=accession_name), 'merged_{b}.bed'.format(b=accession_name))
+annotate('merged_{b}.bed'.format(b=accession_name), 'insertions_{b}.bed'.format(b=accession_name))
