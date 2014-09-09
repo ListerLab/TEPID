@@ -152,7 +152,7 @@ def merge(sorted_file, output_file):
                     break
 
 
-def annotate(collapse_dict, insertion_file, id_file):
+def annotate(collapse_file, insertion_file, id_file):
     """
     Find insertion coordinates and TE orientation.
     """
@@ -160,6 +160,7 @@ def annotate(collapse_dict, insertion_file, id_file):
         lines = []
         for i, l in enumerate(infile):
             lines.append(l)
+            ident = 0
         for x in range(i):
             line = lines[x]
             line = line.rsplit()
@@ -168,25 +169,32 @@ def annotate(collapse_dict, insertion_file, id_file):
             stop = line[2]
             strand = line[3]
             te_name = line[4]
+            orientation = line[5]
             reads = line[6]
             te_reads = line[7]
-            pair = findNext(lines, x, chrom, start, stop, te_name)
+            te_reads = te_reads.split(',')
+            pair = find_next(lines, i, x, chrom, strand, start, stop, te_name)
             if pair is False:
                 pass  # no reads at opposite end, do not include in annotation
             else:
-                outfile.write('{chr}\t{start}\t{stop}\t{strand}\t{name}\t{id}\n'.format(chr=chrom,
+                pair_start = pair[0]
+                pair_reads = pair[1]
+                pair_reads = pair_reads.split(',')
+                te_reads = pair_reads + te_reads
+                outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{id}\n'.format(chr=chrom,
                                                                                         start=stop,
-                                                                                        stop=pair,
-                                                                                        strand=strand,
+                                                                                        stop=pair_start,
+                                                                                        orient=orientation,
                                                                                         name=te_name,
-                                                                                        id=))  # need to generate unique id
-                unique_id_file.write()  # write id, list of read names and which is the TE read, separated in fasta style. Can later add consensus sequence
-                else:
-                    pass
+                                                                                        id=ident))  # need to generate unique id
+                unique_id_file.write('>{id},{te},[{reads}]\n'.format(id=ident,
+                                                                     te=te_name,
+                                                                     reads=','.join(te_reads)))  # Can add consensus sequence later
+                ident += 1
 
 
 # As file is processed top to bottom, sorted by coords, + will come up first. This will avoid identifying each insertion twice (once for each end)
-def findNext(lines, x, chrom, strand, start, stop, te_name):
+def find_next(lines, i, x, chrom, strand, start, stop, te_name):
     """
     Find next read linked to same TE. Looks in 200 bp window.
     """
@@ -194,20 +202,23 @@ def findNext(lines, x, chrom, strand, start, stop, te_name):
         line = lines[x+1]
         line = line.rsplit()
         next_chrom = line[0]
-        next_start = line[1]
-        next_stop = line[2]
+        next_start = int(line[1])
+        next_stop = int(line[2])
         next_strand = line[3]
         next_te_name = line[4]
         next_reads = line[6]
         next_te_reads = line[7]
+        # this part needs work. May need to ajust window - is there any info on what happens to original seq when there is TE insertion?
         if strand == '+' and stop < next_start + 200:
             return False
         elif strand == '-' and start > next_stop - 200:
             return False
-        elif strand != next_strand and te_name == next_te_read:
-            return next_start
+        elif strand != next_strand and te_name == next_te_name:
+            return next_start, next_te_reads
         else:
             x += 1
+            if x >= i:
+                return False
 
 
 reorder('{b}.bed'.format(b=accession_name, 'ordered_{b}.bed'.format(b=accession_name)))
