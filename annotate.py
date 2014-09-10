@@ -48,7 +48,7 @@ def reorder(insert_file, reordered_file):
             field = line.rsplit()
             read1 = {'chrom': field[0], 'start': field[1], 'stop': field[2], 'strand': field[8]}
             read2 = {'chrom': field[3], 'start': field[4], 'stop': field[5], 'strand': field[9]}
-            remaining = [field[6], field[13], field[14], field[15]]  # read name, TE strand, TE name, TE family
+            remaining = [field[10], field[11], field[12], field[13], field[14], field[15], field[6]]  # read name, TE reference coordinates, TE name, TE family
             te_coords = {'chrom': field[10], 'start': field[11], 'stop': field[12], 'strand': field[13], 'name': field[14]}
             if overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
                 te_read = read1
@@ -60,16 +60,13 @@ def reorder(insert_file, reordered_file):
                 mate = 2
             else:
                 raise Exception('check coords')
-            outfile.write('{chr1}\t{start1}\t{stop1}\t{strand1}\t{chr2}\t{start2}\t{stop2}\t{strand2}\t{remain}\t{mate}\n'.format(chr1=dna_read['chrom'],
-                                                                                                                                  start1=dna_read['start'],
-                                                                                                                                  stop1=dna_read['stop'],
-                                                                                                                                  strand1=dna_read['strand'],
-                                                                                                                                  chr2=te_read['chrom'],
-                                                                                                                                  start2=te_read['start'],
-                                                                                                                                  stop2=te_read['stop'],
-                                                                                                                                  strand2=te_read['strand'],
-                                                                                                                                  remain='\t'.join(remaining),
-                                                                                                                                  mate=mate))
+            outfile.write('{chr1}\t{start1}\t{stop1}\t{strand1}\t{strand2}\t{remain}\t{mate}\n'.format(chr1=dna_read['chrom'],
+                                                                                                       start1=dna_read['start'],
+                                                                                                       stop1=dna_read['stop'],
+                                                                                                       strand1=dna_read['strand'],
+                                                                                                       strand2=te_read['strand'],
+                                                                                                       remain='\t'.join(remaining),
+                                                                                                       mate=mate))
 
 
 def merge(sorted_file, output_file):
@@ -82,6 +79,7 @@ def merge(sorted_file, output_file):
         i, lines = get_len(infile)
         x = 1
         readlist = []
+        matelist = []
         done = True
         while True:
             if done is True:
@@ -91,10 +89,11 @@ def merge(sorted_file, output_file):
                 end = field[2]
                 chrom = field[0]
                 strand = field[3]
-                te_name = field[10]
-                readname = field[8]
-                te_strand = field[7]
-                mate = field[12]  # needs to be a list matched with read names
+                te_name = field[9]
+                readname = field[11]
+                te_strand = field[4]
+                reference = [field[10], field[5], field[6], field[7], field[8]]
+                mate = field[12]
             else:
                 pass
             nextline = lines[x+1]
@@ -103,11 +102,13 @@ def merge(sorted_file, output_file):
             next_dna_end = nextfield[2]
             next_dna_chrom = nextfield[0]
             next_dna_strand = nextfield[3]
-            next_read_name = nextfield[8]
-            next_te_name = nextfield[10]
+            next_read_name = nextfield[11]
+            next_te_name = nextfield[9]
+            next_mate = nextfield[12]
             if strand == next_dna_strand and te_name == next_te_name and chrom == next_dna_chrom:
                 if overlap(int(next_dna_start), int(next_dna_end), int(start), int(end)) is True:
                     readlist.append(next_read_name)
+                    matelist.append(next_mate)
                     if start > next_dna_start:
                         start = next_dna_strand
                     elif end < next_dna_end:
@@ -118,36 +119,48 @@ def merge(sorted_file, output_file):
                     done = False
                 else:
                     if readlist:
+                        matelist.append(mate)
+                        readlist.append(readname)
                         reads = ','.join(readlist)
+                        mates = ','.join(matelist)
                     else:
                         reads = readname
-                    outfile.write('{chr}\t{start}\t{end}\t{strand}\t{te}\t{orient}\t{reads}\t{mate}\n'.format(chr=chrom,
-                                                                                                              start=start,
-                                                                                                              end=end,
-                                                                                                              strand=strand,
-                                                                                                              te=te_name,
-                                                                                                              orient=te_strand,
-                                                                                                              reads=reads,
-                                                                                                              mate=mate))
+                        mates = mate
+                    outfile.write('{chr}\t{start}\t{end}\t{strand}\t{te}\t{orient}\t{ref}\t{reads}\t{mate}\n'.format(chr=chrom,
+                                                                                                                     start=start,
+                                                                                                                     end=end,
+                                                                                                                     strand=strand,
+                                                                                                                     te=te_name,
+                                                                                                                     orient=te_strand,
+                                                                                                                     ref='\t'.join(reference),
+                                                                                                                     reads=reads,
+                                                                                                                     mate=mates))
                     done = True
                     x += 1
                     readlist = []
+                    matelist = []
             else:
                 if readlist:
+                    matelist.append(mate)
+                    readlist.append(readname)
                     reads = ','.join(readlist)
+                    mates = ','.join(matelist)
                 else:
                     reads = readname
-                outfile.write('{chr}\t{start}\t{end}\t{strand}\t{te}\t{orient}\t{reads}\t{mate}\n'.format(chr=chrom,
-                                                                                                          start=start,
-                                                                                                          end=end,
-                                                                                                          strand=strand,
-                                                                                                          te=te_name,
-                                                                                                          orient=te_strand,
-                                                                                                          reads=reads,
-                                                                                                          mate=mate))
+                    mates = mate
+                outfile.write('{chr}\t{start}\t{end}\t{strand}\t{te}\t{orient}\t{ref}\t{reads}\t{mate}\n'.format(chr=chrom,
+                                                                                                                 start=start,
+                                                                                                                 end=end,
+                                                                                                                 strand=strand,
+                                                                                                                 te=te_name,
+                                                                                                                 orient=te_strand,
+                                                                                                                 ref='\t'.join(reference),
+                                                                                                                 reads=reads,
+                                                                                                                 mate=mates))
                 done = True
                 x += 1
                 readlist = []
+                matelist = []
                 if x >= i:
                     break
 
@@ -157,6 +170,7 @@ def annotate(collapse_file, insertion_file, id_file):
     Find insertion coordinates and TE orientation.
     """
     with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile, open(id_file, 'w+') as unique_id_file:
+        outfile.write('ins_chr\tins_start\tins_stop\tins_strand\tAGI\tID\tref_chr\tref_start\tref_stop\tref_strand\n')
         lines = []
         for i, l in enumerate(infile):
             lines.append(l)
@@ -170,51 +184,55 @@ def annotate(collapse_file, insertion_file, id_file):
             strand = line[3]
             te_name = line[4]
             orientation = line[5]
-            reads = line[6]
-            te_reads = line[7]
+            mate = line[12]  # should be a list in same order as read names
+            mate = mate.split(',')
+            te_reads = line[11]
             te_reads = te_reads.split(',')
-            pair = find_next(lines, i, x, chrom, strand, start, stop, te_name)
+            reference = [line[7], line[8], line[9], line[10]]  # reference chrom, start, stop, strand
+            pair = find_next(lines, i, x, int(chrom), strand, int(start), int(stop), te_name)
             if pair is False:
                 pass  # no reads at opposite end, do not include in annotation
             else:
                 pair_start = pair[0]
-                pair_reads = pair[1]
-                pair_reads = pair_reads.split(',')
-                te_reads = pair_reads + te_reads
-                outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{id}\n'.format(chr=chrom,
-                                                                                        start=stop,
-                                                                                        stop=pair_start,
-                                                                                        orient=orientation,
-                                                                                        name=te_name,
-                                                                                        id=ident))  # need to generate unique id
-                unique_id_file.write('>{id},{te},[{reads}]\n'.format(id=ident,
-                                                                     te=te_name,
-                                                                     reads=','.join(te_reads)))  # Can add consensus sequence later
+                pair_mates = pair[1]
+                next_read_names = pair[2]
+                mate = pair_mates + mate
+                te_reads = next_read_names + te_reads
+                outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{id}\t{ref}\n'.format(chr=chrom,
+                                                                                               start=stop,
+                                                                                               stop=pair_start,
+                                                                                               orient=orientation,
+                                                                                               name=te_name,
+                                                                                               id=ident,
+                                                                                               ref='\t'.join(reference)))
+                unique_id_file.write('>{id},{te},{reads},{mates}\n'.format(id=ident,
+                                                                           te=te_name,
+                                                                           reads='|'.join(te_reads),
+                                                                           mates='|'.join(mate)))  # Can add consensus sequence later
                 ident += 1
 
 
 # As file is processed top to bottom, sorted by coords, + will come up first. This will avoid identifying each insertion twice (once for each end)
 def find_next(lines, i, x, chrom, strand, start, stop, te_name):
     """
-    Find next read linked to same TE. Looks in 200 bp window.
+    Find next read linked to same TE. Looks in 50 bp window.
     """
     while True:
         line = lines[x+1]
         line = line.rsplit()
-        next_chrom = line[0]
+        next_chrom = int(line[0])
         next_start = int(line[1])
         next_stop = int(line[2])
         next_strand = line[3]
         next_te_name = line[4]
-        next_reads = line[6]
-        next_te_reads = line[7]
-        # this part needs work. May need to ajust window - is there any info on what happens to original seq when there is TE insertion?
-        if strand == '+' and stop < next_start + 200:
+        next_mate = line[11]
+        next_mate = next_mate.split(',')
+        next_te_reads = line[12]
+        next_te_reads = next_te_reads.split(',')
+        if strand != next_strand and te_name == next_te_name and chrom == next_chrom:
+            return next_start, next_te_reads, next_mate
+        elif stop + 50 < next_start:
             return False
-        elif strand == '-' and start > next_stop - 200:
-            return False
-        elif strand != next_strand and te_name == next_te_name:
-            return next_start, next_te_reads
         else:
             x += 1
             if x >= i:
