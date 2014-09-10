@@ -1,5 +1,5 @@
 from subprocess import call
-
+from sys import argv
 
 """
 1. Collapse overlapping coordinates mapping to the same TE
@@ -18,6 +18,25 @@ from subprocess import call
         - references read names making up annotation
         - can be used to compare between accessions
 """
+
+
+def checkArgs(arg1, arg2):
+    """
+    arg1 is short arg, eg h
+    arg2 is long arg, eg host
+    """
+    args = argv[1:]
+    if arg1 in args:
+        index = args.index(arg1)+1
+        variable = args[index]
+        return variable
+    elif arg2 in args:
+        index = args.index(arg2)+1
+        variable = args[index]
+        return variable
+    else:
+        variable = raw_input("\nEnter {arg2}: ".format(arg2=arg2))
+        return variable
 
 
 def overlap(start1, stop1, start2, stop2):
@@ -184,7 +203,7 @@ def annotate(collapse_file, insertion_file, id_file):
             strand = line[3]
             te_name = line[4]
             orientation = line[5]
-            mate = line[12]  # should be a list in same order as read names
+            mate = line[12]
             mate = mate.split(',')
             te_reads = line[11]
             te_reads = te_reads.split(',')
@@ -239,7 +258,8 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
                 return False
 
 
-reorder('{b}.bed'.format(b=accession_name, 'ordered_{b}.bed'.format(b=accession_name)))
-call('sort -n1,1 -nk2,2 ordered_{b}.bed > sorted_{b}.bed'.format(b=accession_name), shell=True)
-merge('sorted_{b}.bed'.format(b=accession_name), 'merged_{b}.bed'.format(b=accession_name))
-annotate('merged_{b}.bed'.format(b=accession_name), 'insertions_{b}.bed'.format(b=accession_name))
+accession_name = checkArgs('n', 'name')
+reorder('{b}_TE_intersections.bed'.format(b=accession_name, 'intersections_ordered_{b}.bed'.format(b=accession_name)))
+call('sort -n1,1 -nk2,2 intersections_ordered_{b}.bed > intersections_sorted_{b}.bed'.format(b=accession_name), shell=True)
+merge('intersections_sorted_{b}.bed'.format(b=accession_name), 'merged_{b}.bed'.format(b=accession_name))
+annotate('merged_{b}.bed'.format(b=accession_name), 'insertions_{b}.bed'.format(b=accession_name), 'id_{b}.fa'.format(b=accession_name))
