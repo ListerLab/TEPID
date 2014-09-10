@@ -260,6 +260,6 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
 
 accession_name = checkArgs('n', 'name')
 reorder('{b}_TE_intersections.bed'.format(b=accession_name), 'intersections_ordered_{b}.bed'.format(b=accession_name))
-call('sort -n1,1 -nk2,2 intersections_ordered_{b}.bed > intersections_sorted_{b}.bed'.format(b=accession_name), shell=True)
+call('sort -k1,1 -nk2,2 intersections_ordered_{b}.bed > intersections_sorted_{b}.bed'.format(b=accession_name), shell=True)
 merge('intersections_sorted_{b}.bed'.format(b=accession_name), 'merged_{b}.bed'.format(b=accession_name))
 annotate('merged_{b}.bed'.format(b=accession_name), 'insertions_{b}.bed'.format(b=accession_name), 'id_{b}.fa'.format(b=accession_name))
