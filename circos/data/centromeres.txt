@@ -1,0 +1,15 @@
+chr1    0   14511722    10   fill_color=acen
+chr1	14511722	14803970  15   fill_color=acen
+chr1    14803970    30427617    10   fill_color=acen
+chr2    0   3611839 10 fill_color=acen
+chr2	3611839    3633423 15   fill_color=acen
+chr2    3633423 19698289    10 fill_color=acen
+chr3    0   13589757    10 fill_color=acen
+chr3	13589757	13867121  15   fill_color=acen
+chr3    13867121    23459830    10 fill_color=acen
+chr4    0   3133664 10 fill_color=acen
+chr4	3133664	3133674    15  fill_color=acen
+chr4    3133674 18585056    10 fill_color=acen
+chr5    0   11194538    10 fill_color=acen
+chr5	11194538	11723210  15   fill_color=acen
+chr5    11723210    26975502 10    fill_color=acen
