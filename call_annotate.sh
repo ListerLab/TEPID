@@ -14,7 +14,7 @@ for directory in ./*; do
         cd $directory
         for myfile in $(ls -d *intersections.bed);do
         	fname=(${myfile//_TE_intersections.bed/ })
-            python "${path}/annotate.py" n $fname
+            python "${path}annotate.py" n $fname
             rm "intersections_ordered_${fname}.bed"
         done
         cd ..
