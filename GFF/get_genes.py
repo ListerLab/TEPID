@@ -2,21 +2,27 @@ from subprocess import call
 
 get_genes = "wget ftp://ftp.arabidopsis.org//Maps/gbrowse_data/TAIR10/TAIR10_GFF3_genes.gff"
 get_tes = "wget ftp://ftp.arabidopsis.org//Genes/TAIR9_genome_release/TAIR9_Transposable_Elements.txt"
-remove_genes = "rm TAIR10_GFF3_genes.gff temp_genes.bed"
+
+remove_genes = "rm TAIR10_GFF3_genes.gff filtered_genes.temp TAIR10_genes_temp.bed uniq.temp"
 remove_tes = "rm TAIR9_Transposable_Elements.txt temp_TE.bed"
+
+sort_genes = "sort -k1,1 -nk2,2 filtered_genes.temp > TAIR10_genes_temp.bed"
+sort_tes = "sort -k1,1 -nk2,2 temp_TE.bed > TAIR9_TE.bed"
 
 call(get_genes, shell=True)
 call(get_tes, shell=True)
 
-with open('TAIR10_GFF3_genes.gff', 'r') as infile, open('temp_genes.bed', 'w+') as outfile:
+with open('TAIR10_GFF3_genes.gff', 'r') as infile, open('filtered_genes.temp', 'w+') as outfile:
     for line in infile:
         line = line.rsplit()
         chrom = line[0]
+        feature = line[2]
         if chrom == 'ChrM' or chrom == 'ChrC':
+            pass
+        elif feature == 'chromosome' or feature == 'CDS':
             pass
         else:
             chrom = chrom.strip('Chr')
-            feature = line[2]
             strand = line[6]
             start = line[3]
             stop = line[4]
@@ -30,6 +36,41 @@ with open('TAIR10_GFF3_genes.gff', 'r') as infile, open('temp_genes.bed', 'w+') 
                                                                                         strand=strand,
                                                                                         feature=feature,
                                                                                         name=AGI))
+
+call(sort_genes, shell=True)
+call("uniq TAIR10_genes_temp.bed > uniq.temp", shell=True)
+
+with open('uniq.temp', 'r') as infile, open('TAIR10_genes.bed', 'w+') as outfile:
+    lines = []
+    for i, l in enumerate(infile):
+        lines.append(l)
+    for x in range(i):
+        line = lines[x]
+        outfile.write(line)
+        line = line.rsplit()
+        chrom = line[0]
+        feature = line[4]
+        stop = line[2]
+        strand = line[3]
+        AGI = line[5]
+        if x+1 <= i and feature == 'exon':
+            nextline = lines[x+1]
+            nextline = nextline.rsplit()
+            nextstart = nextline[1]
+            nextfeature = nextline[4]
+            nextchrom = nextline[0]
+            if nextfeature == 'exon' and nextchrom == chrom:
+                outfile.write("{ch}\t{start}\t{stop}\t{strand}\t{feature}\t{name}\n".format(ch=chrom,
+                                                                                            start=stop,
+                                                                                            stop=nextstart,
+                                                                                            strand=strand,
+                                                                                            feature='intron',
+                                                                                            name=AGI))
+            else:
+                pass
+        else:
+            pass
+
 
 with open('TAIR9_Transposable_Elements.txt', 'r') as infile, open('temp_TE.bed', 'w+') as outfile:
     for line in infile:
@@ -59,9 +100,9 @@ with open('TAIR9_Transposable_Elements.txt', 'r') as infile, open('temp_TE.bed',
                                                                                                       family=family,
                                                                                                       superfamily=superfamily))
 
-sort_genes = "sort -k1,1 -nk2,2 temp_genes.bed > TAIR10_genes.bed"
+sort_genes = "sort -k1,1 -nk2,2 filtered_genes.temp > TAIR10_genes_temp.bed"
 sort_tes = "sort -k1,1 -nk2,2 temp_TE.bed > TAIR9_TE.bed"
-call(sort_genes, shell=True)
+
 call(sort_tes, shell=True)
 call(remove_genes, shell=True)
 call(remove_tes, shell=True)
