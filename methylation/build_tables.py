@@ -1,6 +1,7 @@
 # usage:
 # python build_tables.py h <host> u <username> p <password> d <database>
 
+import os
 from sys import argv
 import MySQLdb
 
@@ -56,24 +57,24 @@ def add_table(host, username, password, database, fname):
                 mc = int(line[4])
                 h = int(line[5])
                 uc = h - mc
-                add_data = """insert into mC_calls_{name} (assembly, position, strand, class, mc, h, uc) values ({chrom}, {pos}, {strand}, {class}, {mc}, {h}, {uc});""".format(name=name,
-                                                                                                                                                                                chrom=chrom,
-                                                                                                                                                                                pos=pos,
-                                                                                                                                                                                strand=strand,
-                                                                                                                                                                                class=mc_class,
-                                                                                                                                                                                mc=mc,
-                                                                                                                                                                                h=h,
-                                                                                                                                                                                uc=uc)
+                add_data = """insert into mC_calls_{name} (assembly, position, strand, class, mc, h, uc) values ({chrom}, {pos}, '{strand}', '{mc_class}', {mc}, {h}, {uc});""".format(name=accession_name,
+                                                                                                                                                                                       chrom=chrom,
+                                                                                                                                                                                       pos=pos,
+                                                                                                                                                                                       strand=strand,
+                                                                                                                                                                                       mc_class=mc_class,
+                                                                                                                                                                                       mc=mc,
+                                                                                                                                                                                       h=h,
+                                                                                                                                                                                       uc=uc)
                 cursor.execute(add_data)
         cursor.close()
         link.close()
 
 
-host = checkArgs(h, host)
-username = checkArgs(u, user)
-password = checkArgs(p, password)
-database = checkArgs(d, database)
+host = checkArgs('h', 'host')
+username = checkArgs('u', 'user')
+password = checkArgs('p', 'password')
+database = checkArgs('d', 'database')
 
 for files in os.listdir('.'):
-    if files.endswith(".tsv"):
+    if files.startswith("GSM"):
         add_table(host, username, password, database, files)
