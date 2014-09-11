@@ -1,4 +1,5 @@
 # usage:
+# run from directory containing mC_calls files
 # python build_tables.py h <host> u <username> p <password> d <database>
 
 import os
@@ -53,7 +54,10 @@ def add_table(host, username, password, database, fname):
                 pos = int(line[1])
                 strand = line[2]
                 mc_class = line[3]
-                mc_class = mc_class[0] + mc_class[1:].replace('A', 'H').replace('T', 'H').replace('C', 'H')
+                if mc_class[:2] == 'CG':
+                    mc_class = 'CG'
+                else:
+                    mc_class = mc_class[0] + mc_class[1:].replace('A', 'H').replace('T', 'H').replace('C', 'H')
                 mc = int(line[4])
                 h = int(line[5])
                 uc = h - mc
