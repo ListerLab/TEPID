@@ -248,7 +248,7 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
         next_mate = next_mate.split(',')
         next_te_reads = line[12]
         next_te_reads = next_te_reads.split(',')
-        if strand != next_strand and te_name == next_te_name and chrom == next_chrom:
+        if strand != next_strand and te_name == next_te_name and chrom == next_chrom and stop <= next_start:
             return next_start, next_te_reads, next_mate
         elif stop + 50 < next_start:
             return False
