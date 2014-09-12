@@ -9,6 +9,8 @@ with open('SraRunInfo.csv', 'r') as accessions:
     for line in lines:
         run = line[0]
         name = line[29]
+        name = name.replace('(', '_')
+        name = name.replace(')', '_')
         accession_names[run] = name
 
 for dirs in os.listdir('.'):
