@@ -17,8 +17,8 @@ for dirs in os.listdir('.'):
         os.chdir(accession_names[dirs])
         for files in os.listdir('.'):
             if files.endswith('_TE_intersections.bed'):
-                newname = files.split('_TE_intersections.bed')
-                acc_name = accession_names[dirs] + '_' + newname[1]
+                newname = files.split('_TE')
+                acc_name = accession_names[dirs] + '_TE' + newname[1]
             elif files.endswith('.tgz'):
                 newname = files.split('.')
                 acc_name = accession_names[dirs] + '.' + newname[1]
