@@ -256,9 +256,7 @@ for dirs in os.listdir('.'):
             call('sort -k1,1 -nk2,2 intersections_ordered_{d}.bed > intersections_sorted_{d}.bed'.format(d=dirs), shell=True)
             merge('intersections_sorted_{d}.bed'.format(d=dirs), 'merged_{d}.bed'.format(d=dirs))
             annotate('merged_{d}.bed'.format(d=dirs), 'insertions_{d}.bed'.format(d=dirs), 'id_{d}.fa'.format(d=dirs))
-            call("""sed 1d insertions_{d}.bed > headerless""".format(d=dirs), shell=True)
-            call("""awk 'BEGIN {FS=OFS="\t"} {print "chr"$1,$2,$3,"chr"$7,$8,$9}' headerless > circos_{d}.txt""".format(d=dirs), shell=True)
-            call('rm intersections_ordered_{d}.bed headerless'.format(d=dirs), shell=True)
+            call('rm intersections_ordered_{d}.bed'.format(d=dirs), shell=True)
             os.chdir('..')
         else:
             os.chdir('..')
