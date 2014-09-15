@@ -122,6 +122,8 @@ def merge(sorted_file, output_file):
                         pass
                     x += 1
                     done = False
+                    if x >= i:
+                        break
                 else:
                     if readlist:
                         matelist.append(mate)
@@ -144,6 +146,8 @@ def merge(sorted_file, output_file):
                     x += 1
                     readlist = []
                     matelist = []
+                    if x >= i:
+                        break
             else:
                 if readlist:
                     matelist.append(mate)
@@ -246,7 +250,7 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
 for dirs in os.listdir('.'):
     if os.path.isdir(dirs) is True:
         os.chdir(dirs)
-        if os.path.isfile('{d}_TE_intersections.bed'.format(d=dirs)) is True:
+        if os.path.isfile('{d}_TE_intersections.bed'.format(d=dirs)) is True and os.path.isfile('insertions_{d}.bed'.format(d=dirs)) is False:
             reorder('{b}_TE_intersections.bed'.format(b=dirs), 'intersections_ordered_{b}.bed'.format(b=dirs))
             call('sort -k1,1 -nk2,2 intersections_ordered_{b}.bed > intersections_sorted_{b}.bed'.format(b=dirs), shell=True)
             merge('intersections_sorted_{b}.bed'.format(b=dirs), 'merged_{b}.bed'.format(b=dirs))
