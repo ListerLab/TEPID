@@ -115,7 +115,7 @@ def merge(sorted_file, output_file):
                     readlist.append(next_read_name)
                     matelist.append(next_mate)
                     if start > next_dna_start:
-                        start = next_dna_strand
+                        start = next_dna_start
                     elif end < next_dna_end:
                         end = next_dna_end
                     else:
@@ -251,6 +251,7 @@ for dirs in os.listdir('.'):
     if os.path.isdir(dirs) is True:
         os.chdir(dirs)
         if os.path.isfile('{d}_TE_intersections.bed'.format(d=dirs)) is True and os.path.isfile('insertions_{d}.bed'.format(d=dirs)) is False:
+            print dirs
             reorder('{b}_TE_intersections.bed'.format(b=dirs), 'intersections_ordered_{b}.bed'.format(b=dirs))
             call('sort -k1,1 -nk2,2 intersections_ordered_{b}.bed > intersections_sorted_{b}.bed'.format(b=dirs), shell=True)
             merge('intersections_sorted_{b}.bed'.format(b=dirs), 'merged_{b}.bed'.format(b=dirs))
