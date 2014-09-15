@@ -244,7 +244,7 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
                 return False
 
 for dirs in os.listdir('.'):
-    if os.walk.isdir(dirs) is True:
+    if os.path.isdir(dirs) is True:
         os.chdir(dirs)
         reorder('{b}_TE_intersections.bed'.format(b=dirs), 'intersections_ordered_{b}.bed'.format(b=dirs))
         call('sort -k1,1 -nk2,2 intersections_ordered_{b}.bed > intersections_sorted_{b}.bed'.format(b=dirs), shell=True)
