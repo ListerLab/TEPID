@@ -1,3 +1,6 @@
+# usage:
+# python annotate.py n <accession_name>
+
 from subprocess import call
 from sys import argv
 
@@ -9,7 +12,7 @@ from sys import argv
     - reads are on different strands
     - reads are close together
 3. Define orientation (strand)
-    - which read maps to which end of TE
+    - if both mates map to same strand, orientation is opposite to that of reference
 4. Write new file with:
     - insertion coordinates
     - orientation of TE
