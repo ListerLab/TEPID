@@ -252,11 +252,13 @@ for dirs in os.listdir('.'):
         os.chdir(dirs)
         if os.path.isfile('{d}_TE_intersections.bed'.format(d=dirs)) is True and os.path.isfile('insertions_{d}.bed'.format(d=dirs)) is False:
             print dirs
-            reorder('{b}_TE_intersections.bed'.format(b=dirs), 'intersections_ordered_{b}.bed'.format(b=dirs))
-            call('sort -k1,1 -nk2,2 intersections_ordered_{b}.bed > intersections_sorted_{b}.bed'.format(b=dirs), shell=True)
-            merge('intersections_sorted_{b}.bed'.format(b=dirs), 'merged_{b}.bed'.format(b=dirs))
-            annotate('merged_{b}.bed'.format(b=dirs), 'insertions_{b}.bed'.format(b=dirs), 'id_{b}.fa'.format(b=dirs))
-            call('rm intersections_ordered_{b}.bed'.format(b=dirs), shell=True)
+            reorder('{d}_TE_intersections.bed'.format(d=dirs), 'intersections_ordered_{d}.bed'.format(d=dirs))
+            call('sort -k1,1 -nk2,2 intersections_ordered_{d}.bed > intersections_sorted_{d}.bed'.format(d=dirs), shell=True)
+            merge('intersections_sorted_{d}.bed'.format(d=dirs), 'merged_{d}.bed'.format(d=dirs))
+            annotate('merged_{d}.bed'.format(d=dirs), 'insertions_{d}.bed'.format(d=dirs), 'id_{d}.fa'.format(d=dirs))
+            call("""sed 1d insertions_{d}.bed > headerless""".format(d=dirs), shell=True)
+            call("""awk 'BEGIN {FS=OFS="\t"} {print "chr"$1,$2,$3,"chr"$7,$8,$9}' headerless > circos_{d}.txt""".format(d=dirs), shell=True)
+            call('rm intersections_ordered_{d}.bed headerless'.format(d=dirs), shell=True)
             os.chdir('..')
         else:
             os.chdir('..')
