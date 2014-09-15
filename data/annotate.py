@@ -246,11 +246,15 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
 for dirs in os.listdir('.'):
     if os.path.isdir(dirs) is True:
         os.chdir(dirs)
-        reorder('{b}_TE_intersections.bed'.format(b=dirs), 'intersections_ordered_{b}.bed'.format(b=dirs))
-        call('sort -k1,1 -nk2,2 intersections_ordered_{b}.bed > intersections_sorted_{b}.bed'.format(b=dirs), shell=True)
-        merge('intersections_sorted_{b}.bed'.format(b=dirs), 'merged_{b}.bed'.format(b=dirs))
-        annotate('merged_{b}.bed'.format(b=dirs), 'insertions_{b}.bed'.format(b=dirs), 'id_{b}.fa'.format(b=dirs))
-        call('rm intersections_ordered_{b}'.format(b=dirs))
-        os.chdir('..')
+        # need to check if intersections file is in dir here, pass if not
+        if os.path.isfile('{d}_TE_intersections.bed') is True:
+            reorder('{b}_TE_intersections.bed'.format(b=dirs), 'intersections_ordered_{b}.bed'.format(b=dirs))
+            call('sort -k1,1 -nk2,2 intersections_ordered_{b}.bed > intersections_sorted_{b}.bed'.format(b=dirs), shell=True)
+            merge('intersections_sorted_{b}.bed'.format(b=dirs), 'merged_{b}.bed'.format(b=dirs))
+            annotate('merged_{b}.bed'.format(b=dirs), 'insertions_{b}.bed'.format(b=dirs), 'id_{b}.fa'.format(b=dirs))
+            call('rm intersections_ordered_{b}'.format(b=dirs))
+            os.chdir('..')
+        else:
+            chdir('..')
     else:
         pass
