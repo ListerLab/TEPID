@@ -1,5 +1,6 @@
 # Finds TE insertions that are in Col-0 but not other accessions.
-# Run from directory containing all accession subdirectories with mapped data.
+# Run from directory containing all accession subdirectories with mapped data:
+# $ python deletions.py g <path/to/TE_gff>
 # Note that this script is quite slow.
 # Insertions in Col-0 but not PE-sequenced accesions will be evident by discordant mate pairs that:
 #  1. map to the same chromosome
@@ -9,6 +10,26 @@
 
 import os
 from subprocess import call
+from sys import argv
+
+
+def checkArgs(arg1, arg2):
+    """
+    arg1 is short arg, eg h
+    arg2 is long arg, eg host
+    """
+    args = argv[1:]
+    if arg1 in args:
+        index = args.index(arg1)+1
+        variable = args[index]
+        return variable
+    elif arg2 in args:
+        index = args.index(arg2)+1
+        variable = args[index]
+        return variable
+    else:
+        variable = raw_input("\nEnter {arg2}: ".format(arg2=arg2))
+        return variable
 
 
 def find_deletions(bedfile, TEs_dict, accession_name):
@@ -82,7 +103,7 @@ def overlap(start1, stop1, start2, stop2):
         else:
             pass
 
-te_file = 'TAIR9_TE.bed'
+te_file = checkArgs(p, path)
 
 with open(te_file, 'r') as infile:
     TEs_dict = {}
