@@ -21,6 +21,7 @@ def create_master_dict(master, accession_name):
                 master_insertions[line[5]] = {'ins_chrom': line[0], 'ins_start': line[1], 'ins_end': line[2],
                                               'ins_strand': line[3], 'agi': line[4], 'ref_chr': line[6],
                                               'ref_start': line[7], 'ref_end': line[8], "ref_strand": line[9], 'accessions': [accession_name]}
+        return master_insertions
 
 
 def merge_insertions(master_dict, ins_file, accession_name):
@@ -57,7 +58,7 @@ for dirs in os.listdir('.'):
             try:
                 master_insertions
             except NameError:
-                create_master_dict('insertions_{d}.bed'.format(d=dirs), dirs)
+                master_insertions = create_master_dict('insertions_{d}.bed'.format(d=dirs), dirs)
             else:
                 merge_insertions(master_insertions, 'insertions_{d}.bed'.format(d=dirs))
             os.chdir('..')
