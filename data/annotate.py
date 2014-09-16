@@ -256,7 +256,7 @@ for dirs in os.listdir('.'):
             call('sort -k1,1 -nk2,2 intersections_ordered_{d}.bed > intersections_sorted_{d}.bed'.format(d=dirs), shell=True)
             merge('intersections_sorted_{d}.bed'.format(d=dirs), 'merged_{d}.bed'.format(d=dirs))
             annotate('merged_{d}.bed'.format(d=dirs), 'insertions_{d}.bed'.format(d=dirs), 'id_{d}.fa'.format(d=dirs), dirs)
-            call('rm intersections_ordered_{d}.bed'.format(d=dirs), shell=True)
+            call('rm intersections_ordered_{d}.bed merged_{d}.bed'.format(d=dirs), shell=True)
             os.chdir('..')
         else:
             os.chdir('..')

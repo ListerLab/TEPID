@@ -96,7 +96,7 @@ with open('insertions.bed', 'w+') as outfile:
                                                                                                                                                                      ref_start=value['ref_start'],
                                                                                                                                                                      ref_end=value['ref_end'],
                                                                                                                                                                      ref_strand=value['ref_strand'],
-                                                                                                                                                                     id=value['ident'],
+                                                                                                                                                                     id=key,
                                                                                                                                                                      accessions=','.join(accessions)))
 
 call("sort -k1,1 -nk2,2 insertions.bed > sorted_insertions.bed", shell=True)
