@@ -174,9 +174,9 @@ def merge(sorted_file, output_file):
                     break
 
 
-def annotate(collapse_file, insertion_file, id_file):
+def annotate(collapse_file, insertion_file, id_file, accession_name):
     """
-    Find insertion coordinates and TE orientation.
+    Find insertion coordinates and TE orientation. Adds unique ID: <accession_name>_<number>
     """
     with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile, open(id_file, 'w+') as unique_id_file:
         outfile.write('ins_chr\tins_start\tins_stop\tins_strand\tAGI\tID\tref_chr\tref_start\tref_stop\tref_strand\n')
@@ -212,9 +212,9 @@ def annotate(collapse_file, insertion_file, id_file):
                                                                                                stop=pair_start,
                                                                                                orient=orientation,
                                                                                                name=te_name,
-                                                                                               id=ident,
+                                                                                               id=accession_name + '_' + str(ident),
                                                                                                ref='\t'.join(reference)))
-                unique_id_file.write('>{id},{te},{reads},{mates}\n'.format(id=ident,
+                unique_id_file.write('>{id},{te},{reads},{mates}\n'.format(id=accession_name + '_' + str(ident),
                                                                            te=te_name,
                                                                            reads='|'.join(te_reads),
                                                                            mates='|'.join(mate)))  # Can add consensus sequence later
@@ -255,7 +255,7 @@ for dirs in os.listdir('.'):
             reorder('{d}_TE_intersections.bed'.format(d=dirs), 'intersections_ordered_{d}.bed'.format(d=dirs))
             call('sort -k1,1 -nk2,2 intersections_ordered_{d}.bed > intersections_sorted_{d}.bed'.format(d=dirs), shell=True)
             merge('intersections_sorted_{d}.bed'.format(d=dirs), 'merged_{d}.bed'.format(d=dirs))
-            annotate('merged_{d}.bed'.format(d=dirs), 'insertions_{d}.bed'.format(d=dirs), 'id_{d}.fa'.format(d=dirs))
+            annotate('merged_{d}.bed'.format(d=dirs), 'insertions_{d}.bed'.format(d=dirs), 'id_{d}.fa'.format(d=dirs), dirs)
             call('rm intersections_ordered_{d}.bed'.format(d=dirs), shell=True)
             os.chdir('..')
         else:
