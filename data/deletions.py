@@ -103,7 +103,7 @@ def overlap(start1, stop1, start2, stop2):
         else:
             pass
 
-te_file = checkArgs(p, path)
+te_file = checkArgs('p', 'path')
 
 with open(te_file, 'r') as infile:
     TEs_dict = {}
