@@ -27,7 +27,7 @@ from sys import argv
 
 def overlap(start1, stop1, start2, stop2):
     """returns True if sets of coordinates overlap. Assumes coordinates are on same chromosome"""
-    for y in xrange(start2, stop2):
+    for y in xrange(start2, stop2+1):
         if start1 <= y <= stop1:
             return True
         else:

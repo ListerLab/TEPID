@@ -4,7 +4,7 @@ from subprocess import call
 
 def overlap(start1, stop1, start2, stop2):
     """returns True if sets of coordinates overlap. Assumes coordinates are on same chromosome"""
-    for y in xrange(start2, stop2):
+    for y in xrange(start2, stop2+1):
         if start1 <= y <= stop1:
             return True
         else:
@@ -13,15 +13,17 @@ def overlap(start1, stop1, start2, stop2):
 
 def create_master_dict(master, accession_name):
     with open(master, 'r') as masterfile:
+        x = 0
         master_insertions = {}
         for line in masterfile:
             line = line.rsplit()
             if line[0] == 'ins_chr':
                 pass
             else:
-                master_insertions[line[5]] = {'ins_chrom': int(line[0]), 'ins_start': int(line[1]), 'ins_end': int(line[2]),
-                                              'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[6]),
-                                              'ref_start': int(line[7]), 'ref_end': int(line[8]), "ref_strand": line[9], 'accessions': [accession_name]}
+                master_insertions[x] = {'ins_chrom': int(line[0]), 'ins_start': int(line[1]), 'ins_end': int(line[2]),
+                                        'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[6]), 'ident': line[5],
+                                        'ref_start': int(line[7]), 'ref_end': int(line[8]), "ref_strand": line[9], 'accessions': [accession_name]}
+                x += 1
         return master_insertions
 
 
@@ -42,26 +44,38 @@ def merge_insertions(master_dict, ins_file, accession_name):
                 ref_start = int(line[7])
                 ref_end = int(line[8])
                 ref_strand = line[9]
-                for key, value in master_dict.iteritems():
-                    if value['ins_chrom'] == ins_chrom and value['agi'] == agi and ref_chrom == value['ref_chrom'] and ref_start == value['ref_start']:
-                        if overlap(value['ins_start'], value['ins_end'], ins_start, ins_end) is True:
-                            # need to do something with unique id
-                            value['accessions'].append(accession_name)
-                            # value['ident'].append(ident)
+                i = len(master_dict)-1  # number of items in dictionary
+                x = 0
+                while x <= i:
+                    # find out if there is another insertion the same in another accession: same insertion chromosome, same TE
+                    if master_dict[x]['ins_chrom'] == ins_chrom and master_dict[x]['agi'] == agi and ref_chrom == master_dict[x]['ref_chrom'] and ref_start == master_dict[x]['ref_start']:
+                        # does it overlap with the insertion coordinated for current accession
+                        if overlap(master_dict[x]['ins_start'], master_dict[x]['ins_end'], ins_start, ins_end) is True:
+                            # same insertion, append accession name to list for that insertion
+                            master_dict[x]['accessions'].append(accession_name)
+                            break
                             # refine insertion coordinates
-                            if value['ins_end'] > ins_start > value['ins_start']:
-                                value['ins_start'] = ins_start
-                            elif value['ins_start'] < ins_end < value['ins_end']:
-                                value['ins_end'] = ins_end
+                            if master_dict['ins_end'] > ins_start > master_dict['ins_start']:
+                                master_dict['ins_start'] = ins_start
+                            elif master_dict['ins_start'] < ins_end < master_dict['ins_end']:
+                                master_dict['ins_end'] = ins_end
                             else:
                                 pass
+                        elif x == i:
+                            master_dict[x+1] = {'ins_chrom': int(line[0]), 'ins_start': int(line[1]), 'ins_end': int(line[2]),
+                                                'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[6]), 'ident': ident,
+                                                'ref_start': int(line[7]), 'ref_end': int(line[8]), "ref_strand": line[9], 'accessions': [accession_name]}
+                            break
                         else:
-                            # still need to add insertion, but as new entry (not shared by accessions processed so far)
-                            # this is where having a unique id is essential
-                            master_insertions[ident] = {'ins_chrom': int(line[0]), 'ins_start': int(line[1]), 'ins_end': int(line[2]),
-                                                        'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[6]),
-                                                        'ref_start': int(line[7]), 'ref_end': int(line[8]), "ref_strand": line[9], 'accessions': [accession_name]}
+                            x += 1
+                            pass
+                    elif x == i:  # end of dictionary and still not found
+                        master_dict[x+1] = {'ins_chrom': int(line[0]), 'ins_start': int(line[1]), 'ins_end': int(line[2]),
+                                            'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[6]), 'ident': ident,
+                                            'ref_start': int(line[7]), 'ref_end': int(line[8]), "ref_strand": line[9], 'accessions': [accession_name]}
+                        break
                     else:
+                        x += 1
                         pass
 
 
@@ -75,6 +89,7 @@ for dirs in os.listdir('.'):
             except NameError:
                 master_insertions = create_master_dict('insertions_{d}.bed'.format(d=dirs), dirs)
             else:
+                print len(master_insertions)
                 merge_insertions(master_insertions, 'insertions_{d}.bed'.format(d=dirs), dirs)
             os.chdir('..')
         else:
@@ -97,8 +112,8 @@ with open('insertions.bed', 'w+') as outfile:
                                                                                                                                                                      ref_start=value['ref_start'],
                                                                                                                                                                      ref_end=value['ref_end'],
                                                                                                                                                                      ref_strand=value['ref_strand'],
-                                                                                                                                                                     id=key,
+                                                                                                                                                                     id=value['ident'],
                                                                                                                                                                      accessions=','.join(accessions)))
 
 call("sort -k1,1 -nk2,2 insertions.bed > sorted_insertions.bed", shell=True)
-call("""awk 'BEGIN {FS=OFS="\t"} {print "chr"$1,$2,$3,"chr"$6,$7,$8}' sorted_insertions.bed > circos_all.txt""", shell=True)
+call("""awk 'BEGIN {FS=OFS="\t"} {print "chr"$6,$7,$8,"chr"$1,$2,$3}' sorted_insertions.bed > circos_all.txt""", shell=True)
