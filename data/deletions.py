@@ -37,7 +37,7 @@ def find_deletions(bedfile, TEs_dict, accession_name):
     Identifies TE insertions that are in Col-0 but not in other accessions.
     Some bias towards long TEs due to parameters for identifying discordant reads.
     """
-    with open(bedfile, 'r') as bed, open('deletions_{a}.bed'.format(a=accession_name), 'w+') as outfile:
+    with open(bedfile, 'r') as bed, open('deletions_temp_{a}.bed'.format(a=accession_name), 'w+') as outfile:
         x = 0
         for line in bed:
             line = line.rsplit()
@@ -53,20 +53,16 @@ def find_deletions(bedfile, TEs_dict, accession_name):
             if chr_1 == chr_2 and strand_1 != strand_2:
                 TE = te_between(chr_1, end_1, start_2, TEs_dict)
                 if TE is not False:
-                    te_length = abs(TE['start'] - TE['stop'])
-                    distance = abs(end_1 - start_2)
-                    if te_length <= distance:
-                        # write accession names that have the 'deletion'. Later can merge these and change to which have insertion (ie not the 'deletion')
-                        outfile.write("{c}\t{s}\t{e}\t{st}\t{n}\t{c}\t{s}\t{e}\t{id}\t{a}\n".format(c=TE['chrom'],
-                                                                                                    s=TE['start'],
-                                                                                                    e=TE['stop'],
-                                                                                                    st=TE['strand'],
-                                                                                                    n=TE['name'],
-                                                                                                    id='del_' + accession_name + str(x),
-                                                                                                    a=accession_name))
-                        x += 1
-                    else:
-                        pass
+                    # write accession names that have the 'deletion'. Later can merge these and change to which have insertion (ie not the 'deletion')
+                    outfile.write("{id}\t{r}\t{c}\t{s}\t{e}\t{st}\t{n}\t{c}\t{s}\t{e}\t{a}\n".format(c=TE['chrom'],
+                                                                                                     s=TE['start'],
+                                                                                                     e=TE['stop'],
+                                                                                                     r=read,
+                                                                                                     st=TE['strand'],
+                                                                                                     n=TE['name'],
+                                                                                                     id='del_' + accession_name + str(x),
+                                                                                                     a=accession_name))
+                    x += 1
                 else:
                     pass
             else:
@@ -79,10 +75,15 @@ def te_between(chrom, start, stop, TEs_dict):
     If there is a TE between these coordinates in the Col-0 reference, return dict containing chrom, start, stop, TE name.
     Else return False.
     """
-    for key, value in TEs_dict.items():
-        if int(value['chrom']) == chrom:
-            if overlap(int(value['start']), int(value['stop']), start, stop) is True:
-                return {'name': key, 'chrom': int(value['chrom']), 'start': int(value['start']), 'stop': int(value['stop']), 'strand': value['strand']}
+    for key, value in TEs_dict.iteritems():
+        if value['chrom'] == chrom:
+            if overlap(value['start'], value['stop'], start, stop) is True:
+                te_length = abs(value['stop'] - value['start'])
+                distance = abs(stop - start)
+                if te_length <= distance and (te_length + 500) > distance:  # should limit to gaps only just big enough for a TE
+                    return {'name': key, 'chrom': value['chrom'], 'start': value['start'], 'stop': value['stop'], 'strand': value['strand']}
+                else:
+                    pass
             else:
                 pass
         else:
@@ -109,7 +110,7 @@ with open(te_file, 'r') as infile:
     TEs_dict = {}
     for line in infile:
         line = line.rsplit()
-        TEs_dict[line[4]] = {'chrom': line[0], 'start': line[1], 'stop': line[2], 'strand': line[3], 'family': line[4], 'superfamily': line[6]}
+        TEs_dict[line[4]] = {'chrom': int(line[0]), 'start': int(line[1]), 'stop': int(line[2]), 'strand': line[3], 'family': line[4], 'superfamily': line[6]}
 
 for dirs in os.listdir('.'):
     if os.path.isdir(dirs) is True:
@@ -117,8 +118,10 @@ for dirs in os.listdir('.'):
         if os.path.isfile('{d}.bed'.format(d=dirs)) is True:
             print dirs
             find_deletions('{d}.bed'.format(d=dirs), TEs_dict, dirs)
-            call("sort -k1,1 -nk2,2 deletions_{d}.bed > sorted_deletions_{d}.bed".format(d=dirs), shell=True)
-            call("rm deletions_{d}.bed".format(d=dirs))
+            call("sort -k3,1 -nk4,2 deletions_temp_{d}.bed > sorted_deletions_{d}.bed".format(d=dirs), shell=True)
+            call("uniq -f 2 sorted_deletions_{d}.bed > uniq_{d}.bed".format(d=dirs), shell=True)
+            call("""awk 'BEGIN {FS=OFS="\t"} {print $3,$4,$5,$6,$7,$8,$9,$10,$11,$1,$2}' uniq_{d}.bed > deletions_{d}.bed""".format(d=dirs), shell=True)
+            call("rm deletions_temp_{d}.bed sorted_deletions_{d}.bed uniq_{d}.bed".format(d=dirs), shell=True)
             os.chdir('..')
         else:
             os.chdir('..')
