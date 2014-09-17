@@ -1,6 +1,6 @@
 # Finds TE insertions that are in Col-0 but not other accessions.
 # Run from directory containing all accession subdirectories with mapped data:
-# $ python deletions.py g <path/to/TE_gff>
+# $ python deletions.py p <path/to/TE_gff>
 # Note that this script is quite slow.
 # Insertions in Col-0 but not PE-sequenced accesions will be evident by discordant mate pairs that:
 #  1. map to the same chromosome
