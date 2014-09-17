@@ -1,6 +1,26 @@
 import os
 import MySQLdb
 import pandas as pd
+from sys import argv
+
+
+def checkArgs(arg1, arg2):
+    """
+    arg1 is short arg, eg h
+    arg2 is long arg, eg host
+    """
+    args = argv[1:]
+    if arg1 in args:
+        index = args.index(arg1)+1
+        variable = args[index]
+        return variable
+    elif arg2 in args:
+        index = args.index(arg2)+1
+        variable = args[index]
+        return variable
+    else:
+        variable = raw_input("\nEnter {arg2}: ".format(arg2=arg2))
+        return variable
 
 
 def get_mc(host, username, password, insertions, context):
@@ -12,38 +32,56 @@ def get_mc(host, username, password, insertions, context):
     link = MySQLdb.connect(host, username, password)
     cursor = link.cursor()
     data = {}
+    cursor.execute("use population_epigenetics;")
+    cursor.execute("show tables")
+    tables_result = cursor.fetchall()
+    names = []
+    for row in tables_result:
+        name = row[0]
+        names.append(name)
     with open(insertions, 'r') as infile:
         for line in infile:
             line = line.rsplit()
-            chrom = line[0]
-            start = line[1]
-            stop = line[2]
+            chrom = int(line[0])
+            start = int(line[1])
+            stop = int(line[2])
             accessions = line[10]
             accessions = accessions.split(',')
             for accession in accessions:
+                accession = accession.replace('-', '_')
+                print accession
                 table = 'mC_calls_{a}'.format(a=accession)
-                if start > 2000:
-                    upstream = start - 2000
-                    if end < chr_end:
-                        downstream = stop + 2000
-                        for x in range(40):
-                            bins = 100
-                            bins_start = (upstream + (bins * (x-1)))
-                            bins_end = (upstream + (bins * x))
-                            query = """select sum(mc), sum(h) from population_epigenetics.{table}
-                                        where class = '{context}' assembly = {ch} and (position between {start} and {end})""".format(table=table,
-                                                                                                                                     ch=chrom,
-                                                                                                                                     context=context,
-                                                                                                                                     start=bins_start,
-                                                                                                                                     end=bins_end)
-                            # upstream
-                            if x < 20:
-                                addDataC(query, data, x, cursor)
-                            # Downstream
-                            elif x >= 20:
-                                addDataC(query, data, x, cursor)
-                            else:
-                                pass
+                if table in names:
+                    # get chromosome end
+                    chr_query = "select position from {tb} where assembly = 1 order by position desc limit 1".format(tb=table)
+                    cursor.execute(chr_query)
+                    chr_results = cursor.fetchall()
+                    for row in chr_results:
+                        chr_end = int(row[0])
+                    if start > 2000:
+                        upstream = start - 2000
+                        if stop < chr_end:
+                            downstream = stop + 2000
+                            for x in range(40):
+                                bins = 100
+                                bins_start = (upstream + (bins * (x-1)))
+                                bins_end = (upstream + (bins * x))
+                                query = """select sum(mc), sum(h) from {table} where class = '{context}'
+                                           and assembly = {ch} and (position between {start} and {end})""".format(table=table,
+                                                                                                                  ch=chrom,
+                                                                                                                  context=context,
+                                                                                                                  start=bins_start,
+                                                                                                                  end=bins_end)
+                                # upstream
+                                if x < 20:
+                                    addDataC(query, data, x, cursor)
+                                # Downstream
+                                elif x >= 20:
+                                    addDataC(query, data, x, cursor)
+                                else:
+                                    pass
+                        else:
+                            pass
                     else:
                         pass
                 else:
@@ -94,6 +132,9 @@ def saveData(filename, *args):
             pass
     df.to_csv(filename, sep='\t')
 
+host = checkArgs('h', 'host')
+username = checkArgs('u', 'username')
+password = checkArgs('p', 'password')
 
 data_cg = get_mc(host, username, password, 'sorted_insertions.bed', 'CG')
 data_chg = get_mc(host, username, password, 'sorted_insertions.bed', 'CHG')
