@@ -24,7 +24,7 @@ def checkArgs(arg1, arg2):
         return variable
 
 
-def get_mc(host, username, password, insertions, context):
+def get_mc(host, username, password, insertions, context, table):
     """
     For each insertion, get methylation level in all accessions that have insertion and all that don't have insertion.
     Sum mC for each context in bins of 100 bp for insertion +/- 2kb
@@ -44,18 +44,15 @@ def get_mc(host, username, password, insertions, context):
     with open(insertions, 'r') as infile:
         for line in infile:
             line = line.rsplit()
-            chrom = int(line[0])
-            start = int(line[1])
-            stop = int(line[2])
-            insertion_point = int((stop+start) / 2)
-            accessions = line[10]
-            accessions = accessions.split(',')
-            for accession in accessions:
-                accession = accession.replace('-', '_')
-                print accession
-                table = 'mC_calls_{a}'.format(a=accession)
+            if line[0] == 'ins_chr':
+                pass
+            else:
+                chrom = int(line[0])
+                start = int(line[1])
+                stop = int(line[2])
+                insertion_point = int((stop+start) / 2)
                 if table in names:
-                    if start > 2000:
+                    if insertion_point > 2000:
                         upstream = insertion_point - 2000
                         for x in xrange(40):
                             bins = 100
@@ -81,12 +78,12 @@ def get_mc(host, username, password, insertions, context):
                             elif x >= 20:
                                 addDataC(acc_query, acc_data, x, cursor)
                                 addDataC(col_query, col_data, x, cursor)
-                        else:
-                            pass
+                            else:
+                                pass
                     else:
                         pass
                 else:
-                    pass
+                    raise Exception("mC data not available for this accession")
     for key, value in acc_data.iteritems():
         if sum(value) > 0:
             mean = sum(value)/len(value)
@@ -142,10 +139,11 @@ host = checkArgs('h', 'host')
 username = checkArgs('u', 'username')
 password = checkArgs('p', 'password')
 infile = checkArgs('f', 'file')
+table = checkArgs('t', 'table')
 
-acc_cg, col_cg = get_mc(host, username, password, infile, 'CG')
-acc_chg, col_chg = get_mc(host, username, password, infile, 'CHG')
-acc_chh, col_chh = get_mc(host, username, password, infile, 'CHH')
+acc_cg, col_cg = get_mc(host, username, password, infile, 'CG', table)
+acc_chg, col_chg = get_mc(host, username, password, infile, 'CHG', table)
+acc_chh, col_chh = get_mc(host, username, password, infile, 'CHH', table)
 
 saveData('mc_insertions.tsv',
          acc_cg, 'acc_cg',
