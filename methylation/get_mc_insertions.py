@@ -45,6 +45,7 @@ def get_mc(host, username, password, insertions, context):
             chrom = int(line[0])
             start = int(line[1])
             stop = int(line[2])
+            insertion_point = int((stop+start) / 2)
             accessions = line[10]
             accessions = accessions.split(',')
             for accession in accessions:
@@ -59,27 +60,23 @@ def get_mc(host, username, password, insertions, context):
                     for row in chr_results:
                         chr_end = int(row[0])
                     if start > 2000:
-                        upstream = start - 2000
-                        if stop < chr_end:
-                            downstream = stop + 2000
-                            for x in range(40):
-                                bins = 100
-                                bins_start = (upstream + (bins * (x-1)))
-                                bins_end = (upstream + (bins * x))
-                                query = """select sum(mc), sum(h) from {table} where class = '{context}'
-                                           and assembly = {ch} and (position between {start} and {end})""".format(table=table,
-                                                                                                                  ch=chrom,
-                                                                                                                  context=context,
-                                                                                                                  start=bins_start,
-                                                                                                                  end=bins_end)
-                                # upstream
-                                if x < 20:
-                                    addDataC(query, data, x, cursor)
-                                # Downstream
-                                elif x >= 20:
-                                    addDataC(query, data, x, cursor)
-                                else:
-                                    pass
+                        upstream = insertion_point - 2000
+                        for x in range(40):
+                            bins = 100
+                            bins_start = (upstream + (bins * (x-1)))
+                            bins_end = (upstream + (bins * x))
+                            query = """select sum(mc), sum(h) from {table} where class = '{context}'
+                                       and assembly = {ch} and (position between {start} and {end})""".format(table=table,
+                                                                                                              ch=chrom,
+                                                                                                              context=context,
+                                                                                                              start=bins_start,
+                                                                                                              end=bins_end)
+                            # upstream
+                            if x < 20:
+                                addDataC(query, data, x, cursor)
+                            # Downstream
+                            elif x >= 20:
+                                addDataC(query, data, x, cursor)
                         else:
                             pass
                     else:
