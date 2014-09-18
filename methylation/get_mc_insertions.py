@@ -31,7 +31,8 @@ def get_mc(host, username, password, insertions, context):
     """
     link = MySQLdb.connect(host, username, password)
     cursor = link.cursor()
-    data = {}
+    acc_data = {}
+    col_data = {}
     cursor.execute("use population_epigenetics;")
     cursor.execute("show tables")
     tables_result = cursor.fetchall()
@@ -65,34 +66,47 @@ def get_mc(host, username, password, insertions, context):
                             bins = 100
                             bins_start = (upstream + (bins * (x-1)))
                             bins_end = (upstream + (bins * x))
-                            query = """select sum(mc), sum(h) from {table} where class = '{context}'
+                            acc_query = """select sum(mc), sum(h) from {table} where class = '{context}'
                                        and assembly = {ch} and (position between {start} and {end})""".format(table=table,
+                                                                                                              ch=chrom,
+                                                                                                              context=context,
+                                                                                                              start=bins_start,
+                                                                                                              end=bins_end)
+                            col_query = """select sum(mc), sum(h) from {table} where class = '{context}'
+                                       and assembly = {ch} and (position between {start} and {end})""".format(table='mC_calls_Col_0',
                                                                                                               ch=chrom,
                                                                                                               context=context,
                                                                                                               start=bins_start,
                                                                                                               end=bins_end)
                             # upstream
                             if x < 20:
-                                addDataC(query, data, x, cursor)
+                                addDataC(acc_query, acc_data, x, cursor)
+                                addDataC(col_query, col_data, x, cursor)
                             # Downstream
                             elif x >= 20:
-                                addDataC(query, data, x, cursor)
+                                addDataC(acc_query, acc_data, x, cursor)
+                                addDataC(col_query, col_data, x, cursor)
                         else:
                             pass
                     else:
                         pass
                 else:
                     pass
-        error = {}
-        for key, value in data.iteritems():
+        for key, value in acc_data.iteritems():
             if sum(value) > 0:
                 mean = sum(value)/len(value)
             else:
                 mean = 0.0
-            data[key] = round(mean, 5)
+            acc_data[key] = round(mean, 5)
+        for key, value in col_data.iteritems():
+            if sum(value) > 0:
+                mean = sum(value)/len(value)
+            else:
+                mean = 0.0
+            col_data[key] = round(mean, 5)
         cursor.close()
         link.close()
-        return data
+        return acc_data, col_data
 
 
 def addDataC(q, d, x, cursor):
@@ -134,11 +148,14 @@ username = checkArgs('u', 'username')
 password = checkArgs('p', 'password')
 infile = checkArgs('f', 'file')
 
-data_cg = get_mc(host, username, password, infile, 'CG')
-data_chg = get_mc(host, username, password, infile, 'CHG')
-data_chh = get_mc(host, username, password, infile, 'CHH')
+acc_cg, col_cg = get_mc(host, username, password, infile, 'CG')
+acc_chg, col_chg = get_mc(host, username, password, infile, 'CHG')
+acc_chh, col_chh = get_mc(host, username, password, infile, 'CHH')
 
 saveData('mc_insertions.tsv',
-         data_cg, 'cg',
-         data_chg, 'chg',
-         data_chh, 'chh')
+         acc_cg, 'acc_cg',
+         col_cg, 'col_cg',
+         acc_chg, 'acc_chg',
+         col_chg, 'col_chg',
+         acc_chh, 'acc_chh',
+         col_chh, 'col_chh')
