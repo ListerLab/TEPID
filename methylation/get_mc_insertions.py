@@ -132,10 +132,11 @@ def saveData(filename, *args):
 host = checkArgs('h', 'host')
 username = checkArgs('u', 'username')
 password = checkArgs('p', 'password')
+infile = checkArgs('f', 'file')
 
-data_cg = get_mc(host, username, password, 'sorted_insertions.bed', 'CG')
-data_chg = get_mc(host, username, password, 'sorted_insertions.bed', 'CHG')
-data_chh = get_mc(host, username, password, 'sorted_insertions.bed', 'CHH')
+data_cg = get_mc(host, username, password, infile, 'CG')
+data_chg = get_mc(host, username, password, infile, 'CHG')
+data_chh = get_mc(host, username, password, infile, 'CHH')
 
 saveData('mc_insertions.tsv',
          data_cg, 'cg',
