@@ -20,9 +20,9 @@ for directory in ./*; do
         	fname=(${myfile//insertions_/ })
         	fname=(${fname//.bed/ })
         	sed 1d "insertions_${fname}.bed" > headerless
-			awk 'BEGIN {FS=OFS="\t"} {print "chr"$1,$2,$3,"chr"$7,$8,$9}' headerless > "circos_${fname}.txt"
-			rm headerless
-			cp "circos_${fname}.txt" $path
+    			awk 'BEGIN {FS=OFS="\t"} {print "chr"$7,$8,$9,"chr"$1,$2,$3}' headerless > "circos_${fname}.txt"
+    			rm headerless
+    			cp "circos_${fname}.txt" $path
         done
         cd ..
     fi
