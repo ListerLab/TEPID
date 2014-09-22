@@ -59,7 +59,7 @@ with open('uniq.temp', 'r') as infile, open('TAIR10_genes.bed', 'w+') as outfile
             nextstart = nextline[1]
             nextfeature = nextline[4]
             nextchrom = nextline[0]
-            if nextfeature == 'exon' and nextchrom == chrom:
+            if nextfeature == 'exon' and nextchrom == chrom and nextstart > stop:
                 outfile.write("{ch}\t{start}\t{stop}\t{strand}\t{feature}\t{name}\n".format(ch=chrom,
                                                                                             start=stop,
                                                                                             stop=nextstart,

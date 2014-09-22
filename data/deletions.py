@@ -98,7 +98,7 @@ def overlap(start1, stop1, start2, stop2):
     Assumes coordinates are on same chromosome.
     Order of pairs is not important.
     """
-    for y in xrange(start2, stop2):
+    for y in xrange(start2, stop2+1):
         if start1 <= y <= stop1:
             return True
         else:

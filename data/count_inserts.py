@@ -26,8 +26,10 @@ def count_inserts(inf, outf, chrom):
                 bins_dict[bin_no] += 1
             else:
                 pass
-        outfile.write('{keys}\n'.format(keys='\t'.join(map(str, bins_dict.keys()))))
-        outfile.write('{values}\n'.format(values='\t'.join(map(str, bins_dict.values()))))
+        for key, value in bins_dict.items():
+            outfile.write('{v}\n'.format(v=value))
+        # outfile.write('{keys}\n'.format(keys='\t'.join(map(str, bins_dict.keys()))))
+        # outfile.write('{values}\n'.format(values='\t'.join(map(str, bins_dict.values()))))
 
 
 def which_bin(size, number, inp):
@@ -45,4 +47,4 @@ def which_bin(size, number, inp):
             else:
                 pass
 
-count_inserts('insertions_SRR492198.bed', 'chrom1.tsv', 1)
+count_inserts('insertions_Aa-0.bed', 'chrom1.tsv', 1)

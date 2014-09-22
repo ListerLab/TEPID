@@ -23,4 +23,4 @@ Schmitz, R. J., Schultz, M. D., Urich, M. A., Nery, J. R., Pelizzola, M., Libige
 * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
 * [samtools](http://samtools.sourceforge.net)
 * [samblaster](https://github.com/GregoryFaust/samblaster)
-* [bedtools](http://bedtools.readthedocs.org/en/latest/)
+* [bedtools](http://bedtools.readthedocs.org/en/latest/) v2.21 or newer

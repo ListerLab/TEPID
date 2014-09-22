@@ -25,6 +25,25 @@ from sys import argv
 """
 
 
+def checkArgs(arg1, arg2):
+    """
+    arg1 is short arg, eg h
+    arg2 is long arg, eg host
+    """
+    args = argv[1:]
+    if arg1 in args:
+        index = args.index(arg1)+1
+        variable = args[index]
+        return variable
+    elif arg2 in args:
+        index = args.index(arg2)+1
+        variable = args[index]
+        return variable
+    else:
+        variable = raw_input("\nEnter {arg2}: ".format(arg2=arg2))
+        return variable
+
+
 def overlap(start1, stop1, start2, stop2):
     """returns True if sets of coordinates overlap. Assumes coordinates are on same chromosome"""
     for y in xrange(start2, stop2+1):
@@ -247,18 +266,25 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
             if x >= i:
                 return False
 
-for dirs in os.listdir('.'):
-    if os.path.isdir(dirs) is True:
-        os.chdir(dirs)
-        if os.path.isfile('{d}_TE_intersections.bed'.format(d=dirs)) is True and os.path.isfile('insertions_{d}.bed'.format(d=dirs)) is False:
-            print dirs
-            reorder('{d}_TE_intersections.bed'.format(d=dirs), 'intersections_ordered_{d}.bed'.format(d=dirs))
-            call('sort -k1,1 -nk2,2 intersections_ordered_{d}.bed > intersections_sorted_{d}.bed'.format(d=dirs), shell=True)
-            merge('intersections_sorted_{d}.bed'.format(d=dirs), 'merged_{d}.bed'.format(d=dirs))
-            annotate('merged_{d}.bed'.format(d=dirs), 'insertions_{d}.bed'.format(d=dirs), 'id_{d}.fa'.format(d=dirs), dirs)
-            call('rm intersections_ordered_{d}.bed merged_{d}.bed'.format(d=dirs), shell=True)
-            os.chdir('..')
-        else:
-            os.chdir('..')
-    else:
-        pass
+accession = checkArgs('a', 'accession')
+
+reorder('{acc}_TE_intersections.bed'.format(acc=accession), 'intersections_ordered_{acc}.bed'.format(acc=accession))
+call('sort -k1,1 -nk2,2 intersections_ordered_{acc}.bed > intersections_sorted_{acc}.bed'.format(acc=accession), shell=True)
+merge('intersections_sorted_{acc}.bed'.format(acc=accession), 'merged_{acc}.bed'.format(acc=accession))
+annotate('merged_{acc}.bed'.format(acc=accession), 'insertions_{acc}.bed'.format(acc=accession), 'id_{acc}.fa'.format(d=accession), dirs)
+
+# for dirs in os.listdir('.'):
+#     if os.path.isdir(dirs) is True:
+#         os.chdir(dirs)
+#         if os.path.isfile('{d}_TE_intersections.bed'.format(d=dirs)) is True and os.path.isfile('insertions_{d}.bed'.format(d=dirs)) is False:
+#             print dirs
+#             reorder('{d}_TE_intersections.bed'.format(d=dirs), 'intersections_ordered_{d}.bed'.format(d=dirs))
+#             call('sort -k1,1 -nk2,2 intersections_ordered_{d}.bed > intersections_sorted_{d}.bed'.format(d=dirs), shell=True)
+#             merge('intersections_sorted_{d}.bed'.format(d=dirs), 'merged_{d}.bed'.format(d=dirs))
+#             annotate('merged_{d}.bed'.format(d=dirs), 'insertions_{d}.bed'.format(d=dirs), 'id_{d}.fa'.format(d=dirs), dirs)
+#             call('rm intersections_ordered_{d}.bed merged_{d}.bed'.format(d=dirs), shell=True)
+#             os.chdir('..')
+#         else:
+#             os.chdir('..')
+#     else:
+#         pass
