@@ -1,15 +1,16 @@
 # Created by Tim Stuart
 # Usage:
-#   sh map_discord.sh -p <proc> -x <path/to/bowtie2/index> -g <path/to/TE_gff>
+#   sh map_discord.sh -p <proc> -x <path/to/bowtie2/index> -g <path/to/TE_gff> -r <path/to/data/folder>
 #   where <proc> is number of processors to use
 # Does the following:
 #   1. Move into directory
 #   2. Maps PE sequencing data using bowtie2
 #   3. Converts output to sorted bam file
 #   4. Splits discordant reads from bam file into new file
-#   5. Deletes concordant reads
-#   6. Compresses original fastq files
-#   7. Move into next directory and repeat
+#   5. Annotates TE insertions and deletions from discordant reads
+#   6. Deletes temporary files
+#   7. Compresses original fastq files
+#   8. Move into next directory and repeat
 # Output files:
 #  * discordant reads bedfile
 #  * TE insertions bedfile
@@ -20,9 +21,9 @@ blue='\033[94m'  # main output
 green='\033[92m'  # output for starting / completing files
 NC='\033[0m'  # output from samtools etc will be not coloured
 
-index=  proc=  gff=
+index=  proc=  gff=  pythonpath=
 
-while getopts x:p:g: opt; do
+while getopts x:p:g:r: opt; do
   case $opt in
   x)
       index=$OPTARG
@@ -32,6 +33,9 @@ while getopts x:p:g: opt; do
       ;;
   g)
       gff=$OPTARG
+      ;;
+  r)
+      pythonpath=$OPTARG
       ;;
   esac
 done
@@ -62,13 +66,13 @@ for directory in ./*; do
 
             echo -e "${blue}Finding TE insertions${NC}"
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $gff > "${fname}_TE_intersections.bed"
-            python anotate_ins.py a $fname
+            python $pythonpath/anotate_ins.py a $fname
 
             echo -e "${blue}Finding TE deletions${NC}"
             bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff > "${fname}_no_intersections.bed"
             python create_deletion_coords.py b "${fname}_no_intersections.bed" f "${fname}_deletion_coords.bed"
             bedtools intersect -a "${fname}_deletion_coords.bed" -b $gff -wo > "${fname}_deletions_temp.bed"
-            python annotate_del.py a $fname
+            python $pythonpath/annotate_del.py a $fname
 
             echo -e "${blue}Deleting temp files${NC}"
             rm "${fname}.sort.disc.bam"
