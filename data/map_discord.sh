@@ -14,7 +14,7 @@
 # Output files:
 #  * discordant reads bedfile
 #  * TE insertions bedfile
-#  * TE deletions bedfile (TE present in Col-0 but not accession)
+#  * TE deletions bedfile (TE present in Col-0 but not accession). Limited to finding TEs >200 bp, <20000 bp
 #  * compressed fastq files
 
 blue='\033[94m'  # main output

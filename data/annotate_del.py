@@ -32,10 +32,23 @@ def annotate_deletions(accession):
             gapsize = coords[2] - coords[1]
             percentage = overlap / gapsize
             if percentage >= 0.75:
-                ident = 'del_{acc}_{x}'.format(acc=accession, x=x)
-                data = map(str, te)
-                outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
-                x += 1
+                try:
+                    name
+                except NameError:
+                    ident = 'del_{acc}_{x}'.format(acc=accession, x=x)
+                    data = map(str, te)
+                    outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                    x += 1
+                    name = te[4]
+                else:
+                    if name != te[4]:
+                        ident = 'del_{acc}_{x}'.format(acc=accession, x=x)
+                        data = map(str, te)
+                        outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                        x += 1
+                        name = te[4]
+                    else:
+                        name = te[4]
 
 a = checkArgs('a', 'accession')
 

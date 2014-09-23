@@ -1,6 +1,5 @@
 # usage:
-# run from directory containing all accession subdirectories
-# $ python annotate.py
+# $ python annotate.py <accession_name>
 
 import os
 from subprocess import call
