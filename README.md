@@ -21,6 +21,8 @@ Schmitz, R. J., Schultz, M. D., Urich, M. A., Nery, J. R., Pelizzola, M., Libige
 
 ### Required tools:
 * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+* [yaha](http://faculty.virginia.edu/irahall/yaha/)
 * [samtools](http://samtools.sourceforge.net)
 * [samblaster](https://github.com/GregoryFaust/samblaster)
 * [bedtools](http://bedtools.readthedocs.org/en/latest/) v2.21 or newer
+* [python](https://www.python.org) v2.7
