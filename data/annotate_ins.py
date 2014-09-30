@@ -92,7 +92,7 @@ def reorder(insert_file, reordered_file):
                                                                                                        mate=mate))
 
 
-def merge(sorted_file, output_file):
+def merge(sorted_file, output_file):  # this is not working properly
     """
     merge coordinates that overlap where TE name and strand is same
     takes sorted output from reorder function and name of output file.
