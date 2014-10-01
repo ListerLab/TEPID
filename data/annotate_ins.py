@@ -1,28 +1,10 @@
 # usage:
-# $ python annotate.py a <accession_name> f <feature>
+# $ python annotate_ins.py a <accession_name> f <feature>
 # where feature is gene or TE
 
 import os
 from subprocess import call
 from sys import argv
-
-"""
-1. Collapse overlapping coordinates mapping to the same TE
-    - keep names of reads making up collapsed coordinates
-2. define insertion point coordinates
-    - Reads map to same te, different ends
-    - reads are on different strands
-    - reads are close together
-3. Define orientation (strand)
-    - if both mates map to same strand, orientation is opposite to that of reference
-4. Write new file with:
-    - insertion coordinates
-    - orientation of TE
-    - TE name
-    - unique ID:
-        - references read names making up annotation
-        - can be used to compare between accessions
-"""
 
 
 def checkArgs(arg1, arg2):
@@ -44,252 +26,14 @@ def checkArgs(arg1, arg2):
         return variable
 
 
-def overlap(start1, stop1, start2, stop2):
-    """returns True if sets of coordinates overlap. Assumes coordinates are on same chromosome"""
-    for y in xrange(start2, stop2+1):
-        if start1 <= y <= stop1:
-            return True
-        else:
-            pass
-
-
-def get_len(infile):
-    """returns number of lines in file and all lines as part of list"""
-    lines = []
-    for i, l in enumerate(infile):
-        lines.append(l)
-    return i, lines
-
-
-def reorder(insert_file, reordered_file):
-    """
-    Reorder columns so that TE read is in second position.
-    """
-    with open(insert_file, 'r') as infile, open(reordered_file, 'w+') as outfile:
-        i, lines = get_len(infile)
-        for x in range(i):
-            line = lines[x]
-            field = line.rsplit()
-            read1 = {'chrom': field[0], 'start': field[1], 'stop': field[2], 'strand': field[8]}
-            read2 = {'chrom': field[3], 'start': field[4], 'stop': field[5], 'strand': field[9]}
-            remaining = [field[10], field[11], field[12], field[13], field[14], field[15], field[6]]  # read name, TE reference coordinates, TE name, TE family
-            te_coords = {'chrom': field[10], 'start': field[11], 'stop': field[12], 'strand': field[13], 'name': field[14]}
-            if overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
-                te_read = read1
-                dna_read = read2
-                mate = 1  # te read is mate 1 in paired data
-            elif overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
-                te_read = read2
-                dna_read = read1
-                mate = 2
-            else:
-                raise Exception('check coords')
-            outfile.write('{chr1}\t{start1}\t{stop1}\t{strand1}\t{strand2}\t{remain}\t{mate}\n'.format(chr1=dna_read['chrom'],
-                                                                                                       start1=dna_read['start'],
-                                                                                                       stop1=dna_read['stop'],
-                                                                                                       strand1=dna_read['strand'],
-                                                                                                       strand2=te_read['strand'],
-                                                                                                       remain='\t'.join(remaining),
-                                                                                                       mate=mate))
-
-
-def merge(sorted_file, output_file):
-    """
-    merge coordinates that overlap where TE name and strand is same
-    takes sorted output from reorder function and name of output file.
-    return file with of read names, merged coordinates, and new position in file to start from
-    """
-    with open(sorted_file, 'r') as infile, open(output_file, 'w+') as outfile:
-        i, lines = get_len(infile)
-        x = 0  # position
-        y = 1  # compare line
-        readlist = []
-        matelist = []
-        done = True
-        skipped = False
-        while True:
-            if done is True:  # move to next line
-                line = lines[x]
-                field = line.rsplit()
-                start = field[1]
-                end = field[2]
-                chrom = field[0]
-                strand = field[3]
-                te_name = field[9]
-                readname = field[11]
-                te_strand = field[4]
-                reference = [field[10], field[5], field[6], field[7], field[8]]
-                mate = field[12]
-            else:
-                pass
-            nextline = lines[x+y]
-            nextfield = nextline.rsplit()
-            next_dna_start = nextfield[1]
-            next_dna_end = nextfield[2]
-            next_dna_chrom = nextfield[0]
-            next_dna_strand = nextfield[3]
-            next_read_name = nextfield[11]
-            next_te_name = nextfield[9]
-            next_mate = nextfield[12]
-            if chrom != next_dna_chrom or x >= i:  # write line and go back to last skipped line or next line if no skipped
-                if readlist:
-                    matelist.append(mate)
-                    readlist.append(readname)
-                    reads = ','.join(readlist)
-                    mates = ','.join(matelist)
-                else:
-                    reads = readname
-                    mates = mate
-                outfile.write('{chr}\t{start}\t{end}\t{strand}\t{te}\t{orient}\t{ref}\t{reads}\t{mate}\n'.format(chr=chrom,
-                                                                                                                 start=start,
-                                                                                                                 end=end,
-                                                                                                                 strand=strand,
-                                                                                                                 te=te_name,
-                                                                                                                 orient=te_strand,
-                                                                                                                 ref='\t'.join(reference),
-                                                                                                                 reads=reads,
-                                                                                                                 mate=mates))
-                if skipped is not False:  # set x to skipped position if there is one, reset to false
-                    x = skipped
-                    skipped = False
-                else:
-                    x += 1  # if no lines were skipped, go to next line
-                y = 1
-                done = True
-                readlist = []
-                matelist = []
-                if x+y >= i:
-                    break
-            elif strand == next_dna_strand and te_name == next_te_name and chrom == next_dna_chrom:
-                if overlap(int(next_dna_start), int(next_dna_end), int(start), int(end)) is True:
-                    # update coordinates and keep looking through lines. This is not a skipped line.
-                    readlist.append(next_read_name)
-                    matelist.append(next_mate)
-                    if start > next_dna_start:
-                        start = next_dna_start
-                    elif end < next_dna_end:
-                        end = next_dna_end
-                    else:
-                        pass
-                    y += 1
-                    done = False  # keep going through lines
-                    if y+x >= i:  # end of file, write line and reset to last skipped line
-                        if readlist:
-                            matelist.append(mate)
-                            readlist.append(readname)
-                            reads = ','.join(readlist)
-                            mates = ','.join(matelist)
-                        else:
-                            reads = readname
-                            mates = mate
-                        outfile.write('{chr}\t{start}\t{end}\t{strand}\t{te}\t{orient}\t{ref}\t{reads}\t{mate}\n'.format(chr=chrom,
-                                                                                                                         start=start,
-                                                                                                                         end=end,
-                                                                                                                         strand=strand,
-                                                                                                                         te=te_name,
-                                                                                                                         orient=te_strand,
-                                                                                                                         ref='\t'.join(reference),
-                                                                                                                         reads=reads,
-                                                                                                                         mate=mates))
-                        if skipped is not False:
-                            x = skipped
-                            skipped = False
-                        else:
-                            x += 1
-                        y = 1
-                        done = True
-                        readlist = []
-                        matelist = []
-                        if x+y >= i:
-                            break
-                else:  # no overlap
-                    # continue looking through chromosome
-                    # skips line, need to note which lines are skipped so no duplicates
-                    if skipped is False:
-                        skipped = x+y
-                    else:
-                        pass
-                    y += 1
-                    done = False
-                    if y+x >= i:  # end of field
-                        if readlist:
-                            matelist.append(mate)
-                            readlist.append(readname)
-                            reads = ','.join(readlist)
-                            mates = ','.join(matelist)
-                        else:
-                            reads = readname
-                            mates = mate
-                        outfile.write('{chr}\t{start}\t{end}\t{strand}\t{te}\t{orient}\t{ref}\t{reads}\t{mate}\n'.format(chr=chrom,
-                                                                                                                         start=start,
-                                                                                                                         end=end,
-                                                                                                                         strand=strand,
-                                                                                                                         te=te_name,
-                                                                                                                         orient=te_strand,
-                                                                                                                         ref='\t'.join(reference),
-                                                                                                                         reads=reads,
-                                                                                                                         mate=mates))
-                        if skipped is not False:
-                            x = skipped
-                            skipped = False
-                        else:
-                            x += 1
-                        y = 1
-                        done = True
-                        readlist = []
-                        matelist = []
-                        if x+y >= i:
-                            break
-                    else:
-                        pass
-            else:  # different strand or TE
-                if skipped is False:
-                    skipped = x+y
-                else:
-                    pass
-                y += 1
-                done = False
-                if y+x >= i:  # end of file
-                    if readlist:
-                        matelist.append(mate)
-                        readlist.append(readname)
-                        reads = ','.join(readlist)
-                        mates = ','.join(matelist)
-                    else:
-                        reads = readname
-                        mates = mate
-                    outfile.write('{chr}\t{start}\t{end}\t{strand}\t{te}\t{orient}\t{ref}\t{reads}\t{mate}\n'.format(chr=chrom,
-                                                                                                                     start=start,
-                                                                                                                     end=end,
-                                                                                                                     strand=strand,
-                                                                                                                     te=te_name,
-                                                                                                                     orient=te_strand,
-                                                                                                                     ref='\t'.join(reference),
-                                                                                                                     reads=reads,
-                                                                                                                     mate=mates))
-                    if skipped is not False:
-                        x = skipped
-                        skipped = False
-                    else:
-                        x += 1
-                    y = 1
-                    done = True
-                    readlist = []
-                    matelist = []
-                    if x+y >= i:  # finished
-                        break
-
-
 def annotate(collapse_file, insertion_file, id_file, accession_name):  # problem here
     """
     Find insertion coordinates and TE orientation. Adds unique ID: <accession_name>_<number>
     """
     with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile, open(id_file, 'w+') as unique_id_file:
         outfile.write('ins_chr\tins_start\tins_stop\tins_strand\tAGI\tID\tref_chr\tref_start\tref_stop\tref_strand\n')
-        lines = []
-        for i, l in enumerate(infile):
-            lines.append(l)
-            ident = 0
+        i, lines = get_len(infile)
+        ident = 0
         for x in range(i):
             line = lines[x]
             line = line.rsplit()
@@ -356,31 +100,7 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
 accession = checkArgs('a', 'accession')
 f = checkArgs('f', 'feature')
 
-reorder('{acc}_{feat}_intersections.bed'.format(acc=accession, feat=f),
-        'intersections_ordered_{feat}_{acc}.bed'.format(acc=accession, feat=f))
-
-call('sort -k1,1 -nk2,2 intersections_ordered_{feat}_{acc}.bed > intersections_sorted_{feat}_{acc}.bed'.format(acc=accession, feat=f), shell=True)
-
-merge('intersections_sorted_{feat}_{acc}.bed'.format(acc=accession, feat=f),
-      'merged_{feat}_{acc}.bed'.format(acc=accession, feat=f))
-
 annotate('merged_{feat}_{acc}.bed'.format(acc=accession, feat=f),
          'insertions_{feat}_{acc}.bed'.format(acc=accession, feat=f),
          'id_{feat}_{acc}.fa'.format(acc=accession, feat=f),
          accession)
-
-# for dirs in os.listdir('.'):
-#     if os.path.isdir(dirs) is True:
-#         os.chdir(dirs)
-#         if os.path.isfile('{d}_TE_intersections.bed'.format(d=dirs)) is True and os.path.isfile('insertions_{d}.bed'.format(d=dirs)) is False:
-#             print dirs
-#             reorder('{d}_TE_intersections.bed'.format(d=dirs), 'intersections_ordered_{d}.bed'.format(d=dirs))
-#             call('sort -k1,1 -nk2,2 intersections_ordered_{d}.bed > intersections_sorted_{d}.bed'.format(d=dirs), shell=True)
-#             merge('intersections_sorted_{d}.bed'.format(d=dirs), 'merged_{d}.bed'.format(d=dirs))
-#             annotate('merged_{d}.bed'.format(d=dirs), 'insertions_{d}.bed'.format(d=dirs), 'id_{d}.fa'.format(d=dirs), dirs)
-#             call('rm intersections_ordered_{d}.bed merged_{d}.bed'.format(d=dirs), shell=True)
-#             os.chdir('..')
-#         else:
-#             os.chdir('..')
-#     else:
-#         pass
