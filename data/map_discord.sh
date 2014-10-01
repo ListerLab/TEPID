@@ -1,6 +1,8 @@
+#! /bin/sh
+
 # Created by Tim Stuart
 # Usage:
-#   sh map_discord.sh -p <proc> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -g <path/to/TE_gff> -r <path/to/data/folder>
+#   sh map_discord.sh -p <proc> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -r <path/to/repo>
 #   where <proc> is number of processors to use
 #   run from directory containing all accession subdirectories
 
@@ -21,7 +23,7 @@
 #   14. Move into next subdirectory and repeat
 
 # Output files:
-#  * bowtie metrics file: <name>.log
+#  * bowtie log file: <name>.log
 #  * discordant reads bedfile
 #  * split reads bedfile
 #  * TE insertions bedfile
@@ -29,15 +31,13 @@
 #  * compressed fastq files
 
 # To do:
-#  * fix merge function in annotate_ins.py
 #  * merge split read and discordant read data
-#  * find retrogenes / gene duplications  -> compare discordant reads / split reads with gene gff
 
 blue='\033[94m'  # main output
 green='\033[92m'  # output for starting / completing files
 NC='\033[0m'  # output from samtools etc will be not coloured
 
-index=  proc=  gff=  pythonpath=  yhindex=
+index=  proc=  repo=  yhindex=
 
 while getopts x:p:g:r:y: opt; do
   case $opt in
@@ -47,11 +47,8 @@ while getopts x:p:g:r:y: opt; do
   p)
       proc=$OPTARG
       ;;
-  g)
-      gff=$OPTARG
-      ;;
   r)
-      pythonpath=$OPTARG
+      repo=$OPTARG
       ;;
   y)
       yhindex=$OPTARG
@@ -74,7 +71,7 @@ for directory in ./*; do
 
             echo -e "${blue}Mapping split reads${NC}"
             yaha -t $proc -x $yhindex -q "${fname}.umap.fastq" -L 11 -H 2000 -M 15 -osh stdout | samblaster -s "${fname}.split.sam" > /dev/null
-            echo -e "${blue}Mapping complete${NC}"            
+            echo -e "${blue}Mapping complete${NC}"
 
             echo -e "${blue}Converting to bam file${NC}"
             samtools view -bS "${fname}.disc.sam" | samtools sort -n - "${fname}.sort.disc"
@@ -90,15 +87,18 @@ for directory in ./*; do
             sort -k1,1 -nk2,2 "${fname}.disc.bed" > "${fname}.bed"
             sort -k1,1 -nk2,2 "${fname}.split_unsort.bed" > "${fname}.split.bed"  # need to do something with split reads
 
-            echo -e "${blue}Finding TE insertions${NC}"
-            bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $gff > "${fname}_TE_intersections.bed"
-            python $pythonpath/anotate_ins.py a $fname
+            echo -e "${blue}Finding insertions${NC}"
+            bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed > "${fname}_TE_intersections.bed"
+            bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR10_genes.bed > "${fname}_gene_intersections.bed"
+            python $repo/data/anotate_ins.py a $fname f TE
+            python $repo/data/annotate_ins.py a $fname f gene
 
-            echo -e "${blue}Finding TE deletions${NC}"
-            bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff > "${fname}_no_intersections.bed"
-            python create_deletion_coords.py b "${fname}_no_intersections.bed" f "${fname}_deletion_coords.bed"
+            echo -e "${blue}Finding deletions${NC}"
+            bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff/TAIR9_TE.bed  > "${fname}_no_te_intersections.bed"
+            bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff/TAIR10_genes.bed> "${fname}_no_gene_intersections.bed"
+            python create_deletion_coords.py b "${fname}_no_te_intersections.bed" f "${fname}_deletion_coords.bed"
             bedtools intersect -a "${fname}_deletion_coords.bed" -b $gff -wo > "${fname}_deletions_temp.bed"
-            python $pythonpath/annotate_del.py a $fname
+            python $repo/data/annotate_del.py a $fname
 
             echo -e "${blue}Deleting temp files${NC}"
             rm "${fname}.sort.disc.bam"
@@ -113,7 +113,7 @@ for directory in ./*; do
             rm "${fname}.split_unsort.bed"
 
             echo -e "${blue}Compressing fastq files${NC}"
-            tar cvfz "${fname}.tgz" "${fname}_1.fastq" "${fname}_2.fastq" "${fname}.umap.fastq"
+            gzip "${fname}.tgz" "${fname}_1.fastq" "${fname}_2.fastq" "${fname}.umap.fastq"
             rm "${fname}_1.fastq"
             rm "${fname}_2.fastq"
             rm "${fname}.umap.fastq"
