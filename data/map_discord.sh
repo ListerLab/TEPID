@@ -67,6 +67,7 @@ for directory in ./*; do
             echo -e "${green}Processing $fname${NC}"
 
             echo -e "${blue}Starting mapping${NC}"
+            # if we want to integrate this with other analysis, should have option to keep concordantly mapped files
             bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X 250 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" --met-file "${fname}.log" | samblaster -e -d "${fname}.disc.sam" -u "${fname}.umap.fastq" > /dev/null
 
             echo -e "${blue}Mapping split reads${NC}"
@@ -82,7 +83,7 @@ for directory in ./*; do
             bedtools bamtobed -i "${fname}.sort.split.bam" > "${fname}.split_unsort.bed"
 
             echo -e "${blue}Sorting bedfile, removing reads mapped to chloroplast or mitochondria${NC}"
-            sed -i.bak '/Pt/d;/Mt/d;s/chr//g' "${fname}.disc.bed"  # tair10 annotation, tair9 uses chrC and chrM for chloroplast, mitochondrial genomes
+            sed -i.bak '/Pt/d;/Mt/d;s/chr//g' "${fname}.disc.bed"  # tair10 annotation, tair9 uses chrC and chrM for chloroplast, mitochondrial genomes. Would need to be changed for other organisms
             sed -i.bak '/Pt/d;/Mt/d;s/chr//g' "${fname}.split_unsort.bed"
             sort -k1,1 -nk2,2 "${fname}.disc.bed" > "${fname}.bed"
             sort -k1,1 -nk2,2 "${fname}.split_unsort.bed" > "${fname}.split.bed"  # need to do something with split reads
@@ -91,11 +92,11 @@ for directory in ./*; do
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed > "${fname}_TE_intersections.bed"
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR10_genes.bed > "${fname}_gene_intersections.bed"
             python $repo/data/reorder.py a $fname f TE
-            sh $repo/data/merge_coords.sh -f "intersections_ordered_TE_${fname}.bed" -a $fname
+            sh $repo/data/merge_coords.sh -f "intersections_ordered_TE_${fname}.bed" -a $fname -n TE
             python $repo/data/annotate_ins.py
             python $repo/data/reorder.py a $fname f gene
-            sh $repo/data/merge_coords.sh -f "intersections_ordered_gene_${fname}.bed" -a $fname
-            python $repo/data/annotate_ins.py 
+            sh $repo/data/merge_coords.sh -f "intersections_ordered_gene_${fname}.bed" -a $fname -n gene
+            python $repo/data/annotate_ins.py
 
             echo -e "${blue}Finding deletions${NC}"
             bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff/TAIR9_TE.bed  > "${fname}_no_te_intersections.bed"
