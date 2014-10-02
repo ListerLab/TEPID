@@ -92,30 +92,35 @@ for directory in ./*; do
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed > "${fname}_TE_intersections.bed"
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR10_genes.bed > "${fname}_gene_intersections.bed"
             python $repo/data/reorder.py a $fname f TE
-            sh $repo/data/merge_coords.sh -f "intersections_ordered_TE_${fname}.bed" -a $fname -f TE
+            sh $repo/data/merge_coords.sh -f "intersections_ordered_TE_${fname}.bed" -a $fname -n TE
             python $repo/data/annotate_ins.py a $fname f TE
             python $repo/data/reorder.py a $fname f gene
-            sh $repo/data/merge_coords.sh -f "intersections_ordered_gene_${fname}.bed" -a $fname -f gene
+            sh $repo/data/merge_coords.sh -f "intersections_ordered_gene_${fname}.bed" -a $fname -n gene
             python $repo/data/annotate_ins.py a $fname f gene
 
             echo -e "${blue}Finding deletions${NC}"
             bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff/TAIR9_TE.bed  > "${fname}_no_te_intersections.bed"
             bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff/TAIR10_genes.bed> "${fname}_no_gene_intersections.bed"
-            python create_deletion_coords.py b "${fname}_no_te_intersections.bed" f "${fname}_deletion_coords.bed"
+            python $repo/data/create_deletion_coords.py b "${fname}_no_te_intersections.bed" f "${fname}_deletion_coords.bed"
             bedtools intersect -a "${fname}_deletion_coords.bed" -b $gff -wo > "${fname}_deletions_temp.bed"
             python $repo/data/annotate_del.py a $fname
 
             echo -e "${blue}Deleting temp files${NC}"
+            # need to fix some of these filenames
             rm "${fname}.sort.disc.bam"
             rm "${fname}.disc.bed"
             rm "${fname}.disc.bed.bak"
             rm "${fname}.disc.sam"
             rm "${fname}_deletion_coords.bed"
             rm "${fname}_deletions_temp.bed"
-            rm "${fname}_no_intersections.bed"
-            rm "intersections_ordered_${fname}.bed"
-            rm "merged_${fname}.bed"
+            rm "${fname}_no_te_intersections.bed"
+            rm "${fname}_no_gene_intersections.bed"
+            rm "intersections_ordered_te_${fname}.bed"
+            rm "intersections_ordered_gene_${fname}.bed"
+            rm "merged_gene_${fname}.bed"
+            rm "merged_te_${fname}.bed"
             rm "${fname}.split_unsort.bed"
+            rm "${fname}.split_unsort.bed.bak"
 
             echo -e "${blue}Compressing fastq files${NC}"
             gzip "${fname}_1.fastq" "${fname}_2.fastq" "${fname}.umap.fastq"

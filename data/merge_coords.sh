@@ -1,7 +1,7 @@
 #! /bin/sh
 
 # usage:
-# sh merge_coords.sh -f <intersections_file> -a <accession_name> -f <feature_name>
+# sh merge_coords.sh -f <intersections_file> -a <accession_name> -n <feature_name>
 
 filename=  acc=  name=
 
@@ -13,7 +13,7 @@ while getopts f:a:f: opt; do
   a)
       acc=$OPTARG
       ;;
-  f)
+  n)
      name=$OPTARG
      ;;
   esac
