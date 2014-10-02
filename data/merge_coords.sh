@@ -5,7 +5,7 @@
 
 filename=  acc=  name=
 
-while getopts f:a:f: opt; do
+while getopts f:a:n: opt; do
   case $opt in
   f)
       filename=$OPTARG
