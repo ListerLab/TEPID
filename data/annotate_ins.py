@@ -44,18 +44,24 @@ def annotate(collapse_file, insertion_file, id_file, accession_name):  # problem
         for x in range(i):
             line = lines[x]
             line = line.rsplit()
-            chrom = line[0]
-            start = line[1]
-            stop = line[2]
+            chrom = int(line[0])
+            start = int(line[1])
+            stop = int(line[2])
             strand = line[3]
             te_name = line[4]
-            orientation = line[5]
-            mate = line[12]
+            mate = line[10]
             mate = mate.split(',')
-            te_reads = line[11]
+            te_reads = line[9]
             te_reads = te_reads.split(',')
-            reference = [line[7], line[8], line[9], line[10]]  # reference chrom, start, stop, strand
-            pair = find_next(lines, i, x, int(chrom), strand, int(start), int(stop), te_name)
+            reference = [line[5], line[6], line[7], line[8]]  # reference chrom, start, stop, strand
+            pair = find_next(lines, i, x, chrom, strand, start, stop, te_name)
+            if strand != reference[3]:
+                if reference[3] == '+':
+                    orientation = '-'
+                else:
+                    orientation = '+'
+            else:
+                orientation = reference[3]
             if pair is False:
                 pass  # no reads at opposite end, do not include in annotation
             else:
@@ -91,9 +97,9 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
         next_stop = int(line[2])
         next_strand = line[3]
         next_te_name = line[4]
-        next_mate = line[11]
+        next_mate = line[10]
         next_mate = next_mate.split(',')
-        next_te_reads = line[12]
+        next_te_reads = line[9]
         next_te_reads = next_te_reads.split(',')
         if strand != next_strand and te_name == next_te_name and chrom == next_chrom and stop <= next_start:
             return next_start, next_te_reads, next_mate
