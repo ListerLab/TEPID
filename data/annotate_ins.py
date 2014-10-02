@@ -25,6 +25,14 @@ def checkArgs(arg1, arg2):
         return variable
 
 
+def get_len(infile):
+    """returns number of lines in file and all lines as part of list"""
+    lines = []
+    for i, l in enumerate(infile):
+        lines.append(l)
+    return i, lines
+
+
 def annotate(collapse_file, insertion_file, id_file, accession_name):  # problem here
     """
     Find insertion coordinates and TE orientation. Adds unique ID: <accession_name>_<number>
