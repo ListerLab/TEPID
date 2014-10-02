@@ -118,10 +118,7 @@ for directory in ./*; do
             rm "${fname}.split_unsort.bed"
 
             echo -e "${blue}Compressing fastq files${NC}"
-            gzip "${fname}.tgz" "${fname}_1.fastq" "${fname}_2.fastq" "${fname}.umap.fastq"
-            rm "${fname}_1.fastq"
-            rm "${fname}_2.fastq"
-            rm "${fname}.umap.fastq"
+            gzip "${fname}_1.fastq" "${fname}_2.fastq" "${fname}.umap.fastq"
 
             echo -e "${green}Finished processing $fname${NC}"
         done
