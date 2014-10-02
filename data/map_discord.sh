@@ -92,11 +92,11 @@ for directory in ./*; do
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed > "${fname}_TE_intersections.bed"
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR10_genes.bed > "${fname}_gene_intersections.bed"
             python $repo/data/reorder.py a $fname f TE
-            sh $repo/data/merge_coords.sh -f "intersections_ordered_TE_${fname}.bed" -a $fname -n TE
-            python $repo/data/annotate_ins.py
+            sh $repo/data/merge_coords.sh -f "intersections_ordered_TE_${fname}.bed" -a $fname -f TE
+            python $repo/data/annotate_ins.py a $fname f TE
             python $repo/data/reorder.py a $fname f gene
-            sh $repo/data/merge_coords.sh -f "intersections_ordered_gene_${fname}.bed" -a $fname -n gene
-            python $repo/data/annotate_ins.py
+            sh $repo/data/merge_coords.sh -f "intersections_ordered_gene_${fname}.bed" -a $fname -f gene
+            python $repo/data/annotate_ins.py a $fname f gene
 
             echo -e "${blue}Finding deletions${NC}"
             bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff/TAIR9_TE.bed  > "${fname}_no_te_intersections.bed"

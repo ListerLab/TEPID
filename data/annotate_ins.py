@@ -1,9 +1,8 @@
 # usage:
 # $ python annotate_ins.py a <accession_name> f <feature>
 # where feature is gene or TE
+# Finds insertion sites where there are reads at each end, refines insertion coordinates based on position of all reads
 
-import os
-from subprocess import call
 from sys import argv
 
 

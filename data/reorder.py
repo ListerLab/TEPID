@@ -1,3 +1,30 @@
+# usage:
+# python reorder.py a <accession> f <feature>
+# where <feature> is 'gene' or 'TE'
+# Puts TE read in second position, adds column telling which mate is the one mapped to TE (input file has mate 1 in first position)
+
+from sys import argv
+
+
+def checkArgs(arg1, arg2):
+    """
+    arg1 is short arg, eg h
+    arg2 is long arg, eg host
+    """
+    args = argv[1:]
+    if arg1 in args:
+        index = args.index(arg1)+1
+        variable = args[index]
+        return variable
+    elif arg2 in args:
+        index = args.index(arg2)+1
+        variable = args[index]
+        return variable
+    else:
+        variable = raw_input("\nEnter {arg2}: ".format(arg2=arg2))
+        return variable
+
+
 def overlap(start1, stop1, start2, stop2):
     """returns True if sets of coordinates overlap. Assumes coordinates are on same chromosome"""
     for y in xrange(start2, stop2+1):
@@ -45,6 +72,9 @@ def reorder(insert_file, reordered_file):
                                                                                                        strand2=te_read['strand'],
                                                                                                        remain='\t'.join(remaining),
                                                                                                        mate=mate))
+
+accession = checkArgs('a', 'accession')
+f = checkArgs('f', 'feature')
 
 reorder('{acc}_{feat}_intersections.bed'.format(acc=accession, feat=f),
         'intersections_ordered_{feat}_{acc}.bed'.format(acc=accession, feat=f))
