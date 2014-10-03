@@ -90,7 +90,7 @@ for directory in ./*; do
 
             echo -e "${blue}Finding insertions${NC}"
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed > "${fname}_TE_intersections.bed"
-            bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR10_genes.bed > "${fname}_gene_intersections.bed"
+            bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/gene_only.bed > "${fname}_gene_intersections.bed"
             python $repo/data/reorder.py a $fname f TE
             sh $repo/data/merge_coords.sh -f "intersections_ordered_TE_${fname}.bed" -a $fname -n TE
             python $repo/data/annotate_ins.py a $fname f TE
@@ -100,13 +100,12 @@ for directory in ./*; do
 
             echo -e "${blue}Finding deletions${NC}"
             bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed  > "${fname}_no_TE_intersections.bed"
-            bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $repo/GFF/TAIR10_genes.bed> "${fname}_no_gene_intersections.bed"
+            bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $repo/GFF/gene_only.bed> "${fname}_no_gene_intersections.bed"
             python $repo/data/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed"
             bedtools intersect -a "${fname}_deletion_coords.bed" -b $repo/GFF/TAIR9_TE.bed -wo > "${fname}_deletions_temp.bed"
             python $repo/data/annotate_del.py a $fname
 
             echo -e "${blue}Deleting temp files${NC}"
-            # need to fix some of these filenames
             rm "${fname}.sort.disc.bam"
             rm "${fname}.disc.bed"
             rm "${fname}.disc.bed.bak"

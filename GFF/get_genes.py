@@ -3,7 +3,7 @@ from subprocess import call
 get_genes = "wget ftp://ftp.arabidopsis.org//Maps/gbrowse_data/TAIR10/TAIR10_GFF3_genes.gff"
 get_tes = "wget ftp://ftp.arabidopsis.org//Genes/TAIR9_genome_release/TAIR9_Transposable_Elements.txt"
 
-remove_genes = "rm TAIR10_GFF3_genes.gff filtered_genes.temp TAIR10_genes_temp.bed uniq.temp"
+remove_genes = "rm TAIR10_GFF3_genes.gff filtered_genes.temp TAIR10_genes_temp.bed uniq.temp gene_only_temp.bed"
 remove_tes = "rm TAIR9_Transposable_Elements.txt temp_TE.bed"
 
 sort_genes = "sort -k1,1 -nk2,2 filtered_genes.temp > TAIR10_genes_temp.bed"
@@ -104,5 +104,7 @@ sort_genes = "sort -k1,1 -nk2,2 filtered_genes.temp > TAIR10_genes_temp.bed"
 sort_tes = "sort -k1,1 -nk2,2 temp_TE.bed > TAIR9_TE.bed"
 
 call(sort_tes, shell=True)
-call(remove_genes, shell=True)
 call(remove_tes, shell=True)
+call("grep 'mRNA' TAIR10_genes.bed > gene_only_temp.bed", shell=True)
+call("""awk 'BEGIN {FS=OFS="\t"} {print $1,$2,$3,$4,$6}' gene_only_temp.bed > gene_only.bed""", shell=True)
+call(remove_genes, shell=True)
