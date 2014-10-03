@@ -42,7 +42,7 @@ def get_len(infile):
     return i, lines
 
 
-def reorder(insert_file, reordered_file):
+def reorder(insert_file, reordered_file):  # problem if doing gene (fewer columns)
     """
     Reorder columns so that TE read is in second position.
     """
