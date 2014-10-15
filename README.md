@@ -17,6 +17,7 @@ identified differentially methylated regions.
 
 This repository will provide all the information needed to repeat my analysis,
 including:
+
 1. Downloading data from the SRA.
 2. Splitting `.sra` files into paired `.fastq` files.
 3. Mapping of the paired `.fastq` files to the *Arabidopsis* reference genome.
