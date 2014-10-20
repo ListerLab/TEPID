@@ -11,7 +11,7 @@ def main(bedfile, splitcol, out_prefix):
             try:
                 prev_te
             except NameError:
-                outfile = open("{pref}_{te}". format(pref=out_prefix, te=te), 'w')
+                outfile = open("{pref}_{te}". format(pref=out_prefix, te=te), 'a+')
                 outfile.write(line)
                 prev_te = te
             else:
@@ -20,7 +20,7 @@ def main(bedfile, splitcol, out_prefix):
                     prev_te = te
                 else:
                     outfile.close()
-                    outfile = open("{pref}_{te}". format(pref=out_prefix, te=te), 'w')
+                    outfile = open("{pref}_{te}". format(pref=out_prefix, te=te), 'a+')
                     outfile.write(line)
                     prev_te = te
         outfile.close()

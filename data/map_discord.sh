@@ -92,9 +92,10 @@ for directory in ./*; do
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed > "${fname}_TE_intersections.bed"
             # bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/gene_only.bed > "${fname}_gene_intersections.bed"
             python $repo/data/reorder.py a $fname f TE
+            sort -k10 "intersections_ordered_TE_${fname}.bed" > "intersections_ordered_TE_${fname}_sort.bed"
             mkdir ./temp
             cd ./temp
-            python $repo/data/split_bed_by_gene.py ../"intersections_ordered_TE_${fname}.bed" 9 temp_
+            python $repo/data/split_bed_by_gene.py ../"intersections_ordered_TE_${fname}_sort.bed" 9 temp_
             cd ..
             sh $repo/data/merge_coords.sh -a $fname -n TE
             python $repo/data/annotate_ins.py a $fname f TE
@@ -119,6 +120,7 @@ for directory in ./*; do
             rm "${fname}_no_TE_intersections.bed"
             # rm "${fname}_no_gene_intersections.bed"
             rm "intersections_ordered_TE_${fname}.bed"
+            rm "intersections_ordered_TE_${fname}_sort.bed"
             # rm "intersections_ordered_gene_${fname}.bed"
             # rm "merged_gene_${fname}.bed"
             # rm "merged_TE_${fname}.bed"
