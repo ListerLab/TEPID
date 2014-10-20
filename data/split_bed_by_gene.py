@@ -1,25 +1,29 @@
 
 def main(bedfile, splitcol, out_prefix):
-    bedfh = open(bedfile)
-    outfiles = {}
-    for line in bedfh:
-        # turn line into a list of strings
-        line = line.strip().split('\t')
-        # grab out the gene
-        gene = line[splitcol]
-        try:
-            # try grabbing this gene's file from the dict
-            ofh = outfiles[gene]
-        except KeyError:
-            # open file and store in dict if we don't
-            ofh = open(out_prefix + gene, "w")
-            outfiles[gene] = ofh
-        # write the line, inluding newline we stripped, to the gene's file
-        ofh.write('\t'.join(line) + '\n')
-    # close the files
-    for fh in outfiles.values():
-        fh.close()
-    bedfh.close()
+    """
+    Takes input bedfile sorted by TE name and splits into
+    different file for each TE name
+    """
+    with open(bedfile, 'r') as bedin:
+        for line in bedin:
+            field = line.rsplit()
+            te = field[splitcol]
+            try:
+                prev_te
+            except NameError:
+                outfile = open("{pref}_{te}". format(pref=out_prefix, te=te), 'w')
+                outfile.write(line)
+                prev_te = te
+            else:
+                if te == prev_te:
+                    outfile.write(line)
+                    prev_te = te
+                else:
+                    outfile.close()
+                    outfile = open("{pref}_{te}". format(pref=out_prefix, te=te), 'w')
+                    outfile.write(line)
+                    prev_te = te
+        outfile.close()
 
 if __name__ == "__main__":
     import sys
