@@ -2,6 +2,8 @@
 # $ python annotate_ins.py a <accession_name> f <feature>
 # where feature is gene or TE
 # Finds insertion sites where there are reads at each end, refines insertion coordinates based on position of all reads
+# Filters insertions that are at least 1 kb from reference position to reduce false positives
+# Creates temporary insertions file to be integrated with split read data to find breakpoints
 
 from sys import argv
 
@@ -33,14 +35,12 @@ def get_len(infile):
     return i, lines
 
 
-def annotate(collapse_file, insertion_file, id_file, accession_name):  # problem here
+def annotate(collapse_file, insertion_file, accession_name):
     """
     Find insertion coordinates and TE orientation. Adds unique ID: <accession_name>_<number>
     """
-    with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile, open(id_file, 'w+') as unique_id_file:
-        outfile.write('ins_chr\tins_start\tins_stop\tins_strand\tAGI\tID\tref_chr\tref_start\tref_stop\tref_strand\n')
+    with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile:
         i, lines = get_len(infile)
-        ident = 0
         for x in range(i):
             line = lines[x]
             line = line.rsplit()
@@ -54,40 +54,42 @@ def annotate(collapse_file, insertion_file, id_file, accession_name):  # problem
             te_reads = line[9]
             te_reads = te_reads.split(',')
             reference = [line[5], line[6], line[7], line[8]]  # reference chrom, start, stop, strand
-            pair = find_next(lines, i, x, chrom, strand, start, stop, te_name)
-            if strand != reference[3]:
-                if reference[3] == '+':
-                    orientation = '-'
+            l = int(reference[2]) - int(reference[1])
+            midpoint = int(reference[1]) + int(0.5*l)
+            diff = abs(start - midpoint)
+            if chrom != int(reference[0]) or diff > (int(0.5*l)+1000):  # filter insertions that are at least 3 away from reference
+                pair = find_next(lines, i, x, chrom, strand, start, stop, te_name)
+                if strand != reference[3]:
+                    if reference[3] == '+':
+                        orientation = '-'
+                    else:
+                        orientation = '+'
                 else:
-                    orientation = '+'
+                    orientation = reference[3]
+                if pair is False:
+                    pass  # no reads at opposite end, do not include in annotation
+                else:
+                    pair_start = pair[0]
+                    pair_mates = pair[2]
+                    next_read_names = pair[1]
+                    mate = pair_mates + mate
+                    te_reads = next_read_names + te_reads
+                    outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
+                                                                                                               start=stop,
+                                                                                                               stop=pair_start,
+                                                                                                               orient=orientation,
+                                                                                                               name=te_name,
+                                                                                                               ref='\t'.join(reference),
+                                                                                                               reads='|'.join(te_reads),
+                                                                                                               mates='|'.join(mate)))
             else:
-                orientation = reference[3]
-            if pair is False:
-                pass  # no reads at opposite end, do not include in annotation
-            else:
-                pair_start = pair[0]
-                pair_mates = pair[1]
-                next_read_names = pair[2]
-                mate = pair_mates + mate
-                te_reads = next_read_names + te_reads
-                outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{id}\t{ref}\n'.format(chr=chrom,
-                                                                                               start=stop,
-                                                                                               stop=pair_start,
-                                                                                               orient=orientation,
-                                                                                               name=te_name,
-                                                                                               id=accession_name + '_' + str(ident),
-                                                                                               ref='\t'.join(reference)))
-                unique_id_file.write('>{id},{te},{reads},{mates}\n'.format(id=accession_name + '_' + str(ident),
-                                                                           te=te_name,
-                                                                           reads='|'.join(te_reads),
-                                                                           mates='|'.join(mate)))  # Can add consensus sequence later
-                ident += 1
+                pass
 
 
 # As file is processed top to bottom, sorted by coords, + will come up first. This will avoid identifying each insertion twice (once for each end)
 def find_next(lines, i, x, chrom, strand, start, stop, te_name):
     """
-    Find next read linked to same TE. Looks in 50 bp window.
+    Find next read linked to same TE. Looks in 100 bp window.
     """
     while True:
         line = lines[x+1]
@@ -103,7 +105,7 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
         next_te_reads = next_te_reads.split(',')
         if strand != next_strand and te_name == next_te_name and chrom == next_chrom and stop <= next_start:
             return next_start, next_te_reads, next_mate
-        elif stop + 50 < next_start:
+        elif stop + 100 < next_start:
             return False
         else:
             x += 1
@@ -114,6 +116,5 @@ accession = checkArgs('a', 'accession')
 f = checkArgs('f', 'feature')
 
 annotate('merged_{feat}_{acc}.bed'.format(acc=accession, feat=f),
-         'insertions_{feat}_{acc}.bed'.format(acc=accession, feat=f),
-         'id_{feat}_{acc}.fa'.format(acc=accession, feat=f),
+         'insertions_{feat}_{acc}_temp.bed'.format(acc=accession, feat=f),
          accession)

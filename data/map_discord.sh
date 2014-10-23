@@ -2,8 +2,8 @@
 
 # Created by Tim Stuart
 # Usage:
-#   sh map_discord.sh -p <proc> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -r <path/to/repo>
-#   where <proc> is number of processors to use
+#   sh map_discord.sh -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -r <path/to/repo>
+#   where <proc> is number of processors to use, <size> is average size of PE fragments sequenced
 #   run from directory containing all accession subdirectories
 
 # Does the following:
@@ -30,16 +30,13 @@
 #  * TE deletions bedfile (TE present in Col-0 but not accession). Limited to finding TEs >200 bp, <20000 bp
 #  * compressed fastq files
 
-# To do:
-#  * merge split read and discordant read data
-
 blue='\033[94m'  # main output
 green='\033[92m'  # output for starting / completing files
 NC='\033[0m'  # output from samtools etc will be not coloured
 
-index=  proc=  repo=  yhindex=
+index=  proc=  repo=  yhindex=  size=
 
-while getopts x:p:r:y: opt; do
+while getopts x:p:r:y:s: opt; do
   case $opt in
   x)
       index=$OPTARG
@@ -52,6 +49,9 @@ while getopts x:p:r:y: opt; do
       ;;
   y)
       yhindex=$OPTARG
+      ;;
+  s)
+      size=$OPTARG
       ;;
   esac
 done
@@ -68,7 +68,7 @@ for directory in ./*; do
 
             echo -e "${blue}Starting mapping${NC}"
             # if we want to integrate this with other analysis, should have option to keep concordantly mapped files
-            bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X 250 -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" --met-file "${fname}.log" | samblaster -e -d "${fname}.disc.sam" -u "${fname}.umap.fastq" > /dev/null
+            bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X $size -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" --met-file "${fname}.log" | samblaster -e -d "${fname}.disc.sam" -u "${fname}.umap.fastq" > /dev/null
 
             echo -e "${blue}Mapping split reads${NC}"
             yaha -t $proc -x $yhindex -q "${fname}.umap.fastq" -L 11 -H 2000 -M 15 -osh stdout | samblaster -s "${fname}.split.sam" > /dev/null
@@ -86,11 +86,10 @@ for directory in ./*; do
             sed -i.bak '/Pt/d;/Mt/d;s/chr//g' "${fname}.disc.bed"  # tair10 annotation, tair9 uses chrC and chrM for chloroplast, mitochondrial genomes. Would need to be changed for other organisms
             sed -i.bak '/Pt/d;/Mt/d;s/chr//g' "${fname}.split_unsort.bed"
             sort -k1,1 -nk2,2 "${fname}.disc.bed" > "${fname}.bed"
-            sort -k1,1 -nk2,2 "${fname}.split_unsort.bed" > "${fname}.split.bed"  # need to do something with split reads
+            sort -k1,1 -nk2,2 "${fname}.split_unsort.bed" > "${fname}.split.bed"
 
             echo -e "${blue}Finding insertions${NC}"
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed > "${fname}_TE_intersections.bed"
-            # bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/gene_only.bed > "${fname}_gene_intersections.bed"
             python $repo/data/reorder.py a $fname f TE
             sort -k10 "intersections_ordered_TE_${fname}.bed" > "intersections_ordered_TE_${fname}_sort.bed"
             mkdir ./temp
@@ -99,13 +98,18 @@ for directory in ./*; do
             cd ..
             sh $repo/data/merge_coords.sh -a $fname -n TE
             python $repo/data/annotate_ins.py a $fname f TE
-            # python $repo/data/reorder.py a $fname f gene
-            # sh $repo/data/merge_coords.sh -f "intersections_ordered_gene_${fname}.bed" -a $fname -n gene
-            # python $repo/data/annotate_ins.py a $fname f gene
+            bedtools merge -c 2,3 -o count_distinct,count_distinct -i "${fname}.split.bed" > "${fname}_merged.split.bed"
+            python $repo/data/filter_split.py $fname
+            bedtools intersect -c -a "insertions_TE_${fname}_temp.bed" -b "${fname}_filtered.split.bed" > "insertions_TE_${fname}_split_reads.bed"
+            python $repo/data/separate_breakpoints.py $fname
+            bedtools intersect -a single_break_temp.bed -b "${fname}_filtered.split.bed" -wo > single_break.bed
+            bedtools intersect -a double_break_temp.bed -b "${fname}_filtered.split.bed" -wo > double_break.bed
+            python $repo/data/annotate_breakpoints.py $fname
+            python $repo/data/separate_reads.py $fname
+            sort -k1,1 -nk2,2 "insertions_${fname}_unsorted.bed" > "insertions_${fname}.bed"
 
             echo -e "${blue}Finding deletions${NC}"
             bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed  > "${fname}_no_TE_intersections.bed"
-            # bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $repo/GFF/gene_only.bed> "${fname}_no_gene_intersections.bed"
             python $repo/data/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed"
             bedtools intersect -a "${fname}_deletion_coords.bed" -b $repo/GFF/TAIR9_TE.bed -wo > "${fname}_deletions_temp.bed"
             python $repo/data/annotate_del.py a $fname
@@ -118,14 +122,19 @@ for directory in ./*; do
             rm "${fname}_deletion_coords.bed"
             rm "${fname}_deletions_temp.bed"
             rm "${fname}_no_TE_intersections.bed"
-            # rm "${fname}_no_gene_intersections.bed"
             rm "intersections_ordered_TE_${fname}.bed"
             rm "intersections_ordered_TE_${fname}_sort.bed"
-            # rm "intersections_ordered_gene_${fname}.bed"
-            # rm "merged_gene_${fname}.bed"
-            # rm "merged_TE_${fname}.bed"
             rm "${fname}.split_unsort.bed"
             rm "${fname}.split_unsort.bed.bak"
+            rm "insertions_TE_${fname}_split_reads.bed"
+            rm "insertions_TE_${fname}_temp.bed"
+            rm "${fname}_merged.split.bed"
+            rm "${fname}_filtered.split.bed"
+            rm single_break_temp.bed
+            rm double_break_temp.bed
+            rm single_break.bed
+            rm double_break.bed
+            rm "insertions_${fname}_unsorted.bed"
 
             echo -e "${blue}Compressing fastq files${NC}"
             gzip "${fname}_1.fastq" "${fname}_2.fastq" "${fname}.umap.fastq"
