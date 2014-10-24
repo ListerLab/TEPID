@@ -94,7 +94,7 @@ for directory in ./*; do
             sort -k10 "intersections_ordered_TE_${fname}.bed" > "intersections_ordered_TE_${fname}_sort.bed"
             mkdir ./temp
             cd ./temp
-            python $repo/data/split_bed_by_gene.py ../"intersections_ordered_TE_${fname}_sort.bed" 9 temp_
+            python $repo/data/split_bed_by_gene.py ../"intersections_ordered_TE_${fname}_sort.bed" 9 temp
             cd ..
             sh $repo/data/merge_coords.sh -a $fname -n TE
             python $repo/data/annotate_ins.py a $fname f TE
@@ -135,6 +135,11 @@ for directory in ./*; do
             rm single_break.bed
             rm double_break.bed
             rm "insertions_${fname}_unsorted.bed"
+            rm "insertions_${fname}_temp.bed"
+            rm "${fname}.sort.split.bam"
+            rm "${fname}.split.sam"
+            rm "merged_TE_${fname}.bed"
+            rm "${fname}_TE_intersections.bed"
 
             echo -e "${blue}Compressing fastq files${NC}"
             gzip "${fname}_1.fastq" "${fname}_2.fastq" "${fname}.umap.fastq"
