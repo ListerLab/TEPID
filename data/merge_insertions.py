@@ -116,4 +116,4 @@ with open('insertions.bed', 'w+') as outfile:
                                                                                                                                                                      accessions=','.join(accessions)))
 
 call("sort -k1,1 -nk2,2 insertions.bed > sorted_insertions.bed", shell=True)
-call("""awk 'BEGIN {FS=OFS="\t"} {print "chr"$5,$6,$7,"chr"$1,$2,$3}' sorted_insertions.bed > circos_all.txt""", shell=True)
+call("""awk 'BEGIN {FS=OFS="\t"} {print "chr"$6,$7,$8,"chr"$1,$2,$3}' sorted_insertions.bed > circos_all.txt""", shell=True)
