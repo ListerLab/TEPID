@@ -2,8 +2,12 @@
 
 # Created by Tim Stuart
 # Usage:
-#   sh map_discord.sh -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -r <path/to/repo>
-#   where <proc> is number of processors to use, <size> is average size of PE fragments sequenced
+#   sh map_discord.sh -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -r <path/to/repo> -g <genome>
+#   where:
+#  <proc> is number of processors to use
+#  <size> is average size of PE fragments sequenced
+#  <genome> is the organism. Currently supports Arabidopsis and Brachypodium.
+
 #   run from directory containing all accession subdirectories
 
 # Does the following:
@@ -34,9 +38,9 @@ blue='\033[94m'  # main output
 green='\033[92m'  # output for starting / completing files
 NC='\033[0m'  # output from samtools etc will be not coloured
 
-index=  proc=  repo=  yhindex=  size=
+index=  proc=  repo=  yhindex=  size=  genome=
 
-while getopts x:p:r:y:s: opt; do
+while getopts x:p:r:y:s:g: opt; do
   case $opt in
   x)
       index=$OPTARG
@@ -53,9 +57,21 @@ while getopts x:p:r:y:s: opt; do
   s)
       size=$OPTARG
       ;;
+  g)
+      genome=$OPTARG
+      ;;
   esac
 done
 shift $((OPTIND - 1))
+
+if [ "$genome" == "Arabidopsis" ]; then
+    gff = $repo/GFF/Arabidopsis/TAIR9_TE.bed
+elif [ "$genome" == "Brachypodium" ]; then
+    gff = $repo/GFF/Brachypodium/Brachy_TE_v2.2.bed
+else
+    echo "Unsupported genome"
+    exit
+fi
 
 for directory in ./*; do
     if [ -d "$directory" ]; then
@@ -89,7 +105,7 @@ for directory in ./*; do
             sort -k1,1 -nk2,2 "${fname}.split_unsort.bed" > "${fname}.split.bed"
 
             echo -e "${blue}Finding insertions${NC}"
-            bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed > "${fname}_TE_intersections.bed"
+            bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $gff > "${fname}_TE_intersections.bed"
             python $repo/data/reorder.py a $fname f TE
             sort -k10 "intersections_ordered_TE_${fname}.bed" > "intersections_ordered_TE_${fname}_sort.bed"
             mkdir ./temp
@@ -109,9 +125,9 @@ for directory in ./*; do
             sort -k1,1 -nk2,2 "insertions_${fname}_unsorted.bed" > "insertions_${fname}.bed"
 
             echo -e "${blue}Finding deletions${NC}"
-            bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $repo/GFF/TAIR9_TE.bed  > "${fname}_no_TE_intersections.bed"
+            bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff  > "${fname}_no_TE_intersections.bed"
             python $repo/data/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed"
-            bedtools intersect -a "${fname}_deletion_coords.bed" -b $repo/GFF/TAIR9_TE.bed -wo > "${fname}_deletions_temp.bed"
+            bedtools intersect -a "${fname}_deletion_coords.bed" -b $gff -wo > "${fname}_deletions_temp.bed"
             python $repo/data/annotate_del.py a $fname
 
             echo -e "${blue}Deleting temp files${NC}"
