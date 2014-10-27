@@ -21,8 +21,8 @@ def create_master_dict(master, accession_name):
                 pass
             else:
                 master_insertions[x] = {'ins_chrom': int(line[0]), 'ins_start': int(line[1]), 'ins_end': int(line[2]),
-                                        'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[6]), 'ident': line[5],
-                                        'ref_start': int(line[7]), 'ref_end': int(line[8]), "ref_strand": line[9], 'accessions': [accession_name]}
+                                        'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[5]), 'ident': line[9],
+                                        'ref_start': int(line[6]), 'ref_end': int(line[7]), "ref_strand": line[8], 'accessions': [accession_name]}
                 x += 1
         return master_insertions
 
@@ -39,11 +39,11 @@ def merge_insertions(master_dict, ins_file, accession_name):
                 ins_start = int(line[1])
                 ins_end = int(line[2])
                 agi = line[4]
-                ident = line[5]
-                ref_chrom = int(line[6])
-                ref_start = int(line[7])
-                ref_end = int(line[8])
-                ref_strand = line[9]
+                ident = line[9]
+                ref_chrom = int(line[5])
+                ref_start = int(line[6])
+                ref_end = int(line[7])
+                ref_strand = line[8]
                 i = len(master_dict)-1  # number of items in dictionary
                 x = 0
                 while x <= i:
@@ -63,16 +63,16 @@ def merge_insertions(master_dict, ins_file, accession_name):
                                 pass
                         elif x == i:
                             master_dict[x+1] = {'ins_chrom': int(line[0]), 'ins_start': int(line[1]), 'ins_end': int(line[2]),
-                                                'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[6]), 'ident': ident,
-                                                'ref_start': int(line[7]), 'ref_end': int(line[8]), "ref_strand": line[9], 'accessions': [accession_name]}
+                                                'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[5]), 'ident': ident,
+                                                'ref_start': int(line[6]), 'ref_end': int(line[7]), "ref_strand": line[8], 'accessions': [accession_name]}
                             break
                         else:
                             x += 1
                             pass
                     elif x == i:  # end of dictionary and still not found
                         master_dict[x+1] = {'ins_chrom': int(line[0]), 'ins_start': int(line[1]), 'ins_end': int(line[2]),
-                                            'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[6]), 'ident': ident,
-                                            'ref_start': int(line[7]), 'ref_end': int(line[8]), "ref_strand": line[9], 'accessions': [accession_name]}
+                                            'ins_strand': line[3], 'agi': line[4], 'ref_chrom': int(line[5]), 'ident': ident,
+                                            'ref_start': int(line[6]), 'ref_end': int(line[7]), "ref_strand": line[8], 'accessions': [accession_name]}
                         break
                     else:
                         x += 1
@@ -116,4 +116,4 @@ with open('insertions.bed', 'w+') as outfile:
                                                                                                                                                                      accessions=','.join(accessions)))
 
 call("sort -k1,1 -nk2,2 insertions.bed > sorted_insertions.bed", shell=True)
-call("""awk 'BEGIN {FS=OFS="\t"} {print "chr"$6,$7,$8,"chr"$1,$2,$3}' sorted_insertions.bed > circos_all.txt""", shell=True)
+call("""awk 'BEGIN {FS=OFS="\t"} {print "chr"$5,$6,$7,"chr"$1,$2,$3}' sorted_insertions.bed > circos_all.txt""", shell=True)
