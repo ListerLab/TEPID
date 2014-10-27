@@ -83,13 +83,12 @@ for dirs in os.listdir('.'):
     if os.path.isdir(dirs) is True:
         os.chdir(dirs)
         if os.path.isfile('insertions_{d}.bed'.format(d=dirs)) is True:
-            print dirs
+            print "processing {dirs}".format(dirs=dirs)
             try:
                 master_insertions
             except NameError:
                 master_insertions = create_master_dict('insertions_{d}.bed'.format(d=dirs), dirs)
             else:
-                print len(master_insertions)
                 merge_insertions(master_insertions, 'insertions_{d}.bed'.format(d=dirs), dirs)
             os.chdir('..')
         else:
