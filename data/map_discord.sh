@@ -17,7 +17,7 @@
 #   8. Python script merges overlapping reads, finds insertion sites
 #   9. Python script to create new set of coordinates from deletions file (region between reads), bedtools used to find overlaps with TE (finds deletions)
 #   10. Uses yaha to map unaligned or clipped reads using split-read alignment
-# X  11. Merges split reads with putative insertion sites to find reads spanning insertion
+#   11. Merges split reads with putative insertion sites to find reads spanning insertion
 #   12. Deletes temporary files
 #   13. Compresses original fastq files
 #   14. Move into next subdirectory and repeat
