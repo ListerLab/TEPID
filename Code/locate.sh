@@ -2,11 +2,14 @@
 
 # Created by Tim Stuart
 # Usage:
-#   sh map_discord.sh -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -r <path/to/repo> -g <genome>
+#   sh map_discord.sh [options] -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -r <path/to/repo> -g <genome>
 #   where:
 #  <proc> is number of processors to use
 #  <size> is average size of PE fragments sequenced
 #  <genome> is the organism. Currently supports Arabidopsis and Brachypodium.
+
+#  Options:
+#  -k <path>    keep concordantly mapped reads, store at <path>
 
 #   run from directory containing all accession subdirectories
 
@@ -38,9 +41,9 @@ blue='\033[94m'  # main output
 green='\033[92m'  # output for starting / completing files
 NC='\033[0m'  # output from samtools etc will be not coloured
 
-index=  proc=  repo=  yhindex=  size=  genome=
+index=  proc=  repo=  yhindex=  size=  genome=  keep=
 
-while getopts x:p:r:y:s:g: opt; do
+while getopts x:p:r:y:s:g:k: opt; do
   case $opt in
   x)
       index=$OPTARG
@@ -60,17 +63,26 @@ while getopts x:p:r:y:s:g: opt; do
   g)
       genome=$OPTARG
       ;;
+  k)
+      keep=$OPTARG
+      ;;
   esac
 done
 shift $((OPTIND - 1))
 
 if [ "$genome" == "Arabidopsis" ]; then
-    gff = $repo/GFF/Arabidopsis/TAIR9_TE.bed
+    gff=$repo/GFF/Arabidopsis/TAIR9_TE.bed
 elif [ "$genome" == "Brachypodium" ]; then
-    gff = $repo/GFF/Brachypodium/Brachy_TE_v2.2.bed
+    gff=$repo/GFF/Brachypodium/Brachy_TE_v2.2.bed
 else
-    echo "Unsupported genome"
+    echo Unsupported genome
     exit
+fi
+
+if [ "$keep" ]; then
+    keep=$keep
+else
+    keep=/dev/null
 fi
 
 for directory in ./*; do
@@ -83,8 +95,7 @@ for directory in ./*; do
             echo -e "${green}Processing $fname${NC}"
 
             echo -e "${blue}Starting mapping${NC}"
-            # if we want to integrate this with other analysis, should have option to keep concordantly mapped files
-            bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X $size -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" --met-file "${fname}.log" | samblaster -e -d "${fname}.disc.sam" -u "${fname}.umap.fastq" > /dev/null
+            bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X $size -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" --met-file "${fname}.log" | samblaster -e -d "${fname}.disc.sam" -u "${fname}.umap.fastq" > $keep
 
             echo -e "${blue}Mapping split reads${NC}"
             yaha -t $proc -x $yhindex -q "${fname}.umap.fastq" -L 11 -H 2000 -M 15 -osh stdout | samblaster -s "${fname}.split.sam" > /dev/null
