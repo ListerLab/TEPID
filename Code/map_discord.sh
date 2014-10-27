@@ -106,29 +106,29 @@ for directory in ./*; do
 
             echo -e "${blue}Finding insertions${NC}"
             bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $gff > "${fname}_TE_intersections.bed"
-            python $repo/data/reorder.py a $fname f TE
+            python $repo/Code/reorder.py a $fname f TE
             sort -k10 "intersections_ordered_TE_${fname}.bed" > "intersections_ordered_TE_${fname}_sort.bed"
             mkdir ./temp
             cd ./temp
-            python $repo/data/split_bed_by_gene.py ../"intersections_ordered_TE_${fname}_sort.bed" 9 temp
+            python $repo/Code/split_bed_by_gene.py ../"intersections_ordered_TE_${fname}_sort.bed" 9 temp
             cd ..
-            sh $repo/data/merge_coords.sh -a $fname -n TE
-            python $repo/data/annotate_ins.py a $fname f TE
+            sh $repo/Code/merge_coords.sh -a $fname -n TE
+            python $repo/Code/annotate_ins.py a $fname f TE
             bedtools merge -c 2,3 -o count_distinct,count_distinct -i "${fname}.split.bed" > "${fname}_merged.split.bed"
-            python $repo/data/filter_split.py $fname
+            python $repo/Code/filter_split.py $fname
             bedtools intersect -c -a "insertions_TE_${fname}_temp.bed" -b "${fname}_filtered.split.bed" > "insertions_TE_${fname}_split_reads.bed"
-            python $repo/data/separate_breakpoints.py $fname
+            python $repo/Code/separate_breakpoints.py $fname
             bedtools intersect -a single_break_temp.bed -b "${fname}_filtered.split.bed" -wo > single_break.bed
             bedtools intersect -a double_break_temp.bed -b "${fname}_filtered.split.bed" -wo > double_break.bed
-            python $repo/data/annotate_breakpoints.py $fname
-            python $repo/data/separate_reads.py $fname
+            python $repo/Code/annotate_breakpoints.py $fname
+            python $repo/Code/separate_reads.py $fname
             sort -k1,1 -nk2,2 "insertions_${fname}_unsorted.bed" > "insertions_${fname}.bed"
 
             echo -e "${blue}Finding deletions${NC}"
             bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff  > "${fname}_no_TE_intersections.bed"
-            python $repo/data/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed"
+            python $repo/Code/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed"
             bedtools intersect -a "${fname}_deletion_coords.bed" -b $gff -wo > "${fname}_deletions_temp.bed"
-            python $repo/data/annotate_del.py a $fname
+            python $repo/Code/annotate_del.py a $fname
 
             echo -e "${blue}Deleting temp files${NC}"
             rm "${fname}.sort.disc.bam"
