@@ -66,7 +66,7 @@ if [ "$genome" == "Arabidopsis" ]; then
 elif [ "$genome" == "Brachypodium" ]; then
     gff=$repo/GFF/Brachypodium/Brachy_TE_v2.2.bed
 else
-    echo Unsupported genome
+    echo "Unsupported genome"
     exit
 fi
 
@@ -81,7 +81,6 @@ if [ "$recursive" ]; then
       if [ -d "$directory" ]; then
           cd $directory
           sh $repo/Code/process_single.sh -p $proc -x $index -c $repo -y $yhindex -s $size -g $genome -k $keep
-          done
           cd ..
       fi
   done
