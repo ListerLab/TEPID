@@ -22,6 +22,10 @@ def checkArgs(arg1, arg2):
 
 
 def annotate_deletions(accession):
+    """
+    Calls deletions where the gap between paired reads is at
+    least 75 percent the length of the TE
+    """
     with open("{acc}_deletions_temp.bed".format(acc=accession), 'r') as infile, open("deletions_{acc}.bed".format(acc=accession), 'w+') as outfile:
         x = 0
         for line in infile:

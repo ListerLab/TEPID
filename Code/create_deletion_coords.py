@@ -20,7 +20,14 @@ def checkArgs(arg1, arg2):
         return variable
 
 
-def create_coords(bedfile, saveas):
+def create_coords(bedfile, saveas, insert):
+    """
+    Creates set of putative deletion coordinates where discordant
+    read pairs are on same chromosome, different strands, and
+    are between 3x insert size and 20 kb from each other
+    """
+    insert = int(insert)
+    minimum = 3 * insert
     with open(bedfile, 'r') as infile, open(saveas, 'w+') as outfile:
         for line in infile:
             line = line.rsplit()
@@ -41,7 +48,7 @@ def create_coords(bedfile, saveas):
                     start = stop2
                     stop = start1
                 gapsize = stop - start
-                if gapsize < 20000:
+                if minimum < gapsize < 20000:
                     outfile.write('{ch}\t{start}\t{stop}\t{read}\n'.format(ch=chr1,
                                                                            start=start,
                                                                            stop=stop,
@@ -53,5 +60,6 @@ def create_coords(bedfile, saveas):
 
 input_file = checkArgs('b', 'bed')
 save_file = checkArgs('f', 'file')
+insert = checkArgs('s', 'size')
 
-create_coords(input_file, save_file)
+create_coords(input_file, save_file, insert)
