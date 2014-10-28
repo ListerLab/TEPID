@@ -38,26 +38,27 @@ done
 shift $((OPTIND - 1))
 
 if [ "$helpmsg" == true ]; then
-  echo "\tUsage:
+  echo "
+  Usage:
+    locate.sh [options] -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -c <path/to/repo> -g <genome>
 
-  \tlocate.sh [options] -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -c <path/to/repo> -g <genome>
+  where:
+   <proc> is number of processors to use
+   <size> is average size of PE fragments sequenced
+   <genome> is the organism. Currently supports Arabidopsis and Brachypodium.
 
-  \twhere:
- \t\t<proc> is number of processors to use
- \t\t<size> is average size of PE fragments sequenced
- \t\t<genome> is the organism. Currently supports Arabidopsis and Brachypodium.
+  Options:
+   -k <path>    keep concordantly mapped reads, store at <path>
+   -r           run on all subdirectories (recursive)
 
- \tOptions:
- \t\t-k <path>    keep concordantly mapped reads, store at <path>
- \t\t-r           run on all subdirectories (recursive)
-
-\tOutput files:
-\t\t* bowtie log file: <name>.log
-\t\t* discordant reads bedfile
-\t\t* split reads bedfile
-\t\t* TE insertions bedfile
-\t\t* TE deletions bedfile (TE present in Col-0 but not accession). Limited to finding TEs >200 bp, <20000 bp
-\t\t* compressed fastq files"
+  Output files:
+    * bowtie log file: <name>.log
+    * discordant reads bedfile
+    * split reads bedfile
+    * TE insertions bedfile
+    * TE deletions bedfile (TE present in Col-0 but not accession). Limited to finding TEs >200 bp, <20000 bp
+    * compressed fastq files
+    "
   exit
 fi
 
