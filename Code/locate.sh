@@ -42,10 +42,10 @@ if [ "$helpmsg" == true ]; then
   Usage:
     locate.sh [options] -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -c <path/to/repo> -g <genome>
 
-  where:
+  Where:
    <proc> is number of processors to use
    <size> is average size of PE fragments sequenced
-   <genome> is the organism. Currently supports Arabidopsis and Brachypodium.
+   <genome> is the organism. Currently supports Arabidopsis (TAIR10 or TAIR9) and Brachypodium.
 
   Options:
    -k <path>    keep concordantly mapped reads, store at <path>
@@ -54,6 +54,7 @@ if [ "$helpmsg" == true ]; then
   Output files:
     * bowtie log file: <name>.log
     * discordant reads bedfile
+    * optional concordant reads samfile (use -k <path>)
     * split reads bedfile
     * TE insertions bedfile
     * TE deletions bedfile (TE present in Col-0 but not accession). Limited to finding TEs >200 bp, <20000 bp
@@ -62,9 +63,12 @@ if [ "$helpmsg" == true ]; then
   exit
 fi
 
-if [ "$genome" == "Arabidopsis" ]; then
+if [ "$genome" == "TAIR10" ]; then
     gff=$repo/GFF/Arabidopsis/TAIR9_TE.bed
     strip='/Pt/d;/Mt/d;s/chr//g'
+elif [ "$genome" == "TAIR9" ]; then
+    gff=$repo/GFF/Arabidopsis/TAIR9_TE.bed
+    strip='/chrM/d;/chrC/d;s/chr//g'
 elif [ "$genome" == "Brachypodium" ]; then
     gff=$repo/GFF/Brachypodium/Brachy_TE_v2.2.bed
     strip='/scaffold_/d;s/Bd//g'

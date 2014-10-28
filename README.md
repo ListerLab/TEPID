@@ -10,10 +10,11 @@ Usage
 locate.sh [options] -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -c <path/to/repository> -g <genome>
 ```
 
-where:
+Where:
+
   * `<proc>` is number of processors to use
   * `<size>` is average size of PE fragments sequenced
-  * `<genome>` is the organism. Currently supports *Arabidopsis thaliana* and *Brachypodium distachyon*.
+  * `<genome>` is the organism. Currently supports *Arabidopsis thaliana* TAIR9 or TAIR10, and *Brachypodium distachyon*.
 
 Options:
 
@@ -22,6 +23,7 @@ Options:
   * `-h` display help and exit
 
 Output files:
+
   * bowtie log file: `<name>.log`
   * discordant reads bedfile
   * optional concordant reads samfile (use `-k <path>`)
