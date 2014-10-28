@@ -4,9 +4,9 @@ blue='\033[94m'  # main output
 green='\033[92m'  # output for starting / completing files
 NC='\033[0m'  # output from samtools etc will be not coloured
 
-index=  proc=  repo=  yhindex=  size=  gff=  keep=
+index=  proc=  repo=  yhindex=  size=  gff=  keep=  strip=
 
-while getopts x:p:c:y:s:g:k: opt; do
+while getopts x:p:c:y:s:g:k:q: opt; do
   case $opt in
   x)
       index=$OPTARG
@@ -28,6 +28,9 @@ while getopts x:p:c:y:s:g:k: opt; do
       ;;
   k)
       keep=$OPTARG
+      ;;
+  q)
+      strip=$OPTARG
       ;;
   esac
 done
@@ -55,8 +58,8 @@ for myfile in $(ls -d *_1.fastq);do
     bedtools bamtobed -i "${fname}.sort.split.bam" > "${fname}.split_unsort.bed"
 
     echo -e "${blue}Sorting bedfile, removing reads mapped to chloroplast or mitochondria${NC}"
-    sed -i.bak '/Pt/d;/Mt/d;s/chr//g' "${fname}.disc.bed"  # tair10 annotation, tair9 uses chrC and chrM for chloroplast, mitochondrial genomes. Would need to be changed for other organisms
-    sed -i.bak '/Pt/d;/Mt/d;s/chr//g' "${fname}.split_unsort.bed"
+    sed -i.bak $strip "${fname}.disc.bed"
+    sed -i.bak $strip "${fname}.split_unsort.bed"
     sort -k1,1 -nk2,2 "${fname}.disc.bed" > "${fname}.bed"
     sort -k1,1 -nk2,2 "${fname}.split_unsort.bed" > "${fname}.split.bed"
 
