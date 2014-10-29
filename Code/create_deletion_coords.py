@@ -32,15 +32,15 @@ def create_coords(bedfile, saveas, mn, std, insert):
     required to be at least 3x expected insert size from each
     other
     """
+    insert = int(float(insert))
     if mn is not False:
-        mn = int(mn)
-        std = int(std)
-        insert = int(insert)
-        if abs(mean - insert) > 150 or std > 150:
+        mn = int(float(mn))
+        std = int(float(std))
+        if abs(mn - insert) > 150 or std > 150:
             # estimation of insert size unreliable
             minimum = 3*insert
         else:
-            minimum = mean + (2*std)
+            minimum = mn + (2*std)
     else:
         minimum = 3*insert
     with open(bedfile, 'r') as infile, open(saveas, 'w+') as outfile:
@@ -80,6 +80,8 @@ std = checkArgs('d', 'std')
 insert = checkArgs('s', 'size')
 
 if mn == 'False':
-    create_coords(input_file, save_file, mn=False, std=False, insert)
+    mn = False
+    std = False
+    create_coords(input_file, save_file, mn, std, insert)
 else:
     create_coords(input_file, save_file, mn, std, insert)
