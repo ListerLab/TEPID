@@ -18,8 +18,9 @@ Where:
 
 Options:
 
-  * ` -k <path>` keep concordantly mapped reads, store at <path>  
+  * `-k <path>` keep concordantly mapped reads, store at `<path>`  
   * `-r` run on all subdirectories (recursive)
+  * `-z` gzip input fastq files after mapping
   * `-h` display help and exit
 
 Output files:
@@ -29,7 +30,7 @@ Output files:
   * optional concordant reads samfile (use `-k <path>`)
   * split reads bedfile
   * TE insertions bedfile
-  * TE deletions bedfile (TE present in reference but not sample). Limited to finding TEs >200 bp, <20000 bp
+  * TE deletions bedfile (TE present in reference but not sample)
   * compressed fastq files
 
 Required tools
