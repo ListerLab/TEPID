@@ -8,7 +8,8 @@ def create_master_dict(sample, fname):
             if line[0] == 'ins_chr':
                 pass
             else:
-                master_dict[x] = {'coords': '\t'.join(field[:5]), 'ident': field[5], 'accessions': [sample]}
+                coords = '\t'.join(field[:5])
+                master_dict[x] = {'coords': coords, 'ident': field[5], 'accessions': [sample]}
                 x += 1
         return master_dict
 
@@ -21,12 +22,12 @@ def merge_deletions(master, fname, sample):
             i = len(master)-1
             x = 0
             while x <= i:
-                if master[x]['coords'] = coords:
+                if master[x]['coords'] == coords:
                     master[x]['accessions'].append(sample)
-                    x += 1
+                    break
                 elif x == i:
                     master[x+1] = {'coords': coords, 'ident': field[5], 'accessions': [sample]}
-                    x += 1
+                    break
                 else:
                     x += 1
 
