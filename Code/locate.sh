@@ -1,10 +1,10 @@
 #! /bin/sh
 # Created by Tim Stuart
 
-index=  proc=  repo=  yhindex=  size=  genome=  keep=  helpmsg=  
+index=  proc=  repo=  yhindex=  size=  genome=  keep=  helpmsg=  zip=  
 
 # required flags are followed by :
-while getopts x:p:c:y:s:g:kh opt; do
+while getopts x:p:c:y:s:g:khz opt; do
   case $opt in
   x)
       index=$OPTARG
@@ -33,6 +33,9 @@ while getopts x:p:c:y:s:g:kh opt; do
   h)
       helpmsg=true
       ;;
+  z)
+      zip=true
+      ;;
   esac
 done
 shift $((OPTIND - 1))
@@ -50,6 +53,8 @@ if [ "$helpmsg" == true ]; then
   Options:
    -k <path>    keep concordantly mapped reads, store at <path>
    -r           run on all subdirectories (recursive)
+   -z           gzip input fastq files after mapping
+   -h           display help and quit
 
   Output files:
     * bowtie log file: <name>.log
@@ -61,6 +66,12 @@ if [ "$helpmsg" == true ]; then
     * compressed fastq files
     "
   exit
+fi
+
+if [ "$zip" == true ]; then
+    zip=$zip
+else
+    zip=false
 fi
 
 if [ "$genome" == "TAIR10" ]; then
@@ -87,11 +98,11 @@ if [ "$recursive" ]; then
   for directory in ./*; do
       if [ -d "$directory" ]; then
           cd $directory
-          sh $repo/Code/process_single.sh -p $proc -x $index -c $repo -y $yhindex -s $size -g $genome -k $keep -q $strip
+          sh $repo/Code/process_single.sh -p $proc -x $index -c $repo -y $yhindex -s $size -g $genome -k $keep -q $strip -z $zip
           cd ..
       fi
   done
 
 else
-  sh $repo/Code/process_single.sh -p $proc -x $index -c $repo -y $yhindex -s $size -g $gff -k $keep -q $strip
+  sh $repo/Code/process_single.sh -p $proc -x $index -c $repo -y $yhindex -s $size -g $gff -k $keep -q $strip -z $zip
 fi

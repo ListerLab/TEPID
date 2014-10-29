@@ -4,9 +4,9 @@ blue='\033[94m'  # main output
 green='\033[92m'  # output for starting / completing files
 NC='\033[0m'  # output from samtools etc will be not coloured
 
-index=  proc=  repo=  yhindex=  size=  gff=  keep=  strip=
+index=  proc=  repo=  yhindex=  size=  gff=  keep=  strip=  zip=
 
-while getopts x:p:c:y:s:g:k:q: opt; do
+while getopts x:p:c:y:s:g:k:q:z: opt; do
   case $opt in
   x)
       index=$OPTARG
@@ -31,6 +31,9 @@ while getopts x:p:c:y:s:g:k:q: opt; do
       ;;
   q)
       strip=$OPTARG
+      ;;
+  z)
+      zip=$OPTARG
       ;;
   esac
 done
@@ -116,8 +119,10 @@ for myfile in $(ls -d *_1.fastq);do
     rm "merged_TE_${fname}.bed"
     rm "${fname}_TE_intersections.bed"
 
-    echo -e "${blue}Compressing fastq files${NC}"
-    gzip "${fname}_1.fastq" "${fname}_2.fastq" "${fname}.umap.fastq"
+    if [ "$zip" == true ]; then
+      echo -e "${blue}Compressing fastq files${NC}"
+      gzip "${fname}_1.fastq" "${fname}_2.fastq" "${fname}.umap.fastq"
+    fi
 
-    echo -e "${green}Finished processing $fname${NC}"
+    echo -e "${green}Finished processing ${fname}${NC}"
 done
