@@ -31,7 +31,6 @@ Output files:
   * split reads bedfile
   * TE insertions bedfile
   * TE deletions bedfile (TE present in reference but not sample)
-  * compressed fastq files
 
 Required tools
 --------------

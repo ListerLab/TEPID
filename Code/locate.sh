@@ -13,10 +13,10 @@ while getopts x:p:c:y:s:g:khz opt; do
       proc=$OPTARG
       ;;
   c)
-      repo=$OPTARG
+      repo=${OPTARG%/}
       ;;
   y)
-      yhindex=$OPTARG
+      yhindex=${OPTARG%/}
       ;;
   s)
       size=$OPTARG
