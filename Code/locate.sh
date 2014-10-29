@@ -1,10 +1,10 @@
 #! /bin/sh
 # Created by Tim Stuart
 
-index=  proc=  repo=  yhindex=  size=  genome=  keep=  helpmsg=  zip=  
+index=  proc=  repo=  yhindex=  size=  genome=  keep=  recursive=  helpmsg=  zip=  
 
-# required flags are followed by :
-while getopts x:p:c:y:s:g:khz opt; do
+# flags that require arguments are followed by :
+while getopts x:p:c:y:s:g:k:rhz opt; do
   case $opt in
   x)
       index=$OPTARG
@@ -28,7 +28,7 @@ while getopts x:p:c:y:s:g:khz opt; do
       keep=$OPTARG
       ;;
   r)
-      recursive=$OPTARG
+      recursive=true
       ;;
   h)
       helpmsg=true
@@ -94,7 +94,7 @@ else
     keep=/dev/null
 fi
 
-if [ "$recursive" ]; then
+if [ "$recursive" == true ]; then
   for directory in ./*; do
       if [ -d "$directory" ]; then
           cd $directory
