@@ -88,7 +88,12 @@ for myfile in $(ls -d *_1.fastq);do
 
     echo -e "${blue}Finding deletions${NC}"
     bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff  > "${fname}_no_TE_intersections.bed"
-    python $repo/Code/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed" s $size
+    if [ "$keep" != "/dev/null" ]; then
+      read mean std <<< $(head -5000 $keep | awk '{ if ($9 > 0) { N+=1; S+=$9; S2+=$9*$9 }} END { M=S/N; STD=sqrt ((S2-M*M*N)/(N-1)); print M; print STD}')
+    else
+      mean=False  std=False
+    fi
+    python $repo/Code/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed" m $mean d $std s $size
     bedtools intersect -a "${fname}_deletion_coords.bed" -b $gff -wo > "${fname}_deletions_temp.bed"
     python $repo/Code/annotate_del.py a $fname
 
