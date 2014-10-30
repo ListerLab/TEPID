@@ -15,10 +15,12 @@ def filter_del(inf, master, outf):
             accessions = line[6]
             accessions = accessions.split(',')
             coords = line[:5]
-            temp = master
-            for item in accessions:
-                temp.pop(item)
-            temp.append('Col-0')
+            temp = ['Col-0']
+            for item in master:
+                if item not in accessions:
+                    temp.append(item)
+                else:
+                    pass
             info = '\t'.join(coords) + '\t' + ','.join(temp) + '\n'
             outfile.write(info)
 
@@ -27,7 +29,8 @@ def create_names_list(inf):
     names = []
     with open(inf, 'r') as infile:
         for line in infile:
-            names.append(line)
+            line = line.rsplit()
+            names.append(line[0])
     return names
 
 if __name__ == "__main__":
