@@ -15,11 +15,10 @@ def filter_del(inf, master, outf):
             accessions = line[6]
             accessions = accessions.split(',')
             coords = line[:5]
-            ins = []
+            ins = ['Col-0']
             for item in accessions:
                 if item not in master:
                     ins.append(item)
-                    ins.append('Col-0')  # will be in all because reference
                 else:
                     pass
             info = '\t'.join(coords) + '\t' + ','.join(ins) + '\n'
