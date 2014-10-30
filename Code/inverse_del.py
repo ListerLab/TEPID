@@ -15,13 +15,11 @@ def filter_del(inf, master, outf):
             accessions = line[6]
             accessions = accessions.split(',')
             coords = line[:5]
-            ins = ['Col-0']
+            temp = master
             for item in accessions:
-                if item not in master:
-                    ins.append(item)
-                else:
-                    pass
-            info = '\t'.join(coords) + '\t' + ','.join(ins) + '\n'
+                temp.pop(item)
+            temp.append('Col-0')
+            info = '\t'.join(coords) + '\t' + ','.join(temp) + '\n'
             outfile.write(info)
 
 
