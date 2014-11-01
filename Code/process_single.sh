@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 blue='\033[94m'  # main output
 green='\033[92m'  # output for starting / completing files

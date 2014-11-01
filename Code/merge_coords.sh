@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 # usage:
 # sh merge_coords.sh -a <accession_name> -n <feature_name>

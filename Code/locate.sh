@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 # Created by Tim Stuart
 
 index=  proc=  repo=  yhindex=  size=  genome=  keep=  recursive=  helpmsg=  zip=  
