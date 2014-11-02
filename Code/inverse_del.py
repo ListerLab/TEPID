@@ -1,9 +1,9 @@
 # usage:
-# python inverse_del.py <names> <merged_deletions> <outfile>
+# python inverse_del.py <names> <merged_deletions> <outfile> <reference_sample>
 # requires list of all sample names
 
 
-def filter_del(inf, master, outf):
+def filter_del(inf, master, outf, ref):
     """
     Take bedfile containing all TE deletions and create
     polymorphic TE file with coordinates of TE and
@@ -15,7 +15,7 @@ def filter_del(inf, master, outf):
             accessions = line[6]
             accessions = accessions.split(',')
             coords = line[:5]
-            temp = ['Col-0']
+            temp = [ref]
             for item in master:
                 if item not in accessions:
                     temp.append(item)
@@ -36,4 +36,4 @@ def create_names_list(inf):
 if __name__ == "__main__":
     import sys
     master = create_names_list(sys.argv[1])
-    filter_del(sys.argv[2], master, sys.argv[3])
+    filter_del(sys.argv[2], master, sys.argv[3], sys.argv[4])
