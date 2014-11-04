@@ -4,20 +4,22 @@ mean_size.py
 Created by Tim Stuart
 """
 
-import sys
 import numpy as np
 
-lengths = []
-for line in sys.stdin:
-    if line.startswith('@'):
-        pass
-    else:
-        line = line.rsplit()
-        length = int(line[8])
-        if length > 0:
-            lengths.append(length)
-        else:
+
+def get_data(inp):
+    lengths = []
+    for line in inp:
+        if line.startswith('@'):
             pass
+        else:
+            line = line.rsplit()
+            length = int(line[8])
+            if length > 0:
+                lengths.append(length)
+            else:
+                pass
+    return lengths
 
 
 def reject_outliers(data, m=2.):
@@ -42,6 +44,9 @@ def calc_size(data):
     return mn, std
 
 
-data = reject_outliers(lengths)
-mn, std = calc_size(data)
-print mn, std
+if __name__ == "__main__":
+    import sys
+    lengths = get_data(sys.stdin)
+    data = reject_outliers(lengths)
+    mn, std = calc_size(data)
+    print mn, std
