@@ -89,7 +89,7 @@ for myfile in $(ls -d *_1.fastq);do
     echo -e "${blue}Finding deletions${NC}"
     bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff  > "${fname}_no_TE_intersections.bed"
     if [ "$keep" != "/dev/null" ]; then
-      read mean std <<< $(head -5000 $keep | python $repo/Code/calc_mean.py)
+      read mean std <<< $(head -20000 $keep | python $repo/Code/calc_mean.py)
     else
       mean=False  std=False
     fi

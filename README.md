@@ -41,6 +41,7 @@ Required tools
 * [samblaster](https://github.com/GregoryFaust/samblaster) >= v0.1.19
 * [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.21
 * [python](https://www.python.org) v2.7
+* [numpy](http://www.numpy.org/)
 
 License
 -------
