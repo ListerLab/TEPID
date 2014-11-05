@@ -27,7 +27,7 @@ Output files:
 
   * bowtie log file: `<name>.log`
   * discordant reads bedfile
-  * optional concordant reads samfile (use `-k <path>`)
+  * optional concordant reads bamfile
   * split reads bedfile
   * TE insertions bedfile
   * TE deletions bedfile (TE present in reference but not sample)
