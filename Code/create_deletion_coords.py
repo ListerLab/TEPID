@@ -63,4 +63,4 @@ save_file = checkArgs('f', 'file')
 mn = checkArgs('m', 'mean')
 std = checkArgs('d', 'std')
 
-create_coords(input_file, save_file, mn, std, insert)
+create_coords(input_file, save_file, mn, std)

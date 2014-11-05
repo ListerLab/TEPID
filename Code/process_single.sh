@@ -90,7 +90,7 @@ for myfile in $(ls -d *_1.fastq);do
 
     echo -e "${blue}Finding deletions${NC}"
     bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff  > "${fname}_no_TE_intersections.bed"
-    python $repo/Code/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed" m $mean d $std s $size
+    python $repo/Code/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed" m $mean d $std
     bedtools intersect -a "${fname}_deletion_coords.bed" -b $gff -wo | python  $repo/Code/annotate_del.py $fname > "deletions_${fname}.bed"
 
     echo -e "${blue}Deleting temp files${NC}"
