@@ -80,6 +80,7 @@ else
     del=false
 fi
 
+# Compatable genomes
 if [ "$genome" == "TAIR10" ]; then
     gff=$repo/GFF/Arabidopsis/TAIR9_TE.bed
     strip='/Pt/d;/Mt/d;s/chr//g'
@@ -89,6 +90,12 @@ elif [ "$genome" == "TAIR9" ]; then
 elif [ "$genome" == "Brachypodium" ]; then
     gff=$repo/GFF/Brachypodium/Brachy_TE_v2.2.bed
     strip='/scaffold_/d;s/Bd//g'
+elif [ "$genome" == "hg19" ]; then
+    gff=$repo/GFF/Human/hg19.bed
+    strip=''
+elif [ "$genome" == "hg38" ]; then
+    gff=$repo/GFF/Human/hg38.bed
+    strip=''
 else
     echo "Unsupported genome"
     exit

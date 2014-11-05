@@ -66,8 +66,8 @@ for myfile in $(ls -d *_1.fastq);do
     echo -e "${blue}Sorting bedfile, removing reads mapped to chloroplast or mitochondria${NC}"
     sed -i.bak $strip "${fname}.disc.bed"
     sed -i.bak $strip "${fname}.split_unsort.bed"
-    sort -k1,1 -nk2,2 "${fname}.disc.bed" > "${fname}.bed"
-    sort -k1,1 -nk2,2 "${fname}.split_unsort.bed" > "${fname}.split.bed"
+    sort -k1,1 -k2,2n "${fname}.disc.bed" > "${fname}.bed"
+    sort -k1,1 -k2,2n "${fname}.split_unsort.bed" > "${fname}.split.bed"
 
     echo -e "${blue}Finding insertions${NC}"
     bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $gff > "${fname}_TE_intersections.bed"
@@ -86,7 +86,7 @@ for myfile in $(ls -d *_1.fastq);do
     bedtools intersect -a double_break_temp.bed -b "${fname}_filtered.split.bed" -wo > double_break.bed
     python $repo/Code/annotate_breakpoints.py $fname
     python $repo/Code/separate_reads.py $fname
-    sort -k1,1 -nk2,2 "insertions_${fname}_unsorted.bed" > "insertions_${fname}.bed"
+    sort -k1,1 -k2,2n "insertions_${fname}_unsorted.bed" > "insertions_${fname}.bed"
 
     echo -e "${blue}Finding deletions${NC}"
     bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff  > "${fname}_no_TE_intersections.bed"
