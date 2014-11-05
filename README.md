@@ -18,7 +18,7 @@ Where:
 
 Options:
 
-  * `-k <path>` keep concordantly mapped reads, store at `<path>`  
+  * `-d` delete concordantly mapped reads
   * `-r` run on all subdirectories (recursive)
   * `-z` gzip input fastq files after mapping
   * `-h` display help and exit
