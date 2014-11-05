@@ -1,10 +1,10 @@
 #! /bin/bash
 # Created by Tim Stuart
 
-index=  proc=  repo=  yhindex=  size=  genome=  keep=  recursive=  helpmsg=  zip=  
+index=  proc=  repo=  yhindex=  size=  genome=  del=  recursive=  helpmsg=  zip=  
 
 # flags that require arguments are followed by :
-while getopts x:p:c:y:s:g:k:rhz opt; do
+while getopts x:p:c:y:s:g:drhz opt; do
   case $opt in
   x)
       index=$OPTARG
@@ -24,8 +24,8 @@ while getopts x:p:c:y:s:g:k:rhz opt; do
   g)
       genome=$OPTARG
       ;;
-  k)
-      keep=$OPTARG
+  d)
+      del=true
       ;;
   r)
       recursive=true
@@ -51,7 +51,7 @@ if [ "$helpmsg" == true ]; then
    <genome> is the organism. Currently supports Arabidopsis (TAIR10 or TAIR9) and Brachypodium.
 
   Options:
-   -k <path>    keep concordantly mapped reads, store at <path>
+   -d           delete concordantly mapped reads
    -r           run on all subdirectories (recursive)
    -z           gzip input fastq files after mapping
    -h           display help and quit
@@ -59,10 +59,10 @@ if [ "$helpmsg" == true ]; then
   Output files:
     * bowtie log file: <name>.log
     * discordant reads bedfile
-    * optional concordant reads samfile (use -k <path>)
+    * optional concordant reads bamfile
     * split reads bedfile
     * TE insertions bedfile
-    * TE deletions bedfile (TE present in Col-0 but not accession). Limited to finding TEs >200 bp, <20000 bp
+    * TE deletions bedfile (TE present in Col-0 but not accession)
     * compressed fastq files
     "
   exit
@@ -72,6 +72,12 @@ if [ "$zip" == true ]; then
     zip=$zip
 else
     zip=false
+fi
+
+if [ "$del" == true ]; then
+    del=$del
+else
+    del=false
 fi
 
 if [ "$genome" == "TAIR10" ]; then
@@ -88,21 +94,15 @@ else
     exit
 fi
 
-if [ "$keep" ]; then
-    keep=$keep
-else
-    keep=/dev/null
-fi
-
 if [ "$recursive" == true ]; then
   for directory in ./*; do
       if [ -d "$directory" ]; then
           cd $directory
-          sh $repo/Code/process_single.sh -p $proc -x $index -c $repo -y $yhindex -s $size -g $genome -k $keep -q $strip -z $zip
+          sh $repo/Code/process_single.sh -p $proc -x $index -c $repo -y $yhindex -s $size -g $genome -d $del -q $strip -z $zip
           cd ..
       fi
   done
 
 else
-  sh $repo/Code/process_single.sh -p $proc -x $index -c $repo -y $yhindex -s $size -g $gff -k $keep -q $strip -z $zip
+  sh $repo/Code/process_single.sh -p $proc -x $index -c $repo -y $yhindex -s $size -g $gff -d $del -q $strip -z $zip
 fi

@@ -35,7 +35,7 @@ def get_len(infile):
     return i, lines
 
 
-def annotate(collapse_file, insertion_file, accession_name):
+def annotate(collapse_file, insertion_file, accession_name, max_len):
     """
     Find insertion coordinates and TE orientation. Adds unique ID: <accession_name>_<number>
     """
@@ -57,7 +57,7 @@ def annotate(collapse_file, insertion_file, accession_name):
             l = int(reference[2]) - int(reference[1])
             midpoint = int(reference[1]) + int(0.5*l)
             diff = abs(start - midpoint)
-            if chrom != int(reference[0]) or diff > (int(0.5*l)+1000):  # filter insertions that are at least 3 away from reference
+            if chrom != int(reference[0]) or diff > (int(0.5*l)+max_len):  # filter insertions that are at least 3 sd away from reference
                 pair = find_next(lines, i, x, chrom, strand, start, stop, te_name)
                 if strand != reference[3]:
                     if reference[3] == '+':
@@ -114,7 +114,10 @@ def find_next(lines, i, x, chrom, strand, start, stop, te_name):
 
 accession = checkArgs('a', 'accession')
 f = checkArgs('f', 'feature')
+mn = int(checkArgs('m', 'mean'))
+std = int(checkArgs('s', 'std'))
+mx = (mn + (3*std))
 
 annotate('merged_{feat}_{acc}.bed'.format(acc=accession, feat=f),
          'insertions_{feat}_{acc}_temp.bed'.format(acc=accession, feat=f),
-         accession)
+         accession, mx)

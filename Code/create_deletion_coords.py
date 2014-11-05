@@ -20,29 +20,14 @@ def checkArgs(arg1, arg2):
         return variable
 
 
-def create_coords(bedfile, saveas, mn, std, insert):
+def create_coords(bedfile, saveas, mn, std):
     """
     Creates set of putative deletion coordinates where discordant
     read pairs are on same chromosome, different strands, and
-    are at least 2 standard deviations from the mean insert size
-    and less than 20 kb from each other. If estimation of standard
-    deviation is not avaiable (didn't keep the mapped file) or
-    unreliable (std > 150 or difference between expected mean
-    and real mean is more than 150), then discordant reads are
-    required to be at least 3x expected insert size from each
-    other
+    are at least 3 standard deviations from the mean insert size
+    and less than 20 kb from each other
     """
-    insert = int(float(insert))
-    if mn is not False:
-        mn = int(float(mn))
-        std = int(float(std))
-        if abs(mn - insert) > 150 or std > 150:
-            # estimation of insert size unreliable
-            minimum = 3*insert
-        else:
-            minimum = mn + (2*std)
-    else:
-        minimum = 3*insert
+    minimum = mn + (3*std)
     with open(bedfile, 'r') as infile, open(saveas, 'w+') as outfile:
         for line in infile:
             line = line.rsplit()
@@ -77,11 +62,5 @@ input_file = checkArgs('b', 'bed')
 save_file = checkArgs('f', 'file')
 mn = checkArgs('m', 'mean')
 std = checkArgs('d', 'std')
-insert = checkArgs('s', 'size')
 
-if mn == 'False':
-    mn = False
-    std = False
-    create_coords(input_file, save_file, mn, std, insert)
-else:
-    create_coords(input_file, save_file, mn, std, insert)
+create_coords(input_file, save_file, mn, std, insert)
