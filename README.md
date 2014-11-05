@@ -6,6 +6,20 @@ Uses paired-end sequencing data to find transposable element insertion points.
 Usage
 -----
 
+Clone repository
+
+```
+git clone git@github.com:timoast/locaTE.git
+```
+
+Unzip TE annotation files for the genomes you are interested in
+
+```
+gunzip ./locaTE/GFF/Arabidopsis/TAIR9_TE.bed.gz
+```
+
+Now go to the directory containing your fastq files
+
 ```
 locate.sh [options] -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -c <path/to/repository> -g <genome>
 ```
@@ -14,7 +28,9 @@ Where:
 
   * `<proc>` is number of processors to use
   * `<size>` is average size of PE fragments sequenced
-  * `<genome>` is the organism. Currently supports *Arabidopsis thaliana* TAIR9 or TAIR10, and *Brachypodium distachyon*.
+  * `<genome>` is the organism. Currently supports:  
+      - *Arabidopsis thaliana* (TAIR9 and TAIR10)
+      - *Brachypodium distachyon*
 
 Options:
 
