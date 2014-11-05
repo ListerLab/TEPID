@@ -79,8 +79,7 @@ for myfile in $(ls -d *_1.fastq);do
     cd ..
     sh $repo/Code/merge_coords.sh -a $fname -n TE
     python $repo/Code/annotate_ins.py a $fname f TE m $mean s $std
-    bedtools merge -c 2,3 -o count_distinct,count_distinct -i "${fname}.split.bed" > "${fname}_merged.split.bed"
-    python $repo/Code/filter_split.py $fname
+    bedtools merge -c 2,3 -o count_distinct,count_distinct -i "${fname}.split.bed" | python $repo/Code/filter_split.py > "${fname}_filtered.split.bed"
     bedtools intersect -c -a "insertions_TE_${fname}_temp.bed" -b "${fname}_filtered.split.bed" > "insertions_TE_${fname}_split_reads.bed"
     python $repo/Code/separate_breakpoints.py $fname
     bedtools intersect -a single_break_temp.bed -b "${fname}_filtered.split.bed" -wo > single_break.bed
@@ -92,8 +91,7 @@ for myfile in $(ls -d *_1.fastq);do
     echo -e "${blue}Finding deletions${NC}"
     bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff  > "${fname}_no_TE_intersections.bed"
     python $repo/Code/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed" m $mean d $std s $size
-    bedtools intersect -a "${fname}_deletion_coords.bed" -b $gff -wo > "${fname}_deletions_temp.bed"
-    python $repo/Code/annotate_del.py a $fname
+    bedtools intersect -a "${fname}_deletion_coords.bed" -b $gff -wo | python  $repo/Code/annotate_del.py $fname > "deletions_${fname}.bed"
 
     echo -e "${blue}Deleting temp files${NC}"
     if [ "$del" == true ];then
@@ -104,7 +102,6 @@ for myfile in $(ls -d *_1.fastq);do
     rm "${fname}.disc.bed.bak"
     rm "${fname}.disc.sam"
     rm "${fname}_deletion_coords.bed"
-    rm "${fname}_deletions_temp.bed"
     rm "${fname}_no_TE_intersections.bed"
     rm "intersections_ordered_TE_${fname}.bed"
     rm "intersections_ordered_TE_${fname}_sort.bed"
@@ -112,7 +109,6 @@ for myfile in $(ls -d *_1.fastq);do
     rm "${fname}.split_unsort.bed.bak"
     rm "insertions_TE_${fname}_split_reads.bed"
     rm "insertions_TE_${fname}_temp.bed"
-    rm "${fname}_merged.split.bed"
     rm "${fname}_filtered.split.bed"
     rm single_break_temp.bed
     rm double_break_temp.bed

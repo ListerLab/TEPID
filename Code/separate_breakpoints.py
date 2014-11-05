@@ -3,7 +3,7 @@
 # where <acc> is accession name
 
 
-def splitfile(acc):  # this needs work
+def splitfile(acc):
     with open('insertions_TE_{a}_split_reads.bed'.format(a=acc), 'r') as infile, open('single_break_temp.bed', 'w+') as single, open('double_break_temp.bed', 'w+') as double:
         for line in infile:
             field = line.rsplit()
