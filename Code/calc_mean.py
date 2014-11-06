@@ -29,13 +29,11 @@ def reject_outliers(data, m=2.):
     """
     median = np.median(data)
     std = np.std(data)
-    filtered = []
     for item in data:
-        if abs(item - median) < m * std:
-            filtered.append(item)
+        if abs(item - median) > m * std:
+            data.remove(item)
         else:
             pass
-    return filtered
 
 
 def calc_size(data):
@@ -47,6 +45,6 @@ def calc_size(data):
 if __name__ == "__main__":
     import sys
     lengths = get_data(sys.stdin)
-    data = reject_outliers(lengths)
-    mn, std = calc_size(data)
+    reject_outliers(lengths)
+    mn, std = calc_size(lengths)
     print mn, std
