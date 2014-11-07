@@ -11,9 +11,9 @@ def convert_split_pairbed(inp):
     i, lines = get_len(inp)
     x = 0
     while x < i:
-        coords, read, strand = get_features(line[x])
+        coords, read, strand = get_features(lines[x])
         x += 1
-        next_coords, next_read, next_strand = get_features(line[x])
+        next_coords, next_read, next_strand = get_features(lines[x])
         if next_read == read:
             mate = read.split('_')
             print ("{co}\t{nco}\t{read}\t{mt}\t{st1}\t{st2}".format(co='\t'.join(coords),
