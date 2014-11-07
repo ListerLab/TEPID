@@ -20,14 +20,14 @@ def annotate_deletions(inp, acc):
             except NameError:
                 ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                 data = map(str, te)
-                print ('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                print ('{te}\t{id}'.format(te='\t'.join(data), id=ident))
                 x += 1
                 name = te[4]
             else:
                 if name != te[4]:
                     ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                     data = map(str, te)
-                    print ('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                    print ('{te}\t{id}'.format(te='\t'.join(data), id=ident))
                     x += 1
                     name = te[4]
                 else:
