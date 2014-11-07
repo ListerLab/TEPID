@@ -28,6 +28,7 @@ def create_coords(bedfile, saveas, mn, std):
     and less than 20 kb from each other
     """
     minimum = mn + (3*std)
+    print minimum
     with open(bedfile, 'r') as infile, open(saveas, 'w+') as outfile:
         for line in infile:
             line = line.rsplit()
@@ -60,7 +61,7 @@ def create_coords(bedfile, saveas, mn, std):
 
 input_file = checkArgs('b', 'bed')
 save_file = checkArgs('f', 'file')
-mn = checkArgs('m', 'mean')
-std = checkArgs('d', 'std')
+mn = int(checkArgs('m', 'mean'))
+std = int(checkArgs('d', 'std'))
 
 create_coords(input_file, save_file, mn, std)
