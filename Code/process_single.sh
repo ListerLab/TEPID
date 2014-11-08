@@ -68,6 +68,7 @@ for myfile in $(ls -d *_1.fastq);do
     sed -i.bak $strip "${fname}.split_unsort.bed"
     sort -k1,1 -k2,2n "${fname}.disc.bed" > "${fname}.bed"
     sort -k1,1 -k2,2n "${fname}.split_unsort.bed" > "${fname}.split.bed"
+    python $repo/Code/convert_split_pairbed.py "${fname}.split.bed" > "${fname}.split.bedpe"
 
     echo -e "${blue}Finding insertions${NC}"
     bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $gff > "${fname}_TE_intersections.bed"
