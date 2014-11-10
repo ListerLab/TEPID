@@ -36,4 +36,4 @@ def get_features(inp):
 
 if __name__ == "__main__":
     import sys
-    convert_split_pairbed(sys.argv[1])
+    convert_split_pairbed(sys.stdin)
