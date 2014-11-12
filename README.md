@@ -34,6 +34,7 @@ Where:
 
 Options:
 
+  * `-C <path>` use config file at `<path>` instead of command-line options
   * `-d` delete concordantly mapped reads
   * `-r` run on all subdirectories (recursive)
   * `-z` gzip input fastq files after mapping
