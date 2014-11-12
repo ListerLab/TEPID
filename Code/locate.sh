@@ -1,11 +1,14 @@
 #! /bin/bash
 # Created by Tim Stuart
 
-index=  proc=  repo=  yhindex=  size=  genome=  del=  recursive=  helpmsg=  zip=  
+config=  index=  proc=  repo=  yhindex=  size=  genome=  del=  recursive=  helpmsg=  zip=  
 
 # flags that require arguments are followed by :
-while getopts x:p:c:y:s:g:drhz opt; do
+while getopts C:x:p:c:y:s:g:drhz opt; do
   case $opt in
+  C)
+      config=$OPTARG
+      ;;
   x)
       index=$OPTARG
       ;;
@@ -40,6 +43,10 @@ while getopts x:p:c:y:s:g:drhz opt; do
 done
 shift $((OPTIND - 1))
 
+if [[ -f $config ]]; then
+    . $config
+fi
+
 if [ "$helpmsg" == true ]; then
   echo "
   Usage:
@@ -51,10 +58,11 @@ if [ "$helpmsg" == true ]; then
    <genome> is the organism. Currently supports Arabidopsis (TAIR10 or TAIR9) and Brachypodium.
 
   Options:
-   -d           delete concordantly mapped reads
-   -r           run on all subdirectories (recursive)
-   -z           gzip input fastq files after mapping
-   -h           display help and quit
+   -C    path to config file. Optional, use instead of command line arguments.
+   -d    delete concordantly mapped reads
+   -r    run on all subdirectories (recursive)
+   -z    gzip input fastq files after mapping
+   -h    display help and quit
 
   Output files:
     * bowtie log file: <name>.log
