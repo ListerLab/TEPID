@@ -68,7 +68,7 @@ for myfile in $(ls -d *_1.fastq);do
     sed -i.bak $strip "${fname}.split_unsort.bed"
     sort -k1,1 -k2,2n "${fname}.disc.bed" > "${fname}.bed"
     sort -k1,1 -k2,2n "${fname}.split_unsort.bed" > "${fname}.split.bed"
-    sort -k4 "${fname}.split_unsort.bed" | python $repo/Code/convert_split_pairbed.py > "${fname}.split.bedpe"
+    sort -k4 "${fname}.split_unsort.bed" | python $repo/Code/convert_split_pairbed.py | sort -k1,1 -k2,2n > "${fname}.split.bedpe"
 
     echo -e "${blue}Finding insertions${NC}"
     bedtools pairtobed -f 0.1 -type xor -a "${fname}.bed" -b $gff > "${fname}_TE_intersections.bed"
@@ -91,6 +91,7 @@ for myfile in $(ls -d *_1.fastq);do
 
     echo -e "${blue}Finding deletions${NC}"
     bedtools pairtobed -f 0.1 -type neither -a "${fname}.bed" -b $gff  > "${fname}_no_TE_intersections.bed"
+    bedtools pairtobed -f 0.1 -type neither -a "${fname}.split.bedpe" -b $gff  >> "${fname}_no_TE_intersections.bed"
     python $repo/Code/create_deletion_coords.py b "${fname}_no_TE_intersections.bed" f "${fname}_deletion_coords.bed" m $mean d $std
     bedtools intersect -a "${fname}_deletion_coords.bed" -b $gff -wo | python  $repo/Code/annotate_del.py $fname > "deletions_${fname}.bed"
 
