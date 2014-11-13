@@ -31,6 +31,7 @@ Where:
   * `<genome>` is the organism. Currently supports:  
       - *Arabidopsis thaliana* (TAIR9 and TAIR10)
       - *Brachypodium distachyon*
+      - *Homo sapiens* (hg19)
 
 Options:
 

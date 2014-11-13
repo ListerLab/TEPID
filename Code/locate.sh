@@ -55,7 +55,7 @@ if [ "$helpmsg" == true ]; then
   Where:
    <proc> is number of processors to use
    <size> is average size of PE fragments sequenced
-   <genome> is the organism. Currently supports Arabidopsis (TAIR10 or TAIR9) and Brachypodium.
+   <genome> is the organism. Currently supports Arabidopsis (TAIR10 or TAIR9), Brachypodium, and human (hg19)
 
   Options:
    -C    path to config file. Optional, use instead of command line arguments.
@@ -100,10 +100,7 @@ elif [ "$genome" == "Brachypodium" ]; then
     strip='/scaffold_/d;s/Bd//g'
 elif [ "$genome" == "hg19" ]; then
     gff=$repo/GFF/Human/hg19.bed
-    strip=''
-elif [ "$genome" == "hg38" ]; then
-    gff=$repo/GFF/Human/hg38.bed
-    strip=''
+    strip='/chrM/d'
 else
     echo "Unsupported genome"
     exit

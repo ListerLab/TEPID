@@ -16,7 +16,7 @@ yhindex=
 # average size of paired end library
 size=
 
-# Organism (TAIR9, TAIR10, Brachypodium)
+# Organism (TAIR9, TAIR10, Brachypodium, hg19)
 genome=
 
 # Uncomment to delete concordant bam files
