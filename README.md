@@ -52,6 +52,7 @@ Output files:
   * split reads bedfile
   * TE insertions bedfile
   * TE deletions bedfile (TE present in reference but not sample)
+
 ---
 Required Tools
 -------------
