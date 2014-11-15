@@ -1,9 +1,9 @@
-locaTE
+*locaTE*
 ======
 
 Uses paired-end sequencing data to find transposable element insertion points.
 
-Usage
+Installation
 -----
 
 Clone repository
@@ -18,7 +18,10 @@ Unzip TE annotation files for the genomes you are interested in
 gunzip ./locaTE/GFF/Arabidopsis/TAIR9_TE.bed.gz
 ```
 
-Now go to the directory containing your fastq files
+Usage
+-----
+
+Go to the directory containing your fastq files
 
 ```
 locate.sh [options] -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -c <path/to/repository> -g <genome>
@@ -49,18 +52,24 @@ Output files:
   * split reads bedfile
   * TE insertions bedfile
   * TE deletions bedfile (TE present in reference but not sample)
-
-Required tools
---------------
+---
+Required Tools
+-------------
 
 * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) >= v2.1.0
 * [yaha](http://faculty.virginia.edu/irahall/yaha/) >= v0.1.82
 * [samtools](http://samtools.sourceforge.net) >= v0.1.19
 * [samblaster](https://github.com/GregoryFaust/samblaster) >= v0.1.19
 * [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.21
+
+
+**Python requirements**
+
 * [python](https://www.python.org) v2.7
 * [numpy](http://www.numpy.org/)
+* [pybedtools](http://pythonhosted.org/pybedtools/)
 
+---
 License
 -------
 

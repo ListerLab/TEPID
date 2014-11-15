@@ -46,10 +46,13 @@ for myfile in $(ls -d *_1.fastq);do
     echo -e "${green}Processing $fname${NC}"
 
     echo -e "${blue}Starting mapping${NC}"
-    bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X $size -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" --met-file "${fname}.log" | samblaster -e -d "${fname}.disc.sam" -u "${fname}.umap.fastq" | samtools view -bS - > "${fname}.bam"
+    bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X $size -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" --met-file "${fname}.log" \
+    | samblaster -e -d "${fname}.disc.sam" -u "${fname}.umap.fastq" \
+    | samtools view -bS - > "${fname}.bam"
 
     echo -e "${blue}Mapping split reads${NC}"
-    yaha -t $proc -x $yhindex -q "${fname}.umap.fastq" -L 11 -H 2000 -M 15 -osh stdout | samblaster -s "${fname}.split.sam" > /dev/null
+    yaha -t $proc -x $yhindex -q "${fname}.umap.fastq" -L 11 -H 2000 -M 15 -osh stdout \
+    | samblaster -s "${fname}.split.sam" > /dev/null
     echo -e "${blue}Mapping complete${NC}"
 
     echo -e "${blue}Converting to bam file${NC}"
