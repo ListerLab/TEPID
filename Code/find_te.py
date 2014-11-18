@@ -1,20 +1,21 @@
-# note that you can chain pybedtools commands together like unix pipes
-# might not need to convert bam to bed as pybedtools can work on bam files
-# could also do multiprocessing...
-
 import pybedtools
-import locate  # best way to do this?
+import locate
 import os
 
-# need to get input bam file
-# assume input is a sorted bam file
-# - disc_mapped
-# - all_mapped
-# - split_mapped
-# - te_bed
+
+# path to discordant reads bam file
+disc_mapped = locate.checkArgs('-d', '--disc')
+
+# path to mapped bam file
+all_mapped = locate.checkArgs('-c', '--conc')
+
+# path to split read bam file
+split_mapped = locate.checkArgs('-s', '--split')
+
+# path to TE bedfile
+te_bed = locate.checkArgs('-t', '--te')
 
 # create bedtool objects, convert to bed, sort
-# need to make object for TE annotation as well
 bam = pybedtools.BedTool(all_mapped)
 mn, std = locate.calc_mean(bam.head(20000))  # estimate lib size
 
@@ -25,10 +26,6 @@ te = pybedtools.BedTool(te_bed).sort()
 # remove reads mapped to mito, chlr genomes. May not be needed..
 
 # Convert split bed to bedpe format (already have python script)
-# can make a list of strings and create bedtool
-# append to same bedtool by using:
-# test = pybedtools.BedTool('string', from_string=True).cat(test)
-
 locate.convert_split_pairbed('split.temp', 'split.bedpe')
 os.remove('split.temp')
 split_bedpe = pybedtools.BedTool('split.bedpe')
@@ -55,12 +52,32 @@ and does bedtools merge and sort on each bedtool object,
 then cats all objects and destroys intermediates,
 save final object to file
 
+append to same bedtool by using:
+test = pybedtools.BedTool('string', from_string=True).cat(test)
+
 Can do this with BedTool.filter() and create a function that will filter out lines
 where TE == input name, do for list of unique names. Can go straight from filtered list to
 merge, then filter where both strands, then append to final BedTool object.
 
+Use stream=True to avoid build up of temporary files on disk
+
 Can also do parellel_apply
 """
+
+te_intersect_disc = pybedtools.BedTool('reorder_intersect.bed').sort()
+
+
+def filter_name(bed, name):
+    """
+    Filters lines where TE name in bed
+    matches input TE name
+    """
+    for i in bed:
+        if bed.name == name:
+            print bed
+        else:
+            pass
+
 
 # filter out where there are reads on different strands
 
