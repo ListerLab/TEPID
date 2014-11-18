@@ -12,7 +12,7 @@ all_mapped = locate.checkArgs('-c', '--conc')
 # path to split read bam file
 split_mapped = locate.checkArgs('-s', '--split')
 
-# path to TE bedfile
+# path to TE bedfile. Doesn't need to be unzipped
 te_bed = locate.checkArgs('-t', '--te')
 
 # create bedtool objects, convert to bed, sort
@@ -36,7 +36,6 @@ no_intersect_disc = disc.pair_to_bed(te, f=0.1, type='neither').moveto('no_inter
 split_no_intersect = split_bedpe.pair_to_bed(te, f=0.1, type='neither').moveto('split_no_intersect.temp')
 
 # reorder columns so that TE read is in second position
-# might be better to create a dictionary and go straight to second part
 locate.reorder('intersect.temp', 'reorder_intersect.bed')
 locate.reorder('no_intersect.temp', 'reorder_no_intersect.bed')
 locate.reorder('split_no_intersect.temp', 'reorder_split_no_intersect.bed')
@@ -48,15 +47,16 @@ os.remove('split_no_intersect.temp')
 
 # Now create bedtool objects again, reordered
 te_intersect_disc_ordered = pybedtools.BedTool('reorder_intersect.bed').sort()
-no_intersect_disc_ordered = pybedtools.BedTool('reorder_no_intersect.bed').sort()
-split_no_intersect_ordered = pybedtools.BedTool('reorder_split_no_intersect').sort()
+no_intersect_ordered = pybedtools.BedTool('reorder_no_intersect.bed')
+split_no_intersect_ordered = pybedtools.BedTool('reorder_split_no_intersect')
+no_intersect_ordered = no_intersect_ordered.cat(split_no_intersect_ordered, postmerge=False).sort()
 
 # merge intersection coordinates where TE name is the same
 merged_intersections = locate.merge_TE_coords(te_intersect_disc_ordered, 9)
 
 # filter out where there are reads on different strands
-
-# cat all merged files
+strands = merged_intersections.filter(lambda b: len(b[x]) < 2)  # set x to column containing collapsed strand info
+merged_intersections = strands
 
 # python annotate_ins.py
 
