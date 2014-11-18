@@ -12,44 +12,29 @@ Clone repository
 git clone git@github.com:timoast/locaTE.git
 ```
 
-Unzip TE annotation files for the genomes you are interested in
-
-```
-gunzip ./locaTE/GFF/Arabidopsis/TAIR9_TE.bed.gz
-```
-
 Usage
 -----
 
-Go to the directory containing your fastq files
+Go to the directory containing your bam files
 
 ```
-locate.sh [options] -p <proc> -s <size> -x <path/to/bowtie2/index> -y <path/to/yaha/index> -c <path/to/repository> -g <genome>
+python locate.py -c <mapped> -d <disc_mapped> -s <split_mapped> -g <genome>
 ```
 
 Where:
 
-  * `<proc>` is number of processors to use
+  * `<mapped>` is the name of your mapped bam file
+  * `<disc_mapped>` is the name of your discordant mapped bam file
+  * `<split_mapped` is the name of your split mapped bam file
   * `<size>` is average size of PE fragments sequenced
   * `<genome>` is the organism. Currently supports:  
       - *Arabidopsis thaliana* (TAIR9 and TAIR10)
       - *Brachypodium distachyon*
       - *Homo sapiens* (hg19)
 
-Options:
-
-  * `-C <path>` use config file at `<path>` instead of command-line options
-  * `-d` delete concordantly mapped reads
-  * `-r` run on all subdirectories (recursive)
-  * `-z` gzip input fastq files after mapping
-  * `-h` display help and exit
-
 Output files:
 
-  * bowtie log file: `<name>.log`
-  * discordant reads bedfile
-  * optional concordant reads bamfile
-  * split reads bedfile
+  * bedfiles for split and discordant reads
   * TE insertions bedfile
   * TE deletions bedfile (TE present in reference but not sample)
 
