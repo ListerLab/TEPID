@@ -30,10 +30,10 @@ locate.convert_split_pairbed('split.temp', 'split.bedpe')
 os.remove('split.temp')
 split_bedpe = pybedtools.BedTool('split.bedpe')
 
-# bedtools pairtobed to find TE intersections xor and neither for disc and split reads, sort
-te_intersect_disc = disc.pair_to_bed(te, f=0.1, type='xor').sort().moveto('intersect.temp')
-no_intersect_disc = disc.pair_to_bed(te, f=0.1, type='neither').sort().moveto('no_intersect.temp')
-split_no_intersect = split_bedpe.pair_to_bed(te, f=0.1, type='neither').sort().moveto('split_no_intersect.temp')
+# bedtools pairtobed to find TE intersections xor and neither for disc and split reads
+te_intersect_disc = disc.pair_to_bed(te, f=0.1, type='xor').moveto('intersect.temp')
+no_intersect_disc = disc.pair_to_bed(te, f=0.1, type='neither').moveto('no_intersect.temp')
+split_no_intersect = split_bedpe.pair_to_bed(te, f=0.1, type='neither').moveto('split_no_intersect.temp')
 
 # reorder columns so that TE read is in second position
 # might be better to create a dictionary and go straight to second part
@@ -41,43 +41,18 @@ locate.reorder('intersect.temp', 'reorder_intersect.bed')
 locate.reorder('no_intersect.temp', 'reorder_no_intersect.bed')
 locate.reorder('split_no_intersect.temp', 'reorder_split_no_intersect.bed')
 
+# remove intermediate files
 os.remove('intersect.temp')
 os.remove('no_intersect.temp')
 os.remove('split_no_intersect.temp')
 
-"""
-split intersections file by TE name into different files
-define function that reads file, creates bedtool object for each TE name
-and does bedtools merge and sort on each bedtool object,
-then cats all objects and destroys intermediates,
-save final object to file
+# Now create bedtool objects again, reordered
+te_intersect_disc_ordered = pybedtools.BedTool('reorder_intersect.bed').sort()
+no_intersect_disc_ordered = pybedtools.BedTool('reorder_no_intersect.bed').sort()
+split_no_intersect_ordered = pybedtools.BedTool('reorder_split_no_intersect').sort()
 
-append to same bedtool by using:
-test = pybedtools.BedTool('string', from_string=True).cat(test)
-
-Can do this with BedTool.filter() and create a function that will filter out lines
-where TE == input name, do for list of unique names. Can go straight from filtered list to
-merge, then filter where both strands, then append to final BedTool object.
-
-Use stream=True to avoid build up of temporary files on disk
-
-Can also do parellel_apply
-"""
-
-te_intersect_disc = pybedtools.BedTool('reorder_intersect.bed').sort()
-
-
-def filter_name(bed, name):
-    """
-    Filters lines where TE name in bed
-    matches input TE name
-    """
-    for i in bed:
-        if bed.name == name:
-            print bed
-        else:
-            pass
-
+# merge intersection coordinates where TE name is the same
+merged_intersections = locate.merge_TE_coords(te_intersect_disc_ordered, 9)
 
 # filter out where there are reads on different strands
 
