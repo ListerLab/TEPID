@@ -18,7 +18,7 @@ Usage
 Go to the directory containing your bam files
 
 ```
-python locate.py -c <mapped> -d <disc_mapped> -s <split_mapped> -g <genome>
+python locate.py -c <mapped> -d <disc_mapped> -s <split_mapped> -t <te_bedfile>
 ```
 
 Where:
@@ -26,8 +26,7 @@ Where:
   * `<mapped>` is the name of your mapped bam file
   * `<disc_mapped>` is the name of your discordant mapped bam file
   * `<split_mapped` is the name of your split mapped bam file
-  * `<size>` is average size of PE fragments sequenced
-  * `<genome>` is the organism. Currently supports:  
+  * `<te_bedfile>` is path to the TE bedfile included in the repository. Currently supports:  
       - *Arabidopsis thaliana* (TAIR9 and TAIR10)
       - *Brachypodium distachyon*
       - *Homo sapiens* (hg19)
