@@ -2,6 +2,7 @@ from __future__ import division
 import os
 from sys import argv
 import numpy as np
+import pybedtools
 
 # need to modify all these so they take input and return, rather that reading/writing files
 # clean up in general
@@ -25,6 +26,41 @@ def checkArgs(arg1, arg2):
     else:
         variable = raw_input("\nEnter {arg2}: ".format(arg2=arg2))
         return variable
+
+
+def merge_TE_coords(intersections, col):
+    """
+    merges intersection coordinates where TE name is the same
+    Takes a BedTool object containing TE read intersections
+    returns a new BedTool object
+    """
+    col = int(col)
+    TE_names = []
+    for i in intersections:
+        if i[col] not in TE_names:
+            TE_names.append(i[col])
+        else:
+            pass
+
+    for item in TE_names:
+        te_subset = intersections.filter(lambda b: b[col] == item)  # this is a generator
+        try:
+            merged_intersections
+        except NameError:
+            merged_intersections = te_subset.sort()\
+                                   .merge(
+                                   c='4,10,6,7,8,9,12,13',
+                                   o='distinct,distinct,distinct,distinct,distinct,distinct,collapse,collapse'
+                                   )
+        else:
+            merged_intersections = te_subset.sort()\
+                                   .merge(
+                                   c='4,10,6,7,8,9,12,13',
+                                   o='distinct,distinct,distinct,distinct,distinct,distinct,collapse,collapse'
+                                   )\
+                                   .cat(merged_intersections, postmerge=False)
+    merged_intersections.sort()
+    return merged_intersections
 
 
 def overlap(start1, stop1, start2, stop2):
