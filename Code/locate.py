@@ -36,7 +36,7 @@ def overlap(start1, stop1, start2, stop2):
             pass
 
 
-def get_len(infile):
+def _get_len(infile):
     """returns number of lines in file and all lines as part of list"""
     lines = []
     for i, l in enumerate(infile):
@@ -49,7 +49,7 @@ def reorder(insert_file, reordered_file):
     Reorder columns so that TE read is in second position.
     """
     with open(insert_file, 'r') as infile, open(reordered_file, 'w+') as outfile:
-        i, lines = get_len(infile)
+        i, lines = _get_len(infile)
         for x in range(i):
             line = lines[x]
             field = line.rsplit()
@@ -278,28 +278,29 @@ def _which_bin(size, number, inp):
                 pass
 
 
-def convert_split_pairbed(inp):
+def convert_split_pairbed(inp, outf):
     """
     converts split read bedfile into bedpe format
     with each read on one line
     """
-    i, lines = get_len(inp)
-    x = 0
-    while x < i:
-        coords, read, strand = _get_features(lines[x])
-        x += 1
-        next_coords, next_read, next_strand = _get_features(lines[x])
-        if next_read == read:
-            mate = read.split('_')
-            print ("{co}\t{nco}\t{read}\t{mt}\t{st1}\t{st2}".format(co='\t'.join(coords),
-                                                                    nco='\t'.join(next_coords),
-                                                                    read=mate[0],
-                                                                    mt=mate[1],
-                                                                    st1=strand,
-                                                                    st2=next_strand))
+    with open(inp, 'r') as infile, open(outf, 'w+') as outfile:
+        i, lines = _get_len(infile)
+        x = 0
+        while x < i:
+            coords, read, strand = _get_features(lines[x])
             x += 1
-        else:
-            pass
+            next_coords, next_read, next_strand = _get_features(lines[x])
+            if next_read == read:
+                mate = read.split('_')
+                outfile.write("{co}\t{nco}\t{read}\t{mt}\t{st1}\t{st2}\n".format(co='\t'.join(coords),
+                                                                                 nco='\t'.join(next_coords),
+                                                                                 read=mate[0],
+                                                                                 mt=mate[1],
+                                                                                 st1=strand,
+                                                                                 st2=next_strand))
+                x += 1
+            else:
+                pass
 
 
 def _get_features(inp):
