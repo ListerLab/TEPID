@@ -143,7 +143,7 @@ def separate_reads(acc):
     """
     splits read name info into different file and adds unique IDs for insertions
     """
-    with open('insertions_{a}_temp.bed'.format(a=acc), 'r') as infile, open('insertions_{a}_unsorted.bed'.format(a=acc), 'w+') as outfile, open('id_{a}.fa'.format(a=acc), 'w+') as id_file:
+    with open('insertions_temp.bed', 'r') as infile, open('insertions_unsorted.bed', 'w+') as outfile, open('id_{a}.fa'.format(a=acc), 'w+') as id_file:
         x = 0
         for line in infile:
             line = line.rsplit()
@@ -156,11 +156,11 @@ def separate_reads(acc):
             x += 1
 
 
-def splitfile(acc):
+def splitfile(inp):
     """
     splits single and double breakpoints
     """
-    with open('insertions_TE_{a}_split_reads.bed'.format(a=acc), 'r') as infile, open('single_break_temp.bed', 'w+') as single, open('double_break_temp.bed', 'w+') as double:
+    with open(inp, 'r') as infile, open('single_break.temp', 'w+') as single, open('double_break.temp', 'w+') as double:
         for line in infile:
             field = line.rsplit()
             count = int(field[11])
@@ -395,9 +395,9 @@ def calc_mean(data):
     return mn, std
 
 
-def annotate_single_breakpoint(acc):
+def annotate_single_breakpoint():
     """adds breakpoint coordinates to insertion"""
-    with open('single_break.bed', 'r') as infile, open('insertions_{a}_temp.bed'.format(a=acc), 'a+') as outfile:
+    with open('single_break.bed', 'r') as infile, open('insertions.temp', 'a+') as outfile:
         for line in infile:
             line = line.rsplit()
             coords = line[11:14]
@@ -405,9 +405,9 @@ def annotate_single_breakpoint(acc):
             outfile.write('{coords}\t{data}\n'.format(coords='\t'.join(coords), data='\t'.join(data)))
 
 
-def annotate_double_breakpoint(acc):
+def annotate_double_breakpoint():
     """adds breakpoint coordinates to insertions with two breakpoints"""
-    with open('double_break.bed', 'r') as infile, open('insertions_{a}_temp.bed'.format(a=acc), 'a+') as outfile:
+    with open('double_break.bed', 'r') as infile, open('insertions.temp', 'a+') as outfile:
         i, lines = get_len(infile)
         x = 0
         while x < i:
