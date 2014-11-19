@@ -209,25 +209,31 @@ def inverse_del(inf, outf, ref):
     _filter_del(inf, master, outf, ref)
 
 
-def filter_lines(inp):
+def filter_split(btool):
     """
-    filters lines where there is only one breakpoint in merged split read data
+    filters lines where there is only one breakpoint in split read data
     """
-    for line in inp:
-        line = line.rsplit()
-        chrom = int(line[0])
-        start = int(line[1])
-        stop = int(line[2])
-        count_start = int(line[3])
-        count_stop = int(line[4])
-        if count_stop == 1 and count_start == 1:
+    for i in btool:
+        chrom = int(i[0])
+        start = int(i[1])
+        stop = int(i[1])
+        start_count = int(i[3])
+        stop_count = int(i[4])
+        if start_count == 1 and stop_count == 1:
             pass
-        elif count_start == 1:
-            print ('{chr}\t{brk}\t{brk}\n'.format(chr=chrom, brk=start))
-        elif count_stop == 1:
-            print ('{chr}\t{brk}\t{brk}\n'.format(chr=chrom, brk=stop))
+        elif start_count == 1:
+            coord = start
+        elif stop_count == 1:
+            coord = stop
         else:
             pass
+        try:
+            new_btool
+        except NameError:
+            new_btool = pybedtools.BedTool('{ch}\t{st}\t{st}'.format(ch=chrom, st=coord), from_string=True)
+        else:
+            new_btool = pybedtools.BedTool('{ch}\t{st}\t{st}'.format(ch=chrom, st=coord), from_string=True).cat(new_btool, postmerge=False)
+    return new_btool
 
 
 def create_deletion_coords(bedfile, saveas, mn, std):
@@ -461,10 +467,13 @@ def annotate_deletions(inp, acc):
             pass
 
 
-def annotate_insertions(collapse_file, insertion_file, accession_name, max_len):
+def annotate_insertions(collapse_file, insertion_file, accession_name, mn, std):
     """
     Find insertion coordinates and TE orientation. Adds unique ID: <accession_name>_<number>
     """
+    mn = int(mn)
+    std = int(std)
+    max_len = (mn + (3*std))
     with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile:
         i, lines = get_len(infile)
         for x in range(i):
