@@ -2,7 +2,7 @@
 
 index=  proc=  yhindex=  size=  recursive=  zip=  repo=  
 
-while getopts x:p:y:s:zc: opt; do
+while getopts x:p:y:s:rzc: opt; do
   case $opt in
   x)
       index=$OPTARG
