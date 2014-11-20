@@ -213,27 +213,21 @@ def filter_split(btool):
     """
     filters lines where there is only one breakpoint in split read data
     """
-    for i in btool:
-        chrom = int(i[0])
-        start = int(i[1])
-        stop = int(i[1])
-        start_count = int(i[3])
-        stop_count = int(i[4])
-        if start_count == 1 and stop_count == 1:
-            pass
-        elif start_count == 1:
-            coord = start
-        elif stop_count == 1:
-            coord = stop
-        else:
-            pass
-        try:
-            new_btool
-        except NameError:
-            new_btool = pybedtools.BedTool('{ch}\t{st}\t{st}'.format(ch=chrom, st=coord), from_string=True)
-        else:
-            new_btool = pybedtools.BedTool('{ch}\t{st}\t{st}'.format(ch=chrom, st=coord), from_string=True).cat(new_btool, postmerge=False)
-    return new_btool
+    with open('filtered_split.temp', 'w+') as outfile:
+        for i in btool:
+            chrom = i[0]
+            start = int(i[1])
+            stop = int(i[2])
+            start_count = int(i[3])
+            stop_count = int(i[4])
+            if start_count == 1 and stop_count == 1:
+                pass
+            elif start_count == 1:
+                outfile.write('{ch}\t{st}\t{st}\n'.format(ch=chrom, st=start))
+            elif stop_count == 1:
+                outfile.write('{ch}\t{st}\t{st}\n'.format(ch=chrom, st=stop))
+            else:
+                pass
 
 
 def create_deletion_coords(bedfile, saveas, mn, std):
