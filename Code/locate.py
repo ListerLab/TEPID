@@ -42,7 +42,7 @@ def merge_TE_coords(intersections, col):
         else:
             pass
 
-    for item in TE_names:
+    for item in TE_names:  # could do this with multiprocessing?
         te_subset = intersections.filter(lambda b: b[col] == item)  # this is a generator
         try:
             merged_intersections
@@ -143,7 +143,7 @@ def separate_reads(acc):
     """
     splits read name info into different file and adds unique IDs for insertions
     """
-    with open('insertions_temp.bed', 'r') as infile, open('insertions_unsorted.bed', 'w+') as outfile, open('id_{a}.fa'.format(a=acc), 'w+') as id_file:
+    with open('insertions.temp', 'r') as infile, open('insertions_unsorted.temp', 'w+') as outfile, open('id_{a}.fa'.format(a=acc), 'w+') as id_file:
         x = 0
         for line in infile:
             line = line.rsplit()
@@ -391,7 +391,7 @@ def calc_mean(data):
 
 def annotate_single_breakpoint():
     """adds breakpoint coordinates to insertion"""
-    with open('single_break.bed', 'r') as infile, open('insertions.temp', 'a+') as outfile:
+    with open('single_break_intersect.temp', 'r') as infile, open('insertions.temp', 'a+') as outfile:
         for line in infile:
             line = line.rsplit()
             coords = line[11:14]
@@ -401,12 +401,12 @@ def annotate_single_breakpoint():
 
 def annotate_double_breakpoint():
     """adds breakpoint coordinates to insertions with two breakpoints"""
-    with open('double_break.bed', 'r') as infile, open('insertions.temp', 'a+') as outfile:
-        i, lines = get_len(infile)
+    with open('double_break_intersect.temp', 'r') as infile, open('insertions.temp', 'a+') as outfile:
+        i, lines = _get_len(infile)
         x = 0
         while x < i:
             line = lines[x].rsplit()
-            chrom = int(line[11])
+            chrom = line[11]
             break_1 = int(line[12])
             data = line[3:11]
             x += 1
@@ -464,16 +464,17 @@ def annotate_deletions(inp, acc):
 def annotate_insertions(collapse_file, insertion_file, accession_name, mn, std):
     """
     Find insertion coordinates and TE orientation. Adds unique ID: <accession_name>_<number>
+    having non-int chromosome names here is a problem
     """
     mn = int(mn)
     std = int(std)
     max_len = (mn + (3*std))
     with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile:
-        i, lines = get_len(infile)
+        i, lines = _get_len(infile)
         for x in range(i):
             line = lines[x]
             line = line.rsplit()
-            chrom = int(line[0])
+            chrom = line[0]
             start = int(line[1])
             stop = int(line[2])
             strand = line[3]
@@ -486,7 +487,7 @@ def annotate_insertions(collapse_file, insertion_file, accession_name, mn, std):
             l = int(reference[2]) - int(reference[1])
             midpoint = int(reference[1]) + int(0.5*l)
             diff = abs(start - midpoint)
-            if chrom != int(reference[0]) or diff > (int(0.5*l)+max_len):  # filter insertions that are at least 3 sd away from reference
+            if chrom != reference[0] or diff > (int(0.5*l)+max_len):  # filter insertions that are at least 3 sd away from reference
                 pair = _find_next(lines, i, x, chrom, strand, start, stop, te_name)
                 if strand != reference[3]:
                     if reference[3] == '+':
@@ -523,7 +524,7 @@ def _find_next(lines, i, x, chrom, strand, start, stop, te_name):
     while True:
         line = lines[x+1]
         line = line.rsplit()
-        next_chrom = int(line[0])
+        next_chrom = line[0]
         next_start = int(line[1])
         next_stop = int(line[2])
         next_strand = line[3]
