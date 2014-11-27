@@ -30,7 +30,7 @@ for myfile in $(ls -d *_1.fastq);do
     echo "Mapping ${fname}"
 
     bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X $size\
-     -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" --met-file "${fname}.log" \
+     -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" \
     | samblaster -e -d "${fname}.disc.sam" -u "${fname}.umap.fastq" \
     | samtools view -bS - > "${fname}.bam"
 
