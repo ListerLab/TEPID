@@ -8,9 +8,12 @@ from glob import glob
 name = locate.checkArgs('-n', '--name')
 
 # mapped bam file
-# all_mapped = locate.checkArgs('-c', '--conc')
-# bam = pybedtools.BedTool(all_mapped)
-# mn, std = locate.calc_mean(bam.head(20000))  # estimate lib size. This gives an error (I think because of the header)
+all_mapped = locate.checkArgs('-c', '--conc')
+# this needs to have unmapped reads removed first due to problem with pybedtools
+# samtools view -hbF 0x04 [input] > [output]
+bam = pybedtools.BedTool(all_mapped)
+mn, std = locate.calc_mean(bam[:20000])  # estimate insert size
+max_dist = (3*std) + mn
 
 # split read data
 print 'Processing split reads'
@@ -21,13 +24,18 @@ split_bedpe = pybedtools.BedTool('split.bedpe')
 merged_split = split.merge(c='2,3', o='count_distinct,count_distinct')
 
 # need to filter out mito, chlr genes before this step
-locate.filter_split(merged_split)  # error loading bedtool file midway through processing
-filtered_split = pybedtools.BedTool('filtered_split.temp')
+locate.filter_split(merged_split)
+pybedtools.BedTool('filtered_split.temp').each(lambda b: str(b).strip('chr')).saveas('split_chr_stripped.temp')
+filtered_split = pybedtools.BedTool('split_chr_stripped.temp')
 
-# discordant reads
+# discordant reads. Filter reads pairs more that 3 std insert size appart
 print 'Processing discordant reads'
 disc_mapped = locate.checkArgs('-d', '--disc')
-disc = pybedtools.BedTool(disc_mapped).bam_to_bed(bedpe=True, mate1=True).sort()
+pybedtools.BedTool(disc_mapped)\
+.bam_to_bed(bedpe=True, mate1=True)\
+.filter(lambda b: abs(int(b[2]) - int(b[4])) > max_dist or b[0] != b[3])\
+.saveas('disc.temp')
+disc = pybedtools.BedTool('disc.temp').sort()
 
 # TE bedfile
 print 'Processing TE annotation'
@@ -43,23 +51,22 @@ no_intersect = no_intersect_disc.cat(no_intersect_split, postmerge=False).sort()
 
 # reorder columns so that TE read is in second position
 locate.reorder('intersect.temp', 'reorder_intersect.bed')
-# should filter for discordant reads here to reduce file sizes in later steps
 
 # Now create bedtool objects again, reordered
 te_intersect_disc_ordered = pybedtools.BedTool('reorder_intersect.bed').sort()
 
 # merge intersection coordinates where TE name is the same
 print 'Merging TE intersections'
-merged_intersections = locate.merge_TE_coords(te_intersect_disc_ordered, 9)  # still very slow (>1 hour). Multiprocessing? Also reduce file size before this step
+merged_intersections = locate.merge_TE_coords(te_intersect_disc_ordered, 9)  # still very slow (>1 hour). Multiprocessing?
 
 print "Finished merging intersections. Filtering strands"
 # filter out where there are reads on different strands
-strands = merged_intersections.filter(lambda b: len(b[3]) < 2).saveas('collapsed_intersections.temp')
+merged_intersections.filter(lambda b: len(b[3]) < 2).saveas('collapsed_intersections.temp')
 
 # Find where there are breakpoints at insertion site
 print 'Annotating insertions'
-locate.annotate_insertions('collapsed_intersections.temp', 'insertions.temp', name, mn, std)  # mn, sdt not working now due to problem with bam file
-pybedtools.BedTool('insertions.temp').intersect(filtered_split, c=True).moveto('insertions_split_reads.temp')  # problem where chromosomes in one file have 'chr', the other doesn't (reports no intersections)
+locate.annotate_insertions('collapsed_intersections.temp', 'insertions.temp', name)
+pybedtools.BedTool('insertions.temp').intersect(filtered_split, c=True).moveto('insertions_split_reads.temp')
 locate.splitfile('insertions_split_reads.temp')  # separate breakpoints. make single and double breakpoint files
 pybedtools.BedTool('single_break.temp').intersect(filtered_split, wo=True).moveto('single_break_intersect.temp')
 pybedtools.BedTool('double_break.temp').intersect(filtered_split, wo=True).moveto('double_break_intersect.temp')
@@ -78,7 +85,7 @@ pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{a}.bed
 # sort deletions file and save
 
 # remove temp files
-# temp = glob('./*.temp')
-# for i in temp:
-#     os.remove(i)
+temp = glob('./*.temp')
+for i in temp:
+    os.remove(i)
 

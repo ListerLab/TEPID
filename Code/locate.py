@@ -4,10 +4,6 @@ from sys import argv
 import numpy as np
 import pybedtools
 
-# need to modify all these so they take input and return, rather that reading/writing files
-# clean up in general
-# best way to import your own code in other scripts?
-
 
 def checkArgs(arg1, arg2):
     """
@@ -350,15 +346,11 @@ def _get_features(inp):
 def _get_data(inp):
     lengths = []
     for line in inp:
-        if line.startswith('@'):
-            pass
+        length = int(line[8])
+        if length > 0:
+            lengths.append(length)
         else:
-            line = line.rsplit()
-            length = int(line[8])
-            if length > 0:
-                lengths.append(length)
-            else:
-                pass
+            pass
     return lengths
 
 
@@ -461,14 +453,12 @@ def annotate_deletions(inp, acc):
             pass
 
 
-def annotate_insertions(collapse_file, insertion_file, accession_name, mn, std):
+def annotate_insertions(collapse_file, insertion_file, accession_name):
     """
     Find insertion coordinates and TE orientation. Adds unique ID: <accession_name>_<number>
     having non-int chromosome names here is a problem
+    assumes all read pairs are discordant
     """
-    mn = int(mn)
-    std = int(std)
-    max_len = (mn + (3*std))
     with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile:
         i, lines = _get_len(infile)
         for x in range(i):
@@ -484,36 +474,30 @@ def annotate_insertions(collapse_file, insertion_file, accession_name, mn, std):
             te_reads = line[9]
             te_reads = te_reads.split(',')
             reference = [line[5], line[6], line[7], line[8]]  # reference chrom, start, stop, strand
-            l = int(reference[2]) - int(reference[1])
-            midpoint = int(reference[1]) + int(0.5*l)
-            diff = abs(start - midpoint)
-            if chrom != reference[0] or diff > (int(0.5*l)+max_len):  # filter insertions that are at least 3 sd away from reference
-                pair = _find_next(lines, i, x, chrom, strand, start, stop, te_name)
-                if strand != reference[3]:
-                    if reference[3] == '+':
-                        orientation = '-'
-                    else:
-                        orientation = '+'
+            pair = _find_next(lines, i, x, chrom, strand, start, stop, te_name)
+            if strand != reference[3]:
+                if reference[3] == '+':
+                    orientation = '-'
                 else:
-                    orientation = reference[3]
-                if pair is False:
-                    pass  # no reads at opposite end, do not include in annotation
-                else:
-                    pair_start = pair[0]
-                    pair_mates = pair[2]
-                    next_read_names = pair[1]
-                    mate = pair_mates + mate
-                    te_reads = next_read_names + te_reads
-                    outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
-                                                                                                               start=stop,
-                                                                                                               stop=pair_start,
-                                                                                                               orient=orientation,
-                                                                                                               name=te_name,
-                                                                                                               ref='\t'.join(reference),
-                                                                                                               reads='|'.join(te_reads),
-                                                                                                               mates='|'.join(mate)))
+                    orientation = '+'
             else:
-                pass
+                orientation = reference[3]
+            if pair is False:
+                pass  # no reads at opposite end, do not include in annotation
+            else:
+                pair_start = pair[0]
+                pair_mates = pair[2]
+                next_read_names = pair[1]
+                mate = pair_mates + mate
+                te_reads = next_read_names + te_reads
+                outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
+                                                                                                           start=stop,
+                                                                                                           stop=pair_start,
+                                                                                                           orient=orientation,
+                                                                                                           name=te_name,
+                                                                                                           ref='\t'.join(reference),
+                                                                                                           reads='|'.join(te_reads),
+                                                                                                           mates='|'.join(mate)))
 
 
 # As file is processed top to bottom, sorted by coords, + will come up first. This will avoid identifying each insertion twice (once for each end)
@@ -533,7 +517,7 @@ def _find_next(lines, i, x, chrom, strand, start, stop, te_name):
         next_mate = next_mate.split(',')
         next_te_reads = line[9]
         next_te_reads = next_te_reads.split(',')
-        if strand != next_strand and te_name == next_te_name and chrom == next_chrom and stop <= next_start:
+        if strand != next_strand and te_name == next_te_name and chrom == next_chrom and stop <= next_start and (stop + 100) > next_start:
             return next_start, next_te_reads, next_mate
         elif stop + 100 < next_start:
             return False
