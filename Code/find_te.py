@@ -4,6 +4,15 @@ import os
 from glob import glob
 
 
+"""
+usage:
+python find_te.py -n <sample_name> -c <all_mapped_reads> -d <discordant_reads> -s <split_reads> -t <TE_annotation>
+
+find_te.py must be in the same folder as locate.py
+
+Outputs TE insertions bedfile and TE deletions bedfile.
+"""
+
 # sample name
 name = locate.checkArgs('-n', '--name')
 
@@ -18,25 +27,28 @@ max_dist = (3*std) + mn
 # split read data
 print 'Processing split reads'
 split_mapped = locate.checkArgs('-s', '--split')
-split = pybedtools.BedTool(split_mapped).bam_to_bed().sort().saveas('split.temp')
+split = pybedtools.BedTool(split_mapped).bam_to_bed()\
+.filter(locate.filter_lines_split)\
+.each(locate.remove_chr)\
+.sort().saveas('split.temp')
 locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
 split_bedpe = pybedtools.BedTool('split_bedpe.temp')
 merged_split = split.merge(c='2,3', o='count_distinct,count_distinct')
 
 # need to filter out mito, chlr genes before this step
 locate.filter_split(merged_split)
-pybedtools.BedTool('filtered_split.temp').each(lambda b: str(b).strip('chr')).saveas('split_chr_stripped.temp')
-filtered_split = pybedtools.BedTool('split_chr_stripped.temp')
+filtered_split = pybedtools.BedTool('filtered_split.temp')
 
 # discordant reads. Filter reads pairs more that 3 std insert size appart
 # Can't use main bam file because problem when reads don't have their pair,
 # due to filtering unmapped reads. This can be fixed when pybedtools problem
 # with unmapped reads is fixed
+# try removing invalid lines first?
 print 'Processing discordant reads'
 disc_mapped = locate.checkArgs('-d', '--disc')
 pybedtools.BedTool(disc_mapped)\
 .bam_to_bed(bedpe=True, mate1=True)\
-.filter(lambda b: abs(int(b[2]) - int(b[4])) > max_dist or b[0] != b[3])\
+.filter(locate.filter_lines, max_dist=max_dist)\
 .saveas('disc.temp')
 disc = pybedtools.BedTool('disc.temp').sort()
 
@@ -53,10 +65,10 @@ no_intersect_split = split_bedpe.pair_to_bed(te, f=0.1, type='neither')
 no_intersect = no_intersect_disc.cat(no_intersect_split, postmerge=False).sort()
 
 # reorder columns so that TE read is in second position
-locate.reorder('intersect.temp', 'reorder_intersect.bed')
+locate.reorder('intersect.temp', 'reorder_intersect.temp')
 
 # Now create bedtool objects again, reordered
-te_intersect_disc_ordered = pybedtools.BedTool('reorder_intersect.bed').sort()
+te_intersect_disc_ordered = pybedtools.BedTool('reorder_intersect.temp').sort()
 
 # merge intersection coordinates where TE name is the same
 print 'Merging TE intersections'
@@ -79,14 +91,12 @@ locate.separate_reads(name)
 pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{a}.bed'.format(a=name))
 
 # Deletions
-# python create_deletion_coords.py
+print 'Annotating deletions'
 locate.create_deletion_coords(no_intersect, 'del_coords.temp')
-
-# bedtools intersect, python annotate_del.py
-pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort(),saveas('deletions_{a}.bed'.format(a=name))
+pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')  # problem where stop before start in some coords
+locate.annotate_deletions('deletions.temp', name)
 
 # remove temp files
 temp = glob('./*.temp')
 for i in temp:
     os.remove(i)
-
