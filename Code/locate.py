@@ -300,20 +300,21 @@ def create_deletion_coords(bedfile, saveas):  # problem where some deletion star
             if chr1 == chr2 and strand1 != strand2:
                 if _overlap(start1, stop1, start2, stop2) is True:
                     pass
-                elif start2 >= stop1:
-                    start = stop1
-                    stop = start2
                 else:
-                    start = stop2
-                    stop = start1
-                gapsize = stop - start
-                if  gapsize < 20000:
-                    outfile.write('{ch}\t{start}\t{stop}\t{read}\n'.format(ch=chr1,
-                                                                           start=start,
-                                                                           stop=stop,
-                                                                           read=read))
-                else:
-                    pass
+                    if start2 >= stop1:
+                        start = stop1
+                        stop = start2
+                    else:
+                        start = stop2
+                        stop = start1
+                    gapsize = stop - start
+                    if  gapsize < 20000:
+                        outfile.write('{ch}\t{start}\t{stop}\t{read}\n'.format(ch=chr1,
+                                                                               start=start,
+                                                                               stop=stop,
+                                                                               read=read))
+                    else:
+                        pass
             else:
                 pass
 
