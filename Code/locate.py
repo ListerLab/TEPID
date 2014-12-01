@@ -24,6 +24,47 @@ def checkArgs(arg1, arg2):
         return variable
 
 
+def filter_lines(feature, max_dist):
+    """
+    Filters discordant reads and removes
+    reads mapped to mitochondria and chloroplast
+    use in pybedtools.filter()
+    """
+    start1 = int(feature[2])
+    start2 = int(feature[4])
+    chr1 = feature[0]
+    chr2 = feature[3]
+    unwanted_chroms = ['Mt', 'Pt', 'chrM', 'chrC']
+    if chr1 not in unwanted_chroms and chr2 not in unwanted_chroms:
+        if abs(start1 - start2) > max_dist or chr1 != chr2:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
+def filter_lines_split(feature):
+    """
+    Removes reads mapped to mito and chl
+    use in pybedtools.filter()
+    """
+    unwanted_chroms = ['Mt', 'Pt', 'chrM', 'chrC']
+    if feature[0] in unwanted_chroms:
+        return False
+    else:
+        return True
+
+
+def remove_chr(feature):
+    """
+    use in pybedtools.each()
+    """
+    feature[0] = str(feature[0]).strip('chr')
+    feature[3] = str(feature[3]).strip('chr')
+    return feature
+
+
 def merge_TE_coords(intersections, col):
     """
     merges intersection coordinates where TE name is the same
@@ -226,7 +267,7 @@ def filter_split(btool):
                 pass
 
 
-def create_deletion_coords(bedfile, saveas):
+def create_deletion_coords(bedfile, saveas):  # problem where some deletion start coords are before stop
     """
     Creates set of putative deletion coordinates where discordant
     read pairs are on same chromosome, different strands, and
@@ -246,7 +287,9 @@ def create_deletion_coords(bedfile, saveas):
             read = line[6]
             strand2 = line[9]
             if chr1 == chr2 and strand1 != strand2:
-                if start2 >= stop1:
+                if overlap(start1, stop1, start2, stop2) is True:
+                    pass
+                elif start2 >= stop1:
                     start = stop1
                     stop = start2
                 else:
@@ -423,33 +466,34 @@ def annotate_deletions(inp, acc):
     least 75 percent the length of the TE
     """
     x = 0
-    for line in inp:
-        line = line.rsplit()
-        coords = [int(line[0]), int(line[1]), int(line[2])]  # chr, start, stop
-        te = [line[4], line[5], line[6], line[7], line[8]]  # chr, start, stop, strand, name
-        overlap = int(line[11])
-        gapsize = coords[2] - coords[1]
-        percentage = overlap / gapsize
-        if percentage >= 0.75:
-            try:
-                name
-            except NameError:
-                ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
-                data = map(str, te)
-                print ('{te}\t{id}'.format(te='\t'.join(data), id=ident))
-                x += 1
-                name = te[4]
-            else:
-                if name != te[4]:
+    with open(inp, 'r') as infile, open('deletions_{a}.bed'.format(a=acc), 'w+') as outfile:
+        for line in infile:
+            line = line.rsplit()
+            coords = [line[0], int(line[1]), int(line[2])]  # chr, start, stop
+            te = [line[4], line[5], line[6], line[7], line[8]]  # chr, start, stop, strand, name
+            overlap = int(line[11])
+            gapsize = coords[2] - coords[1]
+            percentage = overlap / gapsize
+            if percentage >= 0.75:
+                try:
+                    name
+                except NameError:
                     ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                     data = map(str, te)
-                    print ('{te}\t{id}'.format(te='\t'.join(data), id=ident))
+                    outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
                     x += 1
                     name = te[4]
                 else:
-                    name = te[4]
-        else:
-            pass
+                    if name != te[4]:
+                        ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
+                        data = map(str, te)
+                        outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                        x += 1
+                        name = te[4]
+                    else:
+                        name = te[4]
+            else:
+                pass
 
 
 def annotate_insertions(collapse_file, insertion_file, accession_name):
