@@ -246,25 +246,36 @@ def inverse_del(inf, outf, ref):
     _filter_del(inf, master, outf, ref)
 
 
-def filter_split(btool):
+def filter_unique_break(feature):
     """
-    filters lines where there is only one breakpoint in split read data
+    filters where there is a breakpoint
+    use with pybedtools.filter()
     """
-    with open('filtered_split.temp', 'w+') as outfile:
-        for i in btool:
-            chrom = i[0]
-            start = int(i[1])
-            stop = int(i[2])
-            start_count = int(i[3])
-            stop_count = int(i[4])
-            if start_count == 1 and stop_count == 1:
-                pass
-            elif start_count == 1:
-                outfile.write('{ch}\t{st}\t{st}\n'.format(ch=chrom, st=start))
-            elif stop_count == 1:
-                outfile.write('{ch}\t{st}\t{st}\n'.format(ch=chrom, st=stop))
-            else:
-                pass
+    if int(feature[3]) == 1 and int(feature[4]) != 1:
+        return False
+    elif int(feature[3]) != 1 and int(feature[4]) == 1:
+        return True
+    else:
+        return False
+
+def break_coords(feature):
+    """
+    reorders split read coords with location of breakpoint
+    use with pybedtools.each()
+    """
+    start_count = int(feature[3])
+    stop_count = int(feature[4])
+    start = feature[1]
+    stop = feature[2]
+    chrom = feature[0]
+    if start_count == 1:
+        feature = [chrom, start, start]
+        return feature
+    elif stop_count == 1:
+        feature = [chrom, stop, stop]
+        return feature
+    else:
+        raise Exception('incorrect filtering of breakpoints')
 
 
 def create_deletion_coords(bedfile, saveas):  # problem where some deletion start coords are before stop

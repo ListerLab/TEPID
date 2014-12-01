@@ -20,6 +20,7 @@ name = locate.checkArgs('-n', '--name')
 all_mapped = locate.checkArgs('-c', '--conc')
 # this needs to have unmapped reads removed first due to problem with pybedtools
 # samtools view -hbF 0x04 [input] > [output]
+print 'Estimating mean insert size'
 bam = pybedtools.BedTool(all_mapped)
 mn, std = locate.calc_mean(bam[:20000])  # estimate insert size
 max_dist = (3*std) + mn
@@ -32,12 +33,11 @@ split = pybedtools.BedTool(split_mapped).bam_to_bed()\
 .each(locate.remove_chr)\
 .sort().saveas('split.temp')
 locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
-split_bedpe = pybedtools.BedTool('split_bedpe.temp')
-merged_split = split.merge(c='2,3', o='count_distinct,count_distinct')
 
-# need to filter out mito, chlr genes before this step
-locate.filter_split(merged_split)
-filtered_split = pybedtools.BedTool('filtered_split.temp')
+split_bedpe = pybedtools.BedTool('split_bedpe.temp')
+filtered_split = split.merge(c='2,3', o='count_distinct,count_distinct')\
+.filter(locate.filter_unique_break)\
+.each(locate.break_coords).saveas('filtered_split.temp')
 
 # discordant reads. Filter reads pairs more that 3 std insert size appart
 # Can't use main bam file because problem when reads don't have their pair,
