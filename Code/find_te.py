@@ -2,21 +2,28 @@ import pybedtools
 import locate
 import os
 from glob import glob
+from sys import argv, exit
 
+args = argv[1:]
+if '-h' in args or '--help' in args:
+    print(
+            """
+            usage:
+            python find_te.py -n <sample_name>
+                              -c <all_mapped_reads>
+                              -d <discordant_reads>
+                              -s <split_reads>
+                              -t <TE_annotation>
 
-"""
-usage:
-python find_te.py -n <sample_name>\
-                  -c <all_mapped_reads>\
-                  -d <discordant_reads>\
-                  -s <split_reads>\
-                  -t <TE_annotation>
+            find_te.py must be in the same folder as locate.py
+            so that code can be imported
 
-find_te.py must be in the same folder as locate.py
-so that code can be imported
-
-Outputs TE insertions bedfile and TE deletions bedfile.
-"""
+            Outputs TE insertions bedfile and TE deletions bedfile.
+            """
+            )
+    exit()
+else:
+    pass
 
 # sample name
 name = locate.checkArgs('-n', '--name')
