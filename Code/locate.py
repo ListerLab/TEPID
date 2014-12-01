@@ -226,22 +226,21 @@ def filter_split(btool):
                 pass
 
 
-def create_deletion_coords(bedfile, saveas, mn, std):
+def create_deletion_coords(bedfile, saveas):
     """
     Creates set of putative deletion coordinates where discordant
     read pairs are on same chromosome, different strands, and
     are at least 3 standard deviations from the mean insert size
-    and less than 20 kb from each other
+    and less than 20 kb from each other.
+    Assumes input bedfile only contains discordant reads
     """
-    minimum = mn + (3*std)
-    with open(bedfile, 'r') as infile, open(saveas, 'w+') as outfile:
-        for line in infile:
-            line = line.rsplit()
-            chr1 = int(line[0])
+    with open(saveas, 'w+') as outfile:
+        for line in bedfile:
+            chr1 = line[0]
             start1 = int(line[1])
             stop1 = int(line[2])
             strand1 = line[8]
-            chr2 = int(line[3])
+            chr2 = line[3]
             start2 = int(line[4])
             stop2 = int(line[5])
             read = line[6]
@@ -254,7 +253,7 @@ def create_deletion_coords(bedfile, saveas, mn, std):
                     start = stop2
                     stop = start1
                 gapsize = stop - start
-                if minimum < gapsize < 20000:
+                if  gapsize < 20000:
                     outfile.write('{ch}\t{start}\t{stop}\t{read}\n'.format(ch=chr1,
                                                                            start=start,
                                                                            stop=stop,

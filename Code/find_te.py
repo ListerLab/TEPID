@@ -75,14 +75,12 @@ locate.annotate_double_breakpoint()
 locate.separate_reads(name)
 pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{a}.bed'.format(a=name))
 
-
 # Deletions
-
 # python create_deletion_coords.py
+locate.create_deletion_coords(no_intersect, 'del_coords.temp')
 
 # bedtools intersect, python annotate_del.py
-
-# sort deletions file and save
+pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort(),saveas('deletions_{a}.bed'.format(a=name))
 
 # remove temp files
 temp = glob('./*.temp')
