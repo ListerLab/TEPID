@@ -62,7 +62,7 @@ def remove_chr(feature):
     """
     use in pybedtools.each()
     """
-    feature[0] = str(feature[0])..strip('chrBd')
+    feature[0] = str(feature[0]).strip('chrBd')
     feature[3] = str(feature[3]).strip('chrBd')
     return feature
 
