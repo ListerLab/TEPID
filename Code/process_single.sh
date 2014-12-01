@@ -39,8 +39,8 @@ for myfile in $(ls -d *_1.fastq);do
 
     echo "Converting to bam"
 
-    samtools view -Sb "${fname}.split.sam" > "${fname}.split.bam"
-    samtools view -Sb "${fname}.disc.sam" > "${fname}.disc.bam"
+    samtools view -Sb@ $proc "${fname}.split.sam" > "${fname}.split.bam"
+    samtools view -Sb@ $proc "${fname}.disc.sam" > "${fname}.disc.bam"
 
     rm "${fname}.split.sam"
     rm "${fname}.disc.sam"
