@@ -35,7 +35,7 @@ def filter_lines(feature, max_dist):
     chr1 = feature[0]
     chr2 = feature[3]
     unwanted_chroms = ['Mt', 'Pt', 'chrM', 'chrC']
-    if chr1 not in unwanted_chroms and chr2 not in unwanted_chroms:
+    if chr1 not in unwanted_chroms and chr2 not in unwanted_chroms:  # need to change for brachy
         if abs(start1 - start2) > max_dist or chr1 != chr2:
             return True
         else:
@@ -52,6 +52,8 @@ def filter_lines_split(feature):
     unwanted_chroms = ['Mt', 'Pt', 'chrM', 'chrC']
     if feature[0] in unwanted_chroms:
         return False
+    elif 'scaffold_' in feature[0]:
+        return False
     else:
         return True
 
@@ -60,8 +62,8 @@ def remove_chr(feature):
     """
     use in pybedtools.each()
     """
-    feature[0] = str(feature[0]).strip('chr')
-    feature[3] = str(feature[3]).strip('chr')
+    feature[0] = str(feature[0]).strip('chr', 'Bd')
+    feature[3] = str(feature[3]).strip('chr', 'Bd')
     return feature
 
 
@@ -80,7 +82,7 @@ def merge_TE_coords(intersections, col):
             pass
 
     for item in TE_names:  # could do this with multiprocessing?
-        te_subset = intersections.filter(lambda b: b[col] == item)  # this is a generator
+        te_subset = intersections.filter(lambda b: b[col] == item)
         try:
             merged_intersections
         except NameError:
