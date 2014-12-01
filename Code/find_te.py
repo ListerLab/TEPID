@@ -6,9 +6,14 @@ from glob import glob
 
 """
 usage:
-python find_te.py -n <sample_name> -c <all_mapped_reads> -d <discordant_reads> -s <split_reads> -t <TE_annotation>
+python find_te.py -n <sample_name>\
+                  -c <all_mapped_reads>\
+                  -d <discordant_reads>\
+                  -s <split_reads>\
+                  -t <TE_annotation>
 
 find_te.py must be in the same folder as locate.py
+so that code can be imported
 
 Outputs TE insertions bedfile and TE deletions bedfile.
 """
@@ -19,7 +24,7 @@ name = locate.checkArgs('-n', '--name')
 # mapped bam file
 all_mapped = locate.checkArgs('-c', '--conc')
 # this needs to have unmapped reads removed first due to problem with pybedtools
-# samtools view -hbF 0x04 [input] > [output]
+# samtools view -hbF 0x04 -@ [number_threads] [input] > [output]
 print 'Estimating mean insert size'
 bam = pybedtools.BedTool(all_mapped)
 mn, std = locate.calc_mean(bam[:20000])  # estimate insert size
@@ -43,7 +48,6 @@ filtered_split = split.merge(c='2,3', o='count_distinct,count_distinct')\
 # Can't use main bam file because problem when reads don't have their pair,
 # due to filtering unmapped reads. This can be fixed when pybedtools problem
 # with unmapped reads is fixed
-# try removing invalid lines first?
 print 'Processing discordant reads'
 disc_mapped = locate.checkArgs('-d', '--disc')
 pybedtools.BedTool(disc_mapped)\
@@ -72,7 +76,8 @@ te_intersect_disc_ordered = pybedtools.BedTool('reorder_intersect.temp').sort()
 
 # merge intersection coordinates where TE name is the same
 print 'Merging TE intersections'
-merged_intersections = locate.merge_TE_coords(te_intersect_disc_ordered, 9)  # still very slow (>1 hour). Multiprocessing?
+# still very slow (>1 hour). Multiprocessing?
+merged_intersections = locate.merge_TE_coords(te_intersect_disc_ordered, 9)
 
 print "Finished merging intersections. Filtering strands"
 # filter out where there are reads on different strands
@@ -81,10 +86,19 @@ merged_intersections.filter(lambda b: len(b[3]) < 2).saveas('collapsed_intersect
 # Find where there are breakpoints at insertion site
 print 'Annotating insertions'
 locate.annotate_insertions('collapsed_intersections.temp', 'insertions.temp', name)
-pybedtools.BedTool('insertions.temp').intersect(filtered_split, c=True).moveto('insertions_split_reads.temp')
-locate.splitfile('insertions_split_reads.temp')  # separate breakpoints. make single and double breakpoint files
-pybedtools.BedTool('single_break.temp').intersect(filtered_split, wo=True).moveto('single_break_intersect.temp')
-pybedtools.BedTool('double_break.temp').intersect(filtered_split, wo=True).moveto('double_break_intersect.temp')
+pybedtools.BedTool('insertions.temp')\
+.intersect(filtered_split, c=True)\
+.moveto('insertions_split_reads.temp')
+
+locate.splitfile('insertions_split_reads.temp')
+pybedtools.BedTool('single_break.temp')\
+.intersect(filtered_split, wo=True)\
+.moveto('single_break_intersect.temp')
+
+pybedtools.BedTool('double_break.temp')\
+.intersect(filtered_split, wo=True)\
+.moveto('double_break_intersect.temp')
+
 locate.annotate_single_breakpoint()
 locate.annotate_double_breakpoint()
 locate.separate_reads(name)
@@ -93,7 +107,7 @@ pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{a}.bed
 # Deletions
 print 'Annotating deletions'
 locate.create_deletion_coords(no_intersect, 'del_coords.temp')
-pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')  # problem where stop before start in some coords
+pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
 locate.annotate_deletions('deletions.temp', name)
 
 # remove temp files
