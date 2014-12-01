@@ -1,18 +1,18 @@
-import pybedtools
-import locate
-import os
-from glob import glob
 from sys import argv, exit
 
 args = argv[1:]
 if '-h' in args or '--help' in args:
     print(
             """
-            usage:
+            find_te.py
+
+            Created by Tim Stuart
+
+            Usage:
             python find_te.py -n <sample_name>
-                              -c <all_mapped_reads>
-                              -d <discordant_reads>
-                              -s <split_reads>
+                              -c <all_mapped_reads_bamfile>
+                              -d <discordant_reads_bamfile>
+                              -s <split_reads_bamfile>
                               -t <TE_annotation>
 
             find_te.py must be in the same folder as locate.py
@@ -25,6 +25,12 @@ if '-h' in args or '--help' in args:
 else:
     pass
 
+import pybedtools
+import locate
+import os
+from glob import glob
+
+
 # sample name
 name = locate.checkArgs('-n', '--name')
 
@@ -34,7 +40,7 @@ all_mapped = locate.checkArgs('-c', '--conc')
 # samtools view -hbF 0x04 -@ [number_threads] [input] > [output]
 print 'Estimating mean insert size'
 bam = pybedtools.BedTool(all_mapped)
-mn, std = locate.calc_mean(bam[:20000])  # estimate insert size
+mn, std = locate.calc_mean(bam[:20000])
 max_dist = (3*std) + mn
 
 # split read data
