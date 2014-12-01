@@ -18,9 +18,9 @@ max_dist = (3*std) + mn
 # split read data
 print 'Processing split reads'
 split_mapped = locate.checkArgs('-s', '--split')
-split = pybedtools.BedTool(split_mapped).bam_to_bed().sort().saveas('split.bed')
-locate.convert_split_pairbed('split.bed', 'split.bedpe')
-split_bedpe = pybedtools.BedTool('split.bedpe')
+split = pybedtools.BedTool(split_mapped).bam_to_bed().sort().saveas('split.temp')
+locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
+split_bedpe = pybedtools.BedTool('split_bedpe.temp')
 merged_split = split.merge(c='2,3', o='count_distinct,count_distinct')
 
 # need to filter out mito, chlr genes before this step
@@ -29,6 +29,9 @@ pybedtools.BedTool('filtered_split.temp').each(lambda b: str(b).strip('chr')).sa
 filtered_split = pybedtools.BedTool('split_chr_stripped.temp')
 
 # discordant reads. Filter reads pairs more that 3 std insert size appart
+# Can't use main bam file because problem when reads don't have their pair,
+# due to filtering unmapped reads. This can be fixed when pybedtools problem
+# with unmapped reads is fixed
 print 'Processing discordant reads'
 disc_mapped = locate.checkArgs('-d', '--disc')
 pybedtools.BedTool(disc_mapped)\
