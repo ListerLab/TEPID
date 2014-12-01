@@ -298,7 +298,7 @@ def create_deletion_coords(bedfile, saveas):  # problem where some deletion star
             read = line[6]
             strand2 = line[9]
             if chr1 == chr2 and strand1 != strand2:
-                if overlap(start1, stop1, start2, stop2) is True:
+                if del_overlap(start1, stop1, start2, stop2) is True:
                     pass
                 elif start2 >= stop1:
                     start = stop1
@@ -316,6 +316,15 @@ def create_deletion_coords(bedfile, saveas):  # problem where some deletion star
                     pass
             else:
                 pass
+
+
+def del_overlap(start1, stop1, start2, stop2):
+    """returns True if sets of coordinates overlap. Assumes coordinates are on same chromosome"""
+    for y in xrange(start2, stop2+1):
+        if start1 < y < stop1:
+            return True
+        else:
+            pass
 
 
 def count_inserts(inf, outf, chrom):
