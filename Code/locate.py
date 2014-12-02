@@ -35,11 +35,12 @@ def filter_lines(feature, max_dist):
     chr1 = feature[0]
     chr2 = feature[3]
     unwanted_chroms = ['Mt', 'Pt', 'chrM', 'chrC']
-    if chr1 not in unwanted_chroms and chr2 not in unwanted_chroms:  # need to change for brachy
-        if abs(start1 - start2) > max_dist or chr1 != chr2:
-            return True
-        else:
-            return False
+    if chr1 in unwanted_chroms or chr2 in unwanted_chroms:
+        return False
+    elif 'scaffold_' in feature[0]:
+        return False
+    elif abs(start1 - start2) > max_dist or chr1 != chr2:
+        return True
     else:
         return False
 

@@ -66,6 +66,7 @@ disc_mapped = locate.checkArgs('-d', '--disc')
 pybedtools.BedTool(disc_mapped)\
 .bam_to_bed(bedpe=True, mate1=True)\
 .filter(locate.filter_lines, max_dist=max_dist)\
+.each(locate.remove_chr)\
 .saveas('disc.temp')
 disc = pybedtools.BedTool('disc.temp').sort()
 
