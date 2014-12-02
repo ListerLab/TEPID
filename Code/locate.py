@@ -81,26 +81,16 @@ def merge_TE_coords(intersections, col):
             TE_names.append(i[col])
         else:
             pass
-
+    te = TE_names.pop(0)
+    master = intersections.filter(lambda b: b[col] == te)\
+             .sort().merge(c='4,10,6,7,8,9,12,13',
+                           o='distinct,distinct,distinct,distinct,distinct,distinct,collapse,collapse')
     for item in TE_names:  # could do this with multiprocessing?
-        te_subset = intersections.filter(lambda b: b[col] == item)
-        try:
-            merged_intersections
-        except NameError:
-            merged_intersections = te_subset.sort()\
-                                   .merge(
-                                   c='4,10,6,7,8,9,12,13',
-                                   o='distinct,distinct,distinct,distinct,distinct,distinct,collapse,collapse'
-                                   )
-        else:
-            merged_intersections = te_subset.sort()\
-                                   .merge(
-                                   c='4,10,6,7,8,9,12,13',
-                                   o='distinct,distinct,distinct,distinct,distinct,distinct,collapse,collapse'
-                                   )\
-                                   .cat(merged_intersections, postmerge=False)
-    merged_intersections.sort()
-    return merged_intersections
+        master = master.cat(intersections.filter(lambda b: b[col] == item)\
+                .sort().merge(c='4,10,6,7,8,9,12,13',
+                              o='distinct,distinct,distinct,distinct,distinct,distinct,collapse,collapse'), postmerge=False)
+    master = master.sort()
+    return master
 
 
 def _overlap(start1, stop1, start2, stop2):
