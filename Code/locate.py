@@ -84,7 +84,7 @@ def merge_TE_coords(intersections, col):
     te = TE_names.pop(0)
     master = intersections.filter(lambda b: b[col] == te)\
              .sort().merge(c='4,10,6,7,8,9,12,13',
-                           o='distinct,distinct,distinct,distinct,distinct,distinct,collapse,collapse')
+                           o='distinct,distinct,distinct,distinct,distinct,distinct,collapse,collapse').saveas('merge.temp')
     for item in TE_names:  # could do this with multiprocessing?
         master = master.cat(intersections.filter(lambda b: b[col] == item)\
                 .sort().merge(c='4,10,6,7,8,9,12,13',
@@ -245,7 +245,7 @@ def filter_unique_break(feature):
     use with pybedtools.filter()
     """
     if int(feature[3]) == 1 and int(feature[4]) != 1:
-        return False
+        return True
     elif int(feature[3]) != 1 and int(feature[4]) == 1:
         return True
     else:
