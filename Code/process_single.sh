@@ -23,6 +23,10 @@ while getopts x:p:y:s:z: opt; do
 done
 shift $((OPTIND - 1))
 
+samtools --version
+samblaster --version
+bowtie2 --version
+
 for myfile in $(ls -d *_1.fastq);do
 
     fname=(${myfile//_1.fastq/ })
