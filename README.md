@@ -18,7 +18,7 @@ Usage
 Go to the directory containing your bam files
 
 ```
-python locate.py -c <mapped> -d <disc_mapped> -s <split_mapped> -t <te_bedfile>
+python find_te.py -c <mapped> -d <disc_mapped> -s <split_mapped> -t <te_bedfile>
 ```
 
 Where:
@@ -43,7 +43,7 @@ Required Tools
 
 * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) >= v2.1.0
 * [yaha](http://faculty.virginia.edu/irahall/yaha/) >= v0.1.82
-* [samtools](http://samtools.sourceforge.net) >= v0.1.19
+* [samtools](http://samtools.sourceforge.net) >= v1.1
 * [samblaster](https://github.com/GregoryFaust/samblaster) >= v0.1.19
 * [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.21
 
