@@ -68,29 +68,118 @@ def remove_chr(feature):
     return feature
 
 
-def merge_TE_coords(intersections, col):
-    """
-    merges intersection coordinates where TE name is the same
-    Takes a BedTool object containing TE read intersections
-    returns a new BedTool object
-    """
-    col = int(col)
-    TE_names = []
-    for i in intersections:
-        if i[col] not in TE_names:
-            TE_names.append(i[col])
+def _create_te_dict(infile):
+    TE_dict = {}
+    for line in infile:
+        fields = line.rsplit()
+        line = line.strip().split('\t')
+        name = fields[9]
+        try:
+            TE_dict[name]
+        except KeyError:
+            TE_dict[name] = {1: line}
         else:
-            pass
-    te = TE_names.pop(0)
-    master = intersections.filter(lambda b: b[col] == te)\
-             .sort().merge(c='4,10,6,7,8,9,12,13',
-                           o='distinct,distinct,distinct,distinct,distinct,distinct,collapse,collapse').saveas('merge.temp')
-    for item in TE_names:  # could do this with multiprocessing?
-        master = master.cat(intersections.filter(lambda b: b[col] == item)\
-                .sort().merge(c='4,10,6,7,8,9,12,13',
-                              o='distinct,distinct,distinct,distinct,distinct,distinct,collapse,collapse'), postmerge=False)
-    master = master.sort()
-    return master
+            x = len(TE_dict[name])
+            TE_dict[name][x+1] = line
+    return TE_dict
+
+
+def merge_te_coords(infile, outfile):
+    with open(infile, 'r') as inp:
+        TE_dict = _create_te_dict(inp)
+    with open(outfile, 'a+') as outf:
+        for name in TE_dict.keys():
+            _modify_coords(TE_dict[name], outf)
+            print TE_dict[name]
+            for key, value in TE_dict[name].items():  # problem where some aren't modified
+                chrom = value[0]
+                start = value[1]
+                stop = value[2]
+                strand = value[5]
+                ref = '\t'.join(value[3])
+                reads = ','.join(value[4])
+                mates = value[6]
+                if len(strand) == 1:
+                    outf.write('{ch}\t{sta}\t{sto}\t{str}\t{name}\t{ref}\t{reads}\t{m}\n'.format(ch=chrom,
+                                                                                                 sta=start,
+                                                                                                 sto=stop,
+                                                                                                 strand=strand,
+                                                                                                 name=name,
+                                                                                                 ref=ref,
+                                                                                                 reads=reads,
+                                                                                                 mates=mates))
+                else:
+                    pass
+
+
+def _modify_coords(inp, outf):
+    l = len(inp)
+    skips = []
+    if l > 1:
+        x = 1  # starts at 1
+        while x < l:  # go through read read mapping to same TE
+            if x not in skips:
+                line = inp[x]
+                chrom1 = line[0]
+                start1 = int(line[1])
+                stop1 = int(line[2])
+                reads = [line[11]]
+                strands = [line[3]]
+                ref_coords = line[5:9]
+                te_fam = line[10]
+                mates = [line[12]]
+                _merge(chrom1, start1, stop1, inp, x, strands, reads, mates, ref_coords, skips, outf)
+                x += 1
+                l = len(inp)
+            else:
+                x += 1
+    else:
+        # still need to reorder columns
+        line = inp[1]
+        chrom1 = line[0]
+        start1 = int(line[1])
+        stop1 = int(line[2])
+        reads = [line[11]]
+        strands = [line[3]]
+        ref_coords = line[5:9]
+        te_fam = line[10]
+        mates = [line[12]]
+        inp[1] = [chrom1, start1, stop1, ref_coords, reads, strands, mates]
+
+
+def _merge(chrom1, start1, stop1, d, x, strands, reads, mates, ref_coords, skips, outf):
+    i = int(x)+1
+    while i <= len(d):  # the rest of the file
+        if i not in skips:
+            line = d[i]
+            chrom2 = line[0]
+            start2 = int(line[1])
+            stop2 = int(line[2])
+            read2 = line[11]
+            strand2 = line[3]
+            mate2 = line[12]
+            if chrom1 == chrom2 and _overlap(start1, stop1, start2, stop2) is True:
+                if start1 < start2:
+                    start = start1
+                else:
+                    start = start2
+                if stop1 > stop2:
+                    stop = stop1
+                else:
+                    stop = stop2
+                skips.append(i)
+                reads.append(read2)
+                strands.append(strand2)
+                mates.append(mate2)
+                d.pop(i)  # screws up numbering
+            else:  # don't merge
+                start = start1
+                stop = stop1
+            i += 1
+        else:
+            i += 1
+    strands = list(set(strands))
+    d[x] = [chrom1, start, stop, ref_coords, reads, strands, mates]  # modified first value, merged reads appended and values in dict deleted
 
 
 def _overlap(start1, stop1, start2, stop2):
