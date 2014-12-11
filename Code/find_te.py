@@ -82,24 +82,14 @@ no_intersect_disc = disc.pair_to_bed(te, f=0.1, type='neither')
 no_intersect_split = split_bedpe.pair_to_bed(te, f=0.1, type='neither')
 no_intersect = no_intersect_disc.cat(no_intersect_split, postmerge=False).sort()
 
-# reorder columns so that TE read is in second position
-locate.reorder('intersect.temp', 'reorder_intersect.temp')
-
-# Now create bedtool objects again, reordered
-te_intersect_disc_ordered = pybedtools.BedTool('reorder_intersect.temp').sort()
-
 # merge intersection coordinates where TE name is the same
 print 'Merging TE intersections'
-# still very slow (>1 hour). Multiprocessing?
-merged_intersections = locate.merge_TE_coords(te_intersect_disc_ordered, 9)
-
-print "Finished merging intersections. Filtering strands"
-# filter out where there are reads on different strands
-merged_intersections.filter(lambda b: len(b[3]) < 2).saveas('collapsed_intersections.temp')
+locate.reorder('intersect.temp', 'reorder_intersect.temp')
+locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp')
 
 # Find where there are breakpoints at insertion site
 print 'Annotating insertions'
-locate.annotate_insertions('collapsed_intersections.temp', 'insertions.temp', name)
+locate.annotate_insertions('merged_intersections.temp', 'insertions.temp', name)
 pybedtools.BedTool('insertions.temp')\
 .intersect(filtered_split, c=True)\
 .moveto('insertions_split_reads.temp')
