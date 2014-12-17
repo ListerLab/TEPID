@@ -37,8 +37,6 @@ def filter_lines(feature, max_dist):
     unwanted_chroms = ['Mt', 'Pt', 'chrM', 'chrC']
     if chr1 in unwanted_chroms or chr2 in unwanted_chroms:
         return False
-    elif 'scaffold_' in feature[0]:
-        return False
     elif abs(start1 - start2) > max_dist or chr1 != chr2:
         return True
     else:
@@ -52,8 +50,6 @@ def filter_lines_split(feature):
     """
     unwanted_chroms = ['Mt', 'Pt', 'chrM', 'chrC']
     if feature[0] in unwanted_chroms:
-        return False
-    elif 'scaffold_' in feature[0]:
         return False
     else:
         return True
