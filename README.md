@@ -42,8 +42,8 @@ Required Tools
 -------------
 
 * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) >= v2.1.0
-* [yaha](http://faculty.virginia.edu/irahall/yaha/) >= v0.1.82
-* [samtools](http://samtools.sourceforge.net) >= v1.1
+* [yaha](https://github.com/GregoryFaust/yaha) >= v0.1.82
+* [samtools](http://www.htslib.org/download/) >= v1.1
 * [samblaster](https://github.com/GregoryFaust/samblaster) >= v0.1.19
 * [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.21
 
