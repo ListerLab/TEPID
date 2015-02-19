@@ -349,6 +349,7 @@ def create_deletion_coords(bedfile, saveas):
             stop2 = int(line[5])
             read = line[6]
             strand2 = line[9]
+            read_type = line[-1]
             if chr1 == chr2:
                 if _overlap(start1, stop1, start2, stop2) is True:
                     pass
@@ -361,10 +362,11 @@ def create_deletion_coords(bedfile, saveas):
                         stop = start1
                     gapsize = stop - start
                     if  gapsize < 20000:
-                        outfile.write('{ch}\t{start}\t{stop}\t{read}\n'.format(ch=chr1,
-                                                                               start=start,
-                                                                               stop=stop,
-                                                                               read=read))
+                        outfile.write('{ch}\t{start}\t{stop}\t{read}\t{rt}\n'.format(ch=chr1,
+                                                                                     start=start,
+                                                                                     stop=stop,
+                                                                                     read=read,
+                                                                                     rt=read_type))
                     else:
                         pass
             else:
@@ -527,35 +529,60 @@ def annotate_double_breakpoint():
                 raise Exception('Incorrect breakpoint information')
 
 
-def annotate_deletions(inp, acc):
+def annotate_deletions(inp, acc, num_split):
     """
     Calls deletions where the gap between paired reads is at
     least 40 percent the length of the TE
+    and there are either:
+       one discordant read pair spanning TE, or
+       num_split split reads spanning the TE
     """
     x = 0
-    tes = []
+    tes = {}
+    written_tes = []
     with open(inp, 'r') as infile, open('deletions_{a}.bed'.format(a=acc), 'w+') as outfile:
         for line in infile:
             line = line.rsplit()
             coords = [line[0], int(line[1]), int(line[2])]  # chr, start, stop
-            te = [line[4], line[5], line[6], line[7], line[8]]  # chr, start, stop, strand, name
-            overlap = int(line[11])
+            te = [line[5], line[6], line[7], line[8], line[9]]  # chr, start, stop, strand, name
+            overlap = int(line[12])
             gapsize = coords[2] - coords[1]
-            if gapsize <= 0:
+            read_type = line[4]
+            if gapsize <= 0 or te[4] in written_tes:
                 pass
             else:
                 percentage = overlap / gapsize
                 if percentage >= 0.40:
-                    if te[4] in tes:
-                        pass
+                    if read_type == 'split':
+                        if te[4] in tes.keys():
+                            tes[te[4]] += 1
+                            if tes[te[4]] >= num_split:
+                                ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
+                                data = map(str, te)
+                                outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                                x += 1
+                                written_tes.append(te[4])
+                            else:
+                                pass
+                        else:
+                            tes[te[4]] = 0
                     else:
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = map(str, te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
                         x += 1
-                        tes.append(te[4])
+                        written_tes.append(te[4])
                 else:
                     pass
+
+
+def append_origin(feature, word):
+    """
+    use with pybedtools.each()
+    append 'word' as final column in file
+    """
+    feature.append(word)
+    return feature
 
 
 def annotate_insertions(collapse_file, insertion_file):

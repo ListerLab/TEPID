@@ -74,8 +74,16 @@ te = pybedtools.BedTool(te_bed).sort()
 
 # bedtools pairtobed to find TE intersections xor and neither for disc and split reads
 print 'Intersecting TE coordinates with reads'
-te_intersect_disc = disc.pair_to_bed(te, f=0.05, type='xor').saveas()
-te_intersect_split = split_bedpe.pair_to_bed(te, f=0.05, type='xor').saveas('split_te')
+
+# xor might not be best here, what if insertion site overlaps another TE?
+# this will affect downstream processing though...how do you know which TE has moved?
+# should do xor, then both and process separately
+# both reads intersecting TEs will take some more complicated analysis to decide which TE has moved
+# this can probably be based on split reads and other discordant reads
+# need to look at actual mapping locations of reads and try to infer something from that
+
+te_intersect_disc = disc.pair_to_bed(te, f=0.05, type='xor').saveas('disc_te.temp')
+te_intersect_split = split_bedpe.pair_to_bed(te, f=0.05, type='xor').saveas('split_te.temp')
 
 # not sure if this is correct - processing disc and split together...
 te_intersect_split.cat(te_intersect_disc, postmerge=False).sort().moveto('intersect.temp')
@@ -112,10 +120,13 @@ pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{a}.bed
 
 # Deletions
 print 'Annotating deletions'
-disc_split = split_bedpe.cat(disc, postmerge=False).sort().saveas('disc_split.temp')
+Split = split_bedpe.each(locate.append_origin, word='split').saveas()
+Disc = disc.each(locate.append_origin, word='disc').saveas()
+
+disc_split = Split.cat(Disc, postmerge=False).sort().saveas('disc_split.temp')
 locate.create_deletion_coords(disc_split, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
-locate.annotate_deletions('deletions.temp', name)
+locate.annotate_deletions('deletions.temp', name, 10)
 
 # remove temp files
 temp = glob('./*.temp')
