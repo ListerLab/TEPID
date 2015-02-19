@@ -47,13 +47,11 @@ max_dist = (3*std) + mn
 print 'Processing split reads'
 split_mapped = locate.checkArgs('-s', '--split')
 split = pybedtools.BedTool(split_mapped).bam_to_bed()\
-.filter(locate.filter_lines_split)\
-.each(locate.remove_chr)\
-.sort().saveas('split.temp')
+.saveas('split.temp')
 locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
 
 split_bedpe = pybedtools.BedTool('split_bedpe.temp')
-filtered_split = split.merge(c='2,3', o='count_distinct,count_distinct')\
+filtered_split = split.sort().merge(c='2,3', o='count_distinct,count_distinct')\
 .filter(locate.filter_unique_break)\
 .each(locate.break_coords).saveas('filtered_split.temp')
 
@@ -66,7 +64,6 @@ disc_mapped = locate.checkArgs('-d', '--disc')
 pybedtools.BedTool(disc_mapped)\
 .bam_to_bed(bedpe=True, mate1=True)\
 .filter(locate.filter_lines, max_dist=max_dist)\
-.each(locate.remove_chr)\
 .saveas('disc.temp')
 disc = pybedtools.BedTool('disc.temp').sort()
 
@@ -77,10 +74,11 @@ te = pybedtools.BedTool(te_bed).sort()
 
 # bedtools pairtobed to find TE intersections xor and neither for disc and split reads
 print 'Intersecting TE coordinates with reads'
-te_intersect_disc = disc.pair_to_bed(te, f=0.1, type='xor').moveto('intersect.temp')
-no_intersect_disc = disc.pair_to_bed(te, f=0.1, type='neither')
-no_intersect_split = split_bedpe.pair_to_bed(te, f=0.1, type='neither')
-no_intersect = no_intersect_disc.cat(no_intersect_split, postmerge=False).sort()
+te_intersect_disc = disc.pair_to_bed(te, f=0.05, type='xor').saveas()
+te_intersect_split = split_bedpe.pair_to_bed(te, f=0.05, type='xor').saveas('split_te')
+
+# not sure if this is correct - processing disc and split together...
+te_intersect_split.cat(te_intersect_disc, postmerge=False).sort().moveto('intersect.temp')
 
 # merge intersection coordinates where TE name is the same
 print 'Merging TE intersections'
@@ -89,7 +87,11 @@ locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp')
 
 # Find where there are breakpoints at insertion site
 print 'Annotating insertions'
-locate.annotate_insertions('merged_intersections.temp', 'insertions.temp', name)
+# requirement for reads at both ends kills progress here
+# try allowing only one read, and process split reads independently
+locate.annotate_insertions('merged_intersections.temp', 'insertions.temp')
+
+# need to modify this step to look at split reads independently of the disc reads.
 pybedtools.BedTool('insertions.temp')\
 .intersect(filtered_split, c=True)\
 .moveto('insertions_split_reads.temp')
@@ -110,7 +112,8 @@ pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{a}.bed
 
 # Deletions
 print 'Annotating deletions'
-locate.create_deletion_coords(no_intersect, 'del_coords.temp')
+disc_split = split_bedpe.cat(disc, postmerge=False).sort().saveas('disc_split.temp')
+locate.create_deletion_coords(disc_split, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
 locate.annotate_deletions('deletions.temp', name)
 

@@ -34,34 +34,10 @@ def filter_lines(feature, max_dist):
     start2 = int(feature[4])
     chr1 = feature[0]
     chr2 = feature[3]
-    unwanted_chroms = ['Mt', 'Pt', 'chrM', 'chrC']
-    if chr1 in unwanted_chroms or chr2 in unwanted_chroms:
-        return False
-    elif abs(start1 - start2) > max_dist or chr1 != chr2:
+    if abs(start1 - start2) > max_dist or chr1 != chr2:
         return True
     else:
         return False
-
-
-def filter_lines_split(feature):
-    """
-    Removes reads mapped to mito and chl
-    use in pybedtools.filter()
-    """
-    unwanted_chroms = ['Mt', 'Pt', 'chrM', 'chrC']
-    if feature[0] in unwanted_chroms:
-        return False
-    else:
-        return True
-
-
-def remove_chr(feature):
-    """
-    use in pybedtools.each()
-    """
-    feature[0] = str(feature[0]).strip('chrBd')
-    feature[3] = str(feature[3]).strip('chrBd')
-    return feature
 
 
 def _create_te_dict(infile):
@@ -252,33 +228,6 @@ def reorder(insert_file, reordered_file):
                                                                                                        mate=mate))
 
 
-def split_bed_by_gene(bedfile, splitcol, out_prefix):
-    """
-    Takes input bedfile sorted by TE name and splits into
-    different file for each TE name
-    """
-    with open(bedfile, 'r') as bedin:
-        for line in bedin:
-            field = line.rsplit()
-            te = field[splitcol]
-            try:
-                prev_te
-            except NameError:
-                outfile = open("{pref}_{te}". format(pref=out_prefix, te=te), 'a+')
-                outfile.write(line)
-                prev_te = te
-            else:
-                if te == prev_te:
-                    outfile.write(line)
-                    prev_te = te
-                else:
-                    outfile.close()
-                    outfile = open("{pref}_{te}". format(pref=out_prefix, te=te), 'a+')
-                    outfile.write(line)
-                    prev_te = te
-        outfile.close()
-
-
 def separate_reads(acc):
     """
     splits read name info into different file and adds unique IDs for insertions
@@ -381,7 +330,7 @@ def break_coords(feature):
         raise Exception('incorrect filtering of breakpoints')
 
 
-def create_deletion_coords(bedfile, saveas):  # problem where some deletion start coords are before stop
+def create_deletion_coords(bedfile, saveas):
     """
     Creates set of putative deletion coordinates where discordant
     read pairs are on same chromosome, different strands, and
@@ -400,7 +349,7 @@ def create_deletion_coords(bedfile, saveas):  # problem where some deletion star
             stop2 = int(line[5])
             read = line[6]
             strand2 = line[9]
-            if chr1 == chr2 and strand1 != strand2:
+            if chr1 == chr2:
                 if _overlap(start1, stop1, start2, stop2) is True:
                     pass
                 else:
@@ -429,7 +378,7 @@ def count_inserts(inf, outf, chrom):
     Returns bin start points and number of insertions in each bin as tsv file.
     """
     with open(inf, 'r') as infile, open(outf, 'w+') as outfile:
-        chr_size = {1: 30427617, 2: 19698289, 3: 23459830, 4: 18585056, 5: 26975502}
+        chr_size = {'chr1': 30427617, 'chr2': 19698289, 'chr3': 23459830, 'chr4': 18585056, 'chr5': 26975502}  # Arabidopsis
         length = chr_size[chrom]
         bins = length / 50
         bins = int(bins)
@@ -471,6 +420,7 @@ def convert_split_pairbed(inp, outf):
     """
     converts split read bedfile into bedpe format
     with each read on one line
+    read names need to be order
     """
     with open(inp, 'r') as infile, open(outf, 'w+') as outfile:
         i, lines = _get_len(infile)
@@ -480,15 +430,17 @@ def convert_split_pairbed(inp, outf):
             x += 1
             next_coords, next_read, next_strand = _get_features(lines[x])
             if next_read == read:
-                mate = read.split('_')
+                mate = read[-1]
+                rd = read[:-2]
                 outfile.write("{co}\t{nco}\t{read}\t{mt}\t{st1}\t{st2}\n".format(co='\t'.join(coords),
                                                                                  nco='\t'.join(next_coords),
-                                                                                 read=mate[0],
-                                                                                 mt=mate[1],
+                                                                                 read=rd,
+                                                                                 mt=mate,
                                                                                  st1=strand,
                                                                                  st2=next_strand))
                 x += 1
             else:
+                print next_read, read
                 pass
 
 
@@ -578,9 +530,10 @@ def annotate_double_breakpoint():
 def annotate_deletions(inp, acc):
     """
     Calls deletions where the gap between paired reads is at
-    least 75 percent the length of the TE
+    least 40 percent the length of the TE
     """
     x = 0
+    tes = []
     with open(inp, 'r') as infile, open('deletions_{a}.bed'.format(a=acc), 'w+') as outfile:
         for line in infile:
             line = line.rsplit()
@@ -588,33 +541,26 @@ def annotate_deletions(inp, acc):
             te = [line[4], line[5], line[6], line[7], line[8]]  # chr, start, stop, strand, name
             overlap = int(line[11])
             gapsize = coords[2] - coords[1]
-            percentage = overlap / gapsize
-            if percentage >= 0.75:
-                try:
-                    name
-                except NameError:
-                    ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
-                    data = map(str, te)
-                    outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
-                    x += 1
-                    name = te[4]
-                else:
-                    if name != te[4]:
+            if gapsize <= 0:
+                pass
+            else:
+                percentage = overlap / gapsize
+                if percentage >= 0.40:
+                    if te[4] in tes:
+                        pass
+                    else:
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = map(str, te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
                         x += 1
-                        name = te[4]
-                    else:
-                        name = te[4]
-            else:
-                pass
+                        tes.append(te[4])
+                else:
+                    pass
 
 
-def annotate_insertions(collapse_file, insertion_file, accession_name):
+def annotate_insertions(collapse_file, insertion_file):
     """
-    Find insertion coordinates and TE orientation. Adds unique ID: <accession_name>_<number>
-    having non-int chromosome names here is a problem
+    Find insertion coordinates and TE orientation.
     assumes all read pairs are discordant
     """
     with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile:
@@ -640,8 +586,16 @@ def annotate_insertions(collapse_file, insertion_file, accession_name):
                     orientation = '+'
             else:
                 orientation = reference[3]
-            if pair is False:
-                pass  # no reads at opposite end, do not include in annotation
+            if pair is False:  # this is where all the results are lost. try writing to file and proceeding
+                # innermost coord is closest to TE insertion point
+                outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
+                                                                                                           start=start,
+                                                                                                           stop=stop,
+                                                                                                           orient=orientation,
+                                                                                                           name=te_name,
+                                                                                                           ref='\t'.join(reference),
+                                                                                                           reads='|'.join(te_reads),
+                                                                                                           mates='|'.join(mate)))
             else:
                 pair_start = pair[0]
                 pair_mates = pair[2]
