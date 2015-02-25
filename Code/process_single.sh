@@ -50,8 +50,13 @@ for myfile in $(ls -d *_1.fastq);do
 
     # can be removed when pybedtools issue #122 is fixed
     echo "Filtering unmapped reads"
-    samtools view -hbF 0x04 -@ $proc "${fname}.bam" > "${fname}_filtered.bam"
+    samtools view -hbF 0x04 -@ $proc "${fname}.bam" > "${fname}_temp.bam"
+
+    echo "Sorting alignment"
+    samtools sort -@ $proc "${fname}_temp.bam" "${fname}_filtered.bam"
+
     rm "${fname}.bam"
+    rm "${fname}_temp.bam"
 
     if [ "$zip" == true ]; then
       echo "Zipping fastq files"
