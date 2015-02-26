@@ -559,7 +559,7 @@ def get_coverages(chrom, start, stop, bam):
     return ratio
 
 
-def annotate_deletions(inp, acc, num_split, bam):
+def annotate_deletions(inp, acc, num_split, bam, mn):
     """
     Calls deletions where the gap between paired reads is at
     least 40 percent the length of the TE
@@ -598,6 +598,7 @@ def annotate_deletions(inp, acc, num_split, bam):
             coords = [line[0], int(line[1]), int(line[2])]  # chr, start, stop
             te = [line[5], line[6], line[7], line[8], line[9]]  # chr, start, stop, strand, name
             name = te[4]
+            length = int(te[2]) - int(te[1])
             overlap = int(line[12])
             gapsize = coords[2] - coords[1]
             read_type = line[4]
@@ -606,11 +607,35 @@ def annotate_deletions(inp, acc, num_split, bam):
                 tes[name] = [cov, 0]
             else:
                 pass
-            if gapsize <= 0 or name in written_tes:
+            if gapsize <= 0 or name in written_tes or (length-mn) > gapsize:
                 pass
             else:
                 percentage = overlap / gapsize
-                if percentage >= 0.40:
+                if length <= 1000 and percentage >= 0.2:  # 0.2 best so far
+                    tes[name][1] += 1
+                    if read_type == 'split':
+                        if tes[name][0] <= 0.1:
+                            ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
+                            data = map(str, te)
+                            outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                            x += 1
+                            written_tes.append(name)
+                        elif tes[name][1] >= (num_split/2):
+                            ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
+                            data = map(str, te)
+                            outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                            x += 1
+                            written_tes.append(name)
+                    elif read_type == 'disc':
+                        ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
+                        data = map(str, te)
+                        outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                        x += 1
+                        written_tes.append(name)
+                    else:
+                        pass
+
+                elif percentage >= 0.2:  # 0.2 best so far
                     if read_type == 'split':
                         tes[name][1] += 1
                         if tes[name][0] <= 0.1:

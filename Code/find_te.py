@@ -126,7 +126,7 @@ Disc = disc.each(locate.append_origin, word='disc').saveas()
 disc_split = Split.cat(Disc, postmerge=False).sort().saveas('disc_split.temp')
 locate.create_deletion_coords(disc_split, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
-locate.annotate_deletions('deletions.temp', name, 10, all_mapped)
+locate.annotate_deletions('deletions.temp', name, 10, all_mapped, mn)
 
 # remove temp files
 temp = glob('./*.temp')
