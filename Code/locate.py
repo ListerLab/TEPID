@@ -3,6 +3,7 @@ import os
 from sys import argv
 import numpy as np
 import pybedtools
+import pysam
 
 
 def checkArgs(arg1, arg2):
@@ -529,49 +530,109 @@ def annotate_double_breakpoint():
                 raise Exception('Incorrect breakpoint information')
 
 
-def annotate_deletions(inp, acc, num_split):
+def get_coverages(chrom, start, stop, bam):
+    """
+    find average coverage in given region
+    compared to +/- 2kb surrounding region
+    """
+    te = 0
+    l = 0
+    ustream = 0
+    ul = 0
+    dstream = 0
+    dl = 0
+    for read in bam.pileup(chrom, start, stop):
+        te += read.n
+        l += 1
+    for read in bam.pileup(chrom, start-2000, start):
+        ustream += read.n
+        ul += 1
+    for read in bam.pileup(chrom, stop, stop+2000):
+        dstream += read.n
+        dl += 1
+    surround = (ustream + dstream) / (ul+dl)
+    if te > 0:
+        tot_te = te / l
+        ratio =  tot_te / surround
+    else:
+        ratio = 0
+    return ratio
+
+
+def annotate_deletions(inp, acc, num_split, bam):
     """
     Calls deletions where the gap between paired reads is at
     least 40 percent the length of the TE
     and there are either:
        one discordant read pair spanning TE, or
+       1 split read spanning the TE and
+       coverage at TE is 1/10 the coverage in surrounding area, or
        num_split split reads spanning the TE
     """
     x = 0
     tes = {}
     written_tes = []
+
+    # check if sorted
+    test_head = pysam.AlignmentFile(bam, 'rb')
+    if test_head.header['HD']['SO'] == 'coordinate':
+        pass
+    else:
+        print 'Sorting bam file'
+        pysam.sort('-@', '5', bam, 'sorted.temp')
+        os.remove(bam)
+        os.rename('sorted.temp.bam', bam)
+    
+    # check if indexed
+    if '{}.bai'.format(bam) in os.listdir('.'):
+        print 'Using index {}.bai'.format(bam)
+        allreads = pysam.AlignmentFile(bam, 'rb')
+    else:
+        print 'Indexing bam file'
+        pysam.index(bam)
+        allreads = pysam.AlignmentFile(bam, 'rb')
+
     with open(inp, 'r') as infile, open('deletions_{a}.bed'.format(a=acc), 'w+') as outfile:
         for line in infile:
             line = line.rsplit()
             coords = [line[0], int(line[1]), int(line[2])]  # chr, start, stop
             te = [line[5], line[6], line[7], line[8], line[9]]  # chr, start, stop, strand, name
+            name = te[4]
             overlap = int(line[12])
             gapsize = coords[2] - coords[1]
             read_type = line[4]
-            if gapsize <= 0 or te[4] in written_tes:
+            if name not in tes.keys():
+                cov = get_coverages(coords[0], coords[1], coords[2], allreads)
+                tes[name] = [cov, 0]
+            else:
+                pass
+            if gapsize <= 0 or name in written_tes:
                 pass
             else:
                 percentage = overlap / gapsize
                 if percentage >= 0.40:
                     if read_type == 'split':
-                        if te[4] in tes.keys():
-                            tes[te[4]] += 1
-                            if tes[te[4]] >= num_split:
-                                ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
-                                data = map(str, te)
-                                outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
-                                x += 1
-                                written_tes.append(te[4])
-                            else:
-                                pass
+                        tes[name][1] += 1
+                        if tes[name][0] <= 0.1:
+                            ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
+                            data = map(str, te)
+                            outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                            x += 1
+                            written_tes.append(name)
+                        elif tes[name][1] >= num_split:
+                            ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
+                            data = map(str, te)
+                            outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                            x += 1
+                            written_tes.append(name)
                         else:
-                            tes[te[4]] = 0
+                            pass
                     else:
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = map(str, te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
                         x += 1
-                        written_tes.append(te[4])
+                        written_tes.append(name)
                 else:
                     pass
 
