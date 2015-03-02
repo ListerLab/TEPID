@@ -73,7 +73,7 @@ def merge_te_coords(infile, outfile):
         TE_dict = _create_te_dict(inp)
     with open(outfile, 'a+') as outf:
         for name in TE_dict.keys():
-            _modify_coords(TE_dict[name], outf)
+            _modify_coords(TE_dict[name])
             for key, value in TE_dict[name].items():
                 chrom = value[0]
                 start = value[1]
@@ -82,20 +82,37 @@ def merge_te_coords(infile, outfile):
                 ref = '\t'.join(value[3])
                 reads = ','.join(value[4])
                 mates = ','.join(value[6])
+                sd = condense(value[7])
                 if len(strand) == 1:  #is this needed? Only merges same strand, need to think about this
-                    outf.write('{ch}\t{sta}\t{sto}\t{str}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(ch=chrom,
-                                                                                                     sta=start,
-                                                                                                     sto=stop,
-                                                                                                     str=strand[0],
-                                                                                                     name=name,
-                                                                                                     ref=ref,
-                                                                                                     reads=reads,
-                                                                                                     mates=mates))
+                    outf.write('{ch}\t{sta}\t{sto}\t{str}\t{name}\t{ref}\t{reads}\t{mates}\t{sd}\n'.format(ch=chrom,
+                                                                                                           sta=start,
+                                                                                                           sto=stop,
+                                                                                                           str=strand[0],
+                                                                                                           name=name,
+                                                                                                           ref=ref,
+                                                                                                           reads=reads,
+                                                                                                           mates=mates,
+                                                                                                           sd=','.join(sd)))
                 else:
                     pass
 
 
-def _modify_coords(inp, outf):
+def condense(l):
+    """
+    counts unique values in list, returns list of strings
+    """
+    a = {}
+    for i in l:
+        try:
+            a[i]
+        except KeyError:
+            a[i] = 1
+        else:
+            a[i] += 1
+    return [str(key) + '=' + str(value) for key, value in a.items()]
+
+
+def _modify_coords(inp):
     """
     Go through each read mapped to TE and merge
     if they overlap, modify dictionary with new
@@ -113,7 +130,8 @@ def _modify_coords(inp, outf):
                 strands = [line[3]]
                 ref_coords = line[5:9]
                 mates = [line[12]]
-                _merge(chrom1, start1, stop1, inp, x, strands, reads, mates, ref_coords, outf, skips)
+                sd = [line[13]]
+                _merge(chrom1, start1, stop1, inp, x, strands, reads, mates, ref_coords, skips, sd)
             else:
                 pass
     else:
@@ -132,10 +150,11 @@ def _no_merging(x, inp):
     strands = [line[3]]
     ref_coords = line[5:9]
     mates = [line[12]]
-    inp[x] = [chrom1, start1, stop1, ref_coords, reads, strands, mates]
+    sd = [line[13]]
+    inp[x] = [chrom1, start1, stop1, ref_coords, reads, strands, mates, sd]
 
 
-def _merge(chrom1, start1, stop1, d, x, strands, reads, mates, ref_coords, outf, skips):
+def _merge(chrom1, start1, stop1, d, x, strands, reads, mates, ref_coords, skips, sd):
     """
     merge overlapping read coordinates where TE name is the same
     """
@@ -150,6 +169,7 @@ def _merge(chrom1, start1, stop1, d, x, strands, reads, mates, ref_coords, outf,
             read2 = line[11]
             strand2 = line[3]
             mate2 = line[12]
+            sd2 = line[13]
             if chrom1 == chrom2 and _overlap(start1, stop1, start2, stop2) is True:
                 if start1 < start2:
                     start = start1
@@ -162,6 +182,7 @@ def _merge(chrom1, start1, stop1, d, x, strands, reads, mates, ref_coords, outf,
                 reads.append(read2)
                 strands.append(strand2)
                 mates.append(mate2)
+                sd.append(sd2)
                 d.pop(key)
                 skips.append(key)
             else:
@@ -172,11 +193,11 @@ def _merge(chrom1, start1, stop1, d, x, strands, reads, mates, ref_coords, outf,
     except NameError:  # all keys were skipped as they were merged with other reads already
         start = start1
         stop = stop1
-        d[x] = [chrom1, start, stop, ref_coords, reads, strands, mates]
+        d[x] = [chrom1, start, stop, ref_coords, reads, strands, mates, sd]
         skips.append(x)
     else:
         strands = list(set(strands))
-        d[x] = [chrom1, start, stop, ref_coords, reads, strands, mates]
+        d[x] = [chrom1, start, stop, ref_coords, reads, strands, mates, sd]
         skips.append(x)
 
 
@@ -212,8 +233,9 @@ def reorder(insert_file, reordered_file):
                 field = line.rsplit()
                 read1 = {'chrom': field[0], 'start': field[1], 'stop': field[2], 'strand': field[8]}
                 read2 = {'chrom': field[3], 'start': field[4], 'stop': field[5], 'strand': field[9]}
-                remaining = [field[10], field[11], field[12], field[13], field[14], field[15], field[6]]  # read name, TE reference coordinates, TE name, TE family
-                te_coords = {'chrom': field[10], 'start': field[11], 'stop': field[12], 'strand': field[13], 'name': field[14]}
+                sd = field[10]
+                remaining = [field[11], field[12], field[13], field[14], field[15], field[16], field[6]]  # read name, TE reference coordinates, TE name, TE family
+                te_coords = {'chrom': field[11], 'start': field[12], 'stop': field[13], 'strand': field[14], 'name': field[15]}
                 if _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
                     te_read = read1
                     dna_read = read2
@@ -224,13 +246,14 @@ def reorder(insert_file, reordered_file):
                     mate = 2
                 else:
                     raise Exception('check coords')
-                outfile.write('{chr1}\t{start1}\t{stop1}\t{strand1}\t{strand2}\t{remain}\t{mate}\n'.format(chr1=dna_read['chrom'],
-                                                                                                           start1=dna_read['start'],
-                                                                                                           stop1=dna_read['stop'],
-                                                                                                           strand1=dna_read['strand'],
-                                                                                                           strand2=te_read['strand'],
-                                                                                                           remain='\t'.join(remaining),
-                                                                                                           mate=mate))
+                outfile.write('{chr1}\t{start1}\t{stop1}\t{strand1}\t{strand2}\t{remain}\t{mate}\t{sd}\n'.format(chr1=dna_read['chrom'],
+                                                                                                                 start1=dna_read['start'],
+                                                                                                                 stop1=dna_read['stop'],
+                                                                                                                 strand1=dna_read['strand'],
+                                                                                                                 strand2=te_read['strand'],
+                                                                                                                 remain='\t'.join(remaining),
+                                                                                                                 mate=mate,
+                                                                                                                 sd=sd))
         else:
             pass
 

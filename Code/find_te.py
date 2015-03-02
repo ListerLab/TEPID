@@ -72,39 +72,30 @@ print 'Processing TE annotation'
 te_bed = locate.checkArgs('-t', '--te')
 te = pybedtools.BedTool(te_bed).sort()
 
-# bedtools pairtobed to find TE intersections xor and neither for disc and split reads
 print 'Intersecting TE coordinates with reads'
+Split = split_bedpe.each(locate.append_origin, word='split').saveas()
+Disc = disc.each(locate.append_origin, word='disc').saveas()
+disc_split = Split.cat(Disc, postmerge=False).sort().saveas('disc_split.temp')
 
-# xor might not be best here, what if insertion site overlaps another TE?
-# this will affect downstream processing though...how do you know which TE has moved?
-# should do xor, then both and process separately
-# both reads intersecting TEs will take some more complicated analysis to decide which TE has moved
-# this can probably be based on split reads and other discordant reads
-# need to look at actual mapping locations of reads and try to infer something from that
-
-te_intersect_disc_xor = disc.pair_to_bed(te, f=0.05, type='xor').saveas('disc_te_xor.temp')  # can alter f to check accuracy
-te_intersect_disc_both = disc.pair_to_bed(te, f=0.05, type='both').saveas('disc_te_both.temp')
-
-te_intersect_split_xor = split_bedpe.pair_to_bed(te, f=0.05, type='xor').saveas('split_te_xor.temp')
-te_intersect_split_both = split_bedpe.pair_to_bed(te, f=0.05, type='both').saveas('split_te_both.temp')
-
-# not sure if this is correct - processing disc and split together...
-te_intersect_split_xor.cat(te_intersect_disc_xor, postmerge=False).sort().moveto('intersect.temp')
+te_intersect = disc_split.pair_to_bed(te, f=0.05).saveas('intersect.temp')
 
 # merge intersection coordinates where TE name is the same
+
+# should firstly filter out those that both intersect the same TE
+# note: same reads can appear multiple times if they intersect different TEs.
+
 print 'Merging TE intersections'
 locate.reorder('intersect.temp', 'reorder_intersect.temp')
 locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp')
 
+# need a step in here that groups reads and looks at how many TEs are intersected
+# by each read, where the intersection is. Look at where
+# intersections lie within TE sequence & decide which is the mobile TE in cases where
+# there are multiple intersections.
+
 # Find where there are breakpoints at insertion site
 print 'Annotating insertions'
-
-# requirement for reads at both ends kills progress here
-# try allowing only one read, and process split reads independently
-# should be able to bundle all this into single function that takes disc, split reads
-# and writes bedfile with insertion coordinates
 locate.annotate_insertions('merged_intersections.temp', 'insertions.temp')
-
 
 # probably remove these steps
 pybedtools.BedTool('insertions.temp')\
@@ -127,15 +118,11 @@ pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{}.bed'
 
 # Deletions
 print 'Annotating deletions'
-Split = split_bedpe.each(locate.append_origin, word='split').saveas()
-Disc = disc.each(locate.append_origin, word='disc').saveas()
-
-disc_split = Split.cat(Disc, postmerge=False).sort().saveas('disc_split.temp')
 locate.create_deletion_coords(disc_split, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
 locate.annotate_deletions('deletions.temp', name, 10, all_mapped, mn)
 
 # remove temp files
-temp = glob('./*.temp')
-for i in temp:
-    os.remove(i)
+# temp = glob('./*.temp')
+# for i in temp:
+#     os.remove(i)
