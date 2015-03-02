@@ -82,7 +82,7 @@ def merge_te_coords(infile, outfile):
                 ref = '\t'.join(value[3])
                 reads = ','.join(value[4])
                 mates = ','.join(value[6])
-                if len(strand) == 1:
+                if len(strand) == 1:  #is this needed? Only merges same strand, need to think about this
                     outf.write('{ch}\t{sta}\t{sto}\t{str}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(ch=chrom,
                                                                                                      sta=start,
                                                                                                      sto=stop,
@@ -194,7 +194,10 @@ def _get_len(infile):
     lines = []
     for i, l in enumerate(infile):
         lines.append(l)
-    return i, lines
+    try:
+        return i, lines
+    except:
+        return 0, 0
 
 
 def reorder(insert_file, reordered_file):
@@ -203,30 +206,33 @@ def reorder(insert_file, reordered_file):
     """
     with open(insert_file, 'r') as infile, open(reordered_file, 'w+') as outfile:
         i, lines = _get_len(infile)
-        for x in range(i):
-            line = lines[x]
-            field = line.rsplit()
-            read1 = {'chrom': field[0], 'start': field[1], 'stop': field[2], 'strand': field[8]}
-            read2 = {'chrom': field[3], 'start': field[4], 'stop': field[5], 'strand': field[9]}
-            remaining = [field[10], field[11], field[12], field[13], field[14], field[15], field[6]]  # read name, TE reference coordinates, TE name, TE family
-            te_coords = {'chrom': field[10], 'start': field[11], 'stop': field[12], 'strand': field[13], 'name': field[14]}
-            if _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
-                te_read = read1
-                dna_read = read2
-                mate = 1  # te read is mate 1 in paired data
-            elif _overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
-                te_read = read2
-                dna_read = read1
-                mate = 2
-            else:
-                raise Exception('check coords')
-            outfile.write('{chr1}\t{start1}\t{stop1}\t{strand1}\t{strand2}\t{remain}\t{mate}\n'.format(chr1=dna_read['chrom'],
-                                                                                                       start1=dna_read['start'],
-                                                                                                       stop1=dna_read['stop'],
-                                                                                                       strand1=dna_read['strand'],
-                                                                                                       strand2=te_read['strand'],
-                                                                                                       remain='\t'.join(remaining),
-                                                                                                       mate=mate))
+        if i > 0:
+            for x in range(i):
+                line = lines[x]
+                field = line.rsplit()
+                read1 = {'chrom': field[0], 'start': field[1], 'stop': field[2], 'strand': field[8]}
+                read2 = {'chrom': field[3], 'start': field[4], 'stop': field[5], 'strand': field[9]}
+                remaining = [field[10], field[11], field[12], field[13], field[14], field[15], field[6]]  # read name, TE reference coordinates, TE name, TE family
+                te_coords = {'chrom': field[10], 'start': field[11], 'stop': field[12], 'strand': field[13], 'name': field[14]}
+                if _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
+                    te_read = read1
+                    dna_read = read2
+                    mate = 1  # te read is mate 1 in paired data
+                elif _overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
+                    te_read = read2
+                    dna_read = read1
+                    mate = 2
+                else:
+                    raise Exception('check coords')
+                outfile.write('{chr1}\t{start1}\t{stop1}\t{strand1}\t{strand2}\t{remain}\t{mate}\n'.format(chr1=dna_read['chrom'],
+                                                                                                           start1=dna_read['start'],
+                                                                                                           stop1=dna_read['stop'],
+                                                                                                           strand1=dna_read['strand'],
+                                                                                                           strand2=te_read['strand'],
+                                                                                                           remain='\t'.join(remaining),
+                                                                                                           mate=mate))
+        else:
+            pass
 
 
 def separate_reads(acc):
@@ -507,27 +513,30 @@ def annotate_double_breakpoint():
     """adds breakpoint coordinates to insertions with two breakpoints"""
     with open('double_break_intersect.temp', 'r') as infile, open('insertions.temp', 'a+') as outfile:
         i, lines = _get_len(infile)
-        x = 0
-        while x < i:
-            line = lines[x].rsplit()
-            chrom = line[11]
-            break_1 = int(line[12])
-            data = line[3:11]
-            x += 1
-            nextline = lines[x].rsplit()
-            break_2 = int(nextline[12])
-            if break_1 > break_2:
-                start = break_2
-                stop = break_1
-                outfile.write('{ch}\t{start}\t{stop}\t{data}\n'.format(ch=chrom, start=start, stop=stop, data='\t'.join(data)))
+        if i > 0:
+            x = 0
+            while x < i:
+                line = lines[x].rsplit()
+                chrom = line[11]
+                break_1 = int(line[12])
+                data = line[3:11]
                 x += 1
-            elif break_1 < break_2:
-                start = break_1
-                stop = break_2
-                outfile.write('{ch}\t{start}\t{stop}\t{data}\n'.format(ch=chrom, start=start, stop=stop, data='\t'.join(data)))
-                x += 1
-            else:
-                raise Exception('Incorrect breakpoint information')
+                nextline = lines[x].rsplit()
+                break_2 = int(nextline[12])
+                if break_1 > break_2:
+                    start = break_2
+                    stop = break_1
+                    outfile.write('{ch}\t{start}\t{stop}\t{data}\n'.format(ch=chrom, start=start, stop=stop, data='\t'.join(data)))
+                    x += 1
+                elif break_1 < break_2:
+                    start = break_1
+                    stop = break_2
+                    outfile.write('{ch}\t{start}\t{stop}\t{data}\n'.format(ch=chrom, start=start, stop=stop, data='\t'.join(data)))
+                    x += 1
+                else:
+                    raise Exception('Incorrect breakpoint information')
+        else:
+            pass
 
 
 def get_coverages(chrom, start, stop, bam):
@@ -562,7 +571,7 @@ def get_coverages(chrom, start, stop, bam):
 def annotate_deletions(inp, acc, num_split, bam, mn):
     """
     Calls deletions where the gap between paired reads is at
-    least 40 percent the length of the TE
+    least 20 percent the length of the TE
     and there are either:
        one discordant read pair spanning TE, or
        1 split read spanning the TE and
@@ -678,51 +687,55 @@ def annotate_insertions(collapse_file, insertion_file):
     """
     with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile:
         i, lines = _get_len(infile)
-        for x in range(i):
-            line = lines[x]
-            line = line.rsplit()
-            chrom = line[0]
-            start = int(line[1])
-            stop = int(line[2])
-            strand = line[3]
-            te_name = line[4]
-            mate = line[10]
-            mate = mate.split(',')
-            te_reads = line[9]
-            te_reads = te_reads.split(',')
-            reference = [line[5], line[6], line[7], line[8]]  # reference chrom, start, stop, strand
-            pair = _find_next(lines, i, x, chrom, strand, start, stop, te_name)
-            if strand != reference[3]:
-                if reference[3] == '+':
-                    orientation = '-'
+        if i > 0:
+            for x in range(i):
+                line = lines[x]
+                line = line.rsplit()
+                chrom = line[0]
+                start = int(line[1])
+                stop = int(line[2])
+                strand = line[3]
+                te_name = line[4]
+                mate = line[10]
+                mate = mate.split(',')
+                te_reads = line[9]
+                te_reads = te_reads.split(',')
+                reference = [line[5], line[6], line[7], line[8]]  # reference chrom, start, stop, strand
+                pair = _find_next(lines, i, x, chrom, strand, start, stop, te_name)
+                if strand != reference[3]:
+                    if reference[3] == '+':
+                        orientation = '-'
+                    else:
+                        orientation = '+'
                 else:
-                    orientation = '+'
-            else:
-                orientation = reference[3]
-            if pair is False:  # this is where all the results are lost. try writing to file and proceeding
-                # innermost coord is closest to TE insertion point
-                outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
-                                                                                                           start=start,
-                                                                                                           stop=stop,
-                                                                                                           orient=orientation,
-                                                                                                           name=te_name,
-                                                                                                           ref='\t'.join(reference),
-                                                                                                           reads='|'.join(te_reads),
-                                                                                                           mates='|'.join(mate)))
-            else:
-                pair_start = pair[0]
-                pair_mates = pair[2]
-                next_read_names = pair[1]
-                mate = pair_mates + mate
-                te_reads = next_read_names + te_reads
-                outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
-                                                                                                           start=stop,
-                                                                                                           stop=pair_start,
-                                                                                                           orient=orientation,
-                                                                                                           name=te_name,
-                                                                                                           ref='\t'.join(reference),
-                                                                                                           reads='|'.join(te_reads),
-                                                                                                           mates='|'.join(mate)))
+                    orientation = reference[3]
+                if pair is False:  # this is where all the results are lost. try writing to file and proceeding
+                    # innermost coord is closest to TE insertion point
+                    pass
+                    # outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
+                    #                                                                                            start=start,
+                    #                                                                                            stop=stop,
+                    #                                                                                            orient=orientation,
+                    #                                                                                            name=te_name,
+                    #                                                                                            ref='\t'.join(reference),
+                    #                                                                                            reads='|'.join(te_reads),
+                    #                                                                                            mates='|'.join(mate)))
+                else:
+                    pair_start = pair[0]
+                    pair_mates = pair[2]
+                    next_read_names = pair[1]
+                    mate = pair_mates + mate
+                    te_reads = next_read_names + te_reads
+                    outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
+                                                                                                               start=stop,
+                                                                                                               stop=pair_start,
+                                                                                                               orient=orientation,
+                                                                                                               name=te_name,
+                                                                                                               ref='\t'.join(reference),
+                                                                                                               reads='|'.join(te_reads),
+                                                                                                               mates='|'.join(mate)))
+        else:
+            pass
 
 
 # As file is processed top to bottom, sorted by coords, + will come up first. This will avoid identifying each insertion twice (once for each end)

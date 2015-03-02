@@ -82,11 +82,14 @@ print 'Intersecting TE coordinates with reads'
 # this can probably be based on split reads and other discordant reads
 # need to look at actual mapping locations of reads and try to infer something from that
 
-te_intersect_disc = disc.pair_to_bed(te, f=0.05, type='xor').saveas('disc_te.temp')
-te_intersect_split = split_bedpe.pair_to_bed(te, f=0.05, type='xor').saveas('split_te.temp')
+te_intersect_disc_xor = disc.pair_to_bed(te, f=0.05, type='xor').saveas('disc_te_xor.temp')  # can alter f to check accuracy
+te_intersect_disc_both = disc.pair_to_bed(te, f=0.05, type='both').saveas('disc_te_both.temp')
+
+te_intersect_split_xor = split_bedpe.pair_to_bed(te, f=0.05, type='xor').saveas('split_te_xor.temp')
+te_intersect_split_both = split_bedpe.pair_to_bed(te, f=0.05, type='both').saveas('split_te_both.temp')
 
 # not sure if this is correct - processing disc and split together...
-te_intersect_split.cat(te_intersect_disc, postmerge=False).sort().moveto('intersect.temp')
+te_intersect_split_xor.cat(te_intersect_disc_xor, postmerge=False).sort().moveto('intersect.temp')
 
 # merge intersection coordinates where TE name is the same
 print 'Merging TE intersections'
@@ -95,11 +98,15 @@ locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp')
 
 # Find where there are breakpoints at insertion site
 print 'Annotating insertions'
+
 # requirement for reads at both ends kills progress here
 # try allowing only one read, and process split reads independently
+# should be able to bundle all this into single function that takes disc, split reads
+# and writes bedfile with insertion coordinates
 locate.annotate_insertions('merged_intersections.temp', 'insertions.temp')
 
-# need to modify this step to look at split reads independently of the disc reads.
+
+# probably remove these steps
 pybedtools.BedTool('insertions.temp')\
 .intersect(filtered_split, c=True)\
 .moveto('insertions_split_reads.temp')
@@ -116,7 +123,7 @@ pybedtools.BedTool('double_break.temp')\
 locate.annotate_single_breakpoint()
 locate.annotate_double_breakpoint()
 locate.separate_reads(name)
-pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{a}.bed'.format(a=name))
+pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{}.bed'.format(name))
 
 # Deletions
 print 'Annotating deletions'
