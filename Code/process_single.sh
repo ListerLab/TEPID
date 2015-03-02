@@ -55,6 +55,9 @@ for myfile in $(ls -d *_1.fastq);do
     echo "Sorting alignment"
     samtools sort -@ $proc "${fname}_temp.bam" "${fname}_filtered.bam"
 
+    echo "Indexing alignment"
+    samtools index "${fname}_filtered.bam"
+
     rm "${fname}.bam"
     rm "${fname}_temp.bam"
 
