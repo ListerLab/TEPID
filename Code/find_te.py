@@ -76,43 +76,14 @@ print 'Intersecting TE coordinates with reads'
 Split = split_bedpe.each(locate.append_origin, word='split').saveas()
 Disc = disc.each(locate.append_origin, word='disc').saveas()
 disc_split = Split.cat(Disc, postmerge=False).sort().saveas('disc_split.temp')
-
-te_intersect = disc_split.pair_to_bed(te, f=0.05).saveas('intersect.temp')
-
-# merge intersection coordinates where TE name is the same
-
-# should firstly filter out those that both intersect the same TE
-# note: same reads can appear multiple times if they intersect different TEs.
+te_intersect = disc_split.pair_to_bed(te, f=0.2).saveas('intersect.temp')
 
 print 'Merging TE intersections'
 locate.reorder('intersect.temp', 'reorder_intersect.temp')
-locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp')
+locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp', 10, 2)
 
-# need a step in here that groups reads and looks at how many TEs are intersected
-# by each read, where the intersection is. Look at where
-# intersections lie within TE sequence & decide which is the mobile TE in cases where
-# there are multiple intersections.
-
-# Find where there are breakpoints at insertion site
 print 'Annotating insertions'
-locate.annotate_insertions('merged_intersections.temp', 'insertions.temp')
-
-# probably remove these steps
-pybedtools.BedTool('insertions.temp')\
-.intersect(filtered_split, c=True)\
-.moveto('insertions_split_reads.temp')
-
-locate.splitfile('insertions_split_reads.temp')
-pybedtools.BedTool('single_break.temp')\
-.intersect(filtered_split, wo=True)\
-.moveto('single_break_intersect.temp')
-
-pybedtools.BedTool('double_break.temp')\
-.intersect(filtered_split, wo=True)\
-.moveto('double_break_intersect.temp')
-
-locate.annotate_single_breakpoint()
-locate.annotate_double_breakpoint()
+locate.annotate_insertions('merged_intersections.temp', 'insertions.temp', 60)
 locate.separate_reads(name)
 pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{}.bed'.format(name))
 
@@ -123,6 +94,6 @@ pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('dele
 locate.annotate_deletions('deletions.temp', name, 10, all_mapped, mn)
 
 # remove temp files
-# temp = glob('./*.temp')
-# for i in temp:
-#     os.remove(i)
+temp = glob('./*.temp')
+for i in temp:
+    os.remove(i)

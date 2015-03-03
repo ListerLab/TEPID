@@ -63,15 +63,17 @@ def _create_te_dict(infile):
     return TE_dict
 
 
-def merge_te_coords(infile, outfile):
+def merge_te_coords(infile, outfile, num_split, num_disc):
     """
     takes file containing reads coordinates
     that overlap annotated TEs and creates a 
     new file with merged coordinates
+    only writes lines if there are at least
+    num_split and num_disc split and disc reads
     """
     with open(infile, 'r') as inp:
         TE_dict = _create_te_dict(inp)
-    with open(outfile, 'a+') as outf:
+    with open(outfile, 'w+') as outf:
         for name in TE_dict.keys():
             _modify_coords(TE_dict[name])
             for key, value in TE_dict[name].items():
@@ -82,8 +84,9 @@ def merge_te_coords(infile, outfile):
                 ref = '\t'.join(value[3])
                 reads = ','.join(value[4])
                 mates = ','.join(value[6])
-                sd = condense(value[7])
-                if len(strand) == 1:  #is this needed? Only merges same strand, need to think about this
+                split, disc = condense(value[7])
+                # if len(strand) == 1:  #and len(value[4]) == len(set(value[4])):  # this removes a lot of true positives
+                if disc >= num_disc or split >= num_split:  # filter where there are lots of split reads or a disc read, lose true pos here
                     outf.write('{ch}\t{sta}\t{sto}\t{str}\t{name}\t{ref}\t{reads}\t{mates}\t{sd}\n'.format(ch=chrom,
                                                                                                            sta=start,
                                                                                                            sto=stop,
@@ -92,24 +95,25 @@ def merge_te_coords(infile, outfile):
                                                                                                            ref=ref,
                                                                                                            reads=reads,
                                                                                                            mates=mates,
-                                                                                                           sd=','.join(sd)))
+                                                                                                           sd=str(split)+','+str(disc)))
                 else:
                     pass
 
 
 def condense(l):
     """
-    counts unique values in list, returns list of strings
+    counts number of split and disc reads in list, returns two numbers
     """
-    a = {}
+    split = 0
+    disc = 0
     for i in l:
-        try:
-            a[i]
-        except KeyError:
-            a[i] = 1
+        if i == 'split':
+            split += 1
+        elif i == 'disc':
+            disc += 1
         else:
-            a[i] += 1
-    return [str(key) + '=' + str(value) for key, value in a.items()]
+            raise Exception('Incorrect read types')
+    return split, disc
 
 
 def _modify_coords(inp):
@@ -273,23 +277,6 @@ def separate_reads(acc):
             outfile.write('{data}\t{id}\n'.format(data='\t'.join(data), id=ident))
             id_file.write('>{id}\t{reads}\t{mates}\n'.format(id=ident, reads=reads, mates=mates))
             x += 1
-
-
-def splitfile(inp):
-    """
-    splits single and double breakpoints
-    """
-    with open(inp, 'r') as infile, open('single_break.temp', 'w+') as single, open('double_break.temp', 'w+') as double:
-        for line in infile:
-            field = line.rsplit()
-            count = int(field[11])
-            data = field[:11]
-            if count == 1:
-                single.write("{data}\n".format(data='\t'.join(data)))
-            elif count == 2:
-                double.write("{data}\n".format(data='\t'.join(data)))
-            else:
-                pass
 
 
 def _filter_del(inf, master, outf, ref):
@@ -522,46 +509,6 @@ def calc_mean(data):
     return mn, std
 
 
-def annotate_single_breakpoint():
-    """adds breakpoint coordinates to insertion"""
-    with open('single_break_intersect.temp', 'r') as infile, open('insertions.temp', 'a+') as outfile:
-        for line in infile:
-            line = line.rsplit()
-            coords = line[11:14]
-            data = line[3:11]
-            outfile.write('{coords}\t{data}\n'.format(coords='\t'.join(coords), data='\t'.join(data)))
-
-
-def annotate_double_breakpoint():
-    """adds breakpoint coordinates to insertions with two breakpoints"""
-    with open('double_break_intersect.temp', 'r') as infile, open('insertions.temp', 'a+') as outfile:
-        i, lines = _get_len(infile)
-        if i > 0:
-            x = 0
-            while x < i:
-                line = lines[x].rsplit()
-                chrom = line[11]
-                break_1 = int(line[12])
-                data = line[3:11]
-                x += 1
-                nextline = lines[x].rsplit()
-                break_2 = int(nextline[12])
-                if break_1 > break_2:
-                    start = break_2
-                    stop = break_1
-                    outfile.write('{ch}\t{start}\t{stop}\t{data}\n'.format(ch=chrom, start=start, stop=stop, data='\t'.join(data)))
-                    x += 1
-                elif break_1 < break_2:
-                    start = break_1
-                    stop = break_2
-                    outfile.write('{ch}\t{start}\t{stop}\t{data}\n'.format(ch=chrom, start=start, stop=stop, data='\t'.join(data)))
-                    x += 1
-                else:
-                    raise Exception('Incorrect breakpoint information')
-        else:
-            pass
-
-
 def get_coverages(chrom, start, stop, bam):
     """
     find average coverage in given region
@@ -703,7 +650,7 @@ def append_origin(feature, word):
     return feature
 
 
-def annotate_insertions(collapse_file, insertion_file):
+def annotate_insertions(collapse_file, insertion_file, num_reads):
     """
     Find insertion coordinates and TE orientation.
     assumes all read pairs are discordant
@@ -723,6 +670,10 @@ def annotate_insertions(collapse_file, insertion_file):
                 mate = mate.split(',')
                 te_reads = line[9]
                 te_reads = te_reads.split(',')
+                sd = line[11]
+                sd = sd.split(',')
+                split = int(sd[0])
+                disc = int(sd[1])
                 reference = [line[5], line[6], line[7], line[8]]  # reference chrom, start, stop, strand
                 pair = _find_next(lines, i, x, chrom, strand, start, stop, te_name)
                 if strand != reference[3]:
@@ -732,21 +683,22 @@ def annotate_insertions(collapse_file, insertion_file):
                         orientation = '+'
                 else:
                     orientation = reference[3]
-                if pair is False:  # this is where all the results are lost. try writing to file and proceeding
-                    # innermost coord is closest to TE insertion point
-                    pass
-                    # outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
-                    #                                                                                            start=start,
-                    #                                                                                            stop=stop,
-                    #                                                                                            orient=orientation,
-                    #                                                                                            name=te_name,
-                    #                                                                                            ref='\t'.join(reference),
-                    #                                                                                            reads='|'.join(te_reads),
-                    #                                                                                            mates='|'.join(mate)))
+                if pair is False:
+                    if (split+disc) > num_reads:
+                        outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
+                                                                                                                   start=start,
+                                                                                                                   stop=stop,
+                                                                                                                   orient=orientation,
+                                                                                                                   name=te_name,
+                                                                                                                   ref='\t'.join(reference),
+                                                                                                                   reads='|'.join(te_reads),
+                                                                                                                   mates='|'.join(mate)))
+                    else:
+                        pass
                 else:
                     pair_start = pair[0]
-                    pair_mates = pair[2]
                     next_read_names = pair[1]
+                    pair_mates = pair[2]
                     mate = pair_mates + mate
                     te_reads = next_read_names + te_reads
                     outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
