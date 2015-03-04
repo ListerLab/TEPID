@@ -18,7 +18,7 @@ Usage
 Go to the directory containing your bam files
 
 ```
-python find_te.py -c <mapped> -d <disc_mapped> -s <split_mapped> -t <te_bedfile>
+python find_te.py -n <sample_name> -c <mapped> -d <disc_mapped> -s <split_mapped> -t <te_bedfile>
 ```
 
 Where:
@@ -53,6 +53,7 @@ Required Tools
 * [python](https://www.python.org) v2.7
 * [numpy](http://www.numpy.org/)
 * [pybedtools](http://pythonhosted.org/pybedtools/)
+* [pysam](http://pysam.readthedocs.org/en/latest/)
 
 ---
 License
