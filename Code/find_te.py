@@ -83,7 +83,7 @@ locate.reorder('intersect.temp', 'reorder_intersect.temp')
 locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp', 10, 2)
 
 print 'Annotating insertions'
-locate.annotate_insertions('merged_intersections.temp', 'insertions.temp', 60)
+locate.annotate_insertions('merged_intersections.temp', 'insertions.temp', 20)
 locate.separate_reads(name)
 pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{}.bed'.format(name))
 
