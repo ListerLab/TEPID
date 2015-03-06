@@ -53,7 +53,7 @@ for myfile in $(ls -d *_1.fastq);do
     samtools view -hbF 0x04 -@ $proc "${fname}.bam" > "${fname}_temp.bam"
 
     echo "Sorting alignment"
-    samtools sort -@ $proc "${fname}_temp.bam" "${fname}_filtered.bam"
+    samtools sort -@ $proc "${fname}_temp.bam" "${fname}_filtered"
 
     echo "Indexing alignment"
     samtools index "${fname}_filtered.bam"
