@@ -529,7 +529,10 @@ def get_coverages(chrom, start, stop, bam):
     for read in bam.pileup(chrom, stop, stop+2000):
         dstream += read.n
         dl += 1
-    surround = (ustream + dstream) / (ul+dl)
+    if (ustream + dstream) > 0:
+        surround = (ustream + dstream) / (ul + dl)
+    else:
+        ratio = 0
     if te > 0:
         tot_te = te / l
         ratio =  tot_te / surround
