@@ -509,7 +509,7 @@ def calc_mean(data):
     return mn, std
 
 
-def get_coverages(chrom, start, stop, bam):
+def get_coverages(chrom, start, stop, bam, chrom_sizes):
     """
     find average coverage in given region
     compared to +/- 2kb surrounding region
@@ -520,13 +520,24 @@ def get_coverages(chrom, start, stop, bam):
     ul = 0
     dstream = 0
     dl = 0
+
+    if (start - 2000) > 0:
+        ustart = (start - 2000)
+    else:
+        ustart = 0
+
+    if (stop + 2000) < chrom_sizes[chrom]:
+        dstop = stop + 2000
+    else:
+        dstop = chrom_sizes[chrom]
+
     for read in bam.pileup(chrom, start, stop):
         te += read.n
         l += 1
-    for read in bam.pileup(chrom, start-2000, start):
+    for read in bam.pileup(chrom, ustart, start):
         ustream += read.n
         ul += 1
-    for read in bam.pileup(chrom, stop, stop+2000):
+    for read in bam.pileup(chrom, stop, dstop):
         dstream += read.n
         dl += 1
     if (ustream + dstream) > 0:
@@ -557,6 +568,9 @@ def annotate_deletions(inp, acc, num_split, bam, mn):
 
     # check if sorted
     test_head = pysam.AlignmentFile(bam, 'rb')
+    chrom_sizes = {}
+    for i in test_head.header['SQ']:
+        chrom_sizes[i['SN']] = int(i['LN'])
     if test_head.header['HD']['SO'] == 'coordinate':
         pass
     else:
@@ -585,7 +599,7 @@ def annotate_deletions(inp, acc, num_split, bam, mn):
             gapsize = coords[2] - coords[1]
             read_type = line[4]
             if name not in tes.keys():
-                cov = get_coverages(coords[0], coords[1], coords[2], allreads)
+                cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
                 tes[name] = [cov, 0]
             else:
                 pass
