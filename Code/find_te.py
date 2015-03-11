@@ -1,7 +1,7 @@
 from sys import argv, exit
 
 args = argv[1:]
-if '-h' in args or '--help' in args:
+if '-h' in args or '--help' in args or len(args) == 0:
     print(
             """
             find_te.py
