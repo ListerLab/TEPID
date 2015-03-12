@@ -85,8 +85,7 @@ def merge_te_coords(infile, outfile, num_reads):
                 reads = ','.join(value[4])
                 mates = ','.join(value[6])
                 split, disc = condense(value[7])
-                if split >= num_reads:
-                # if (disc+split) >= num_reads:
+                if (disc+split) >= num_reads:
                     outf.write('{ch}\t{sta}\t{sto}\t{str}\t{name}\t{ref}\t{reads}\t{mates}\t{sd}\n'.format(ch=chrom,
                                                                                                            sta=start,
                                                                                                            sto=stop,
