@@ -63,7 +63,7 @@ def _create_te_dict(infile):
     return TE_dict
 
 
-def merge_te_coords(infile, outfile, num_split, num_disc):
+def merge_te_coords(infile, outfile, num_reads):
     """
     takes file containing reads coordinates
     that overlap annotated TEs and creates a 
@@ -85,8 +85,8 @@ def merge_te_coords(infile, outfile, num_split, num_disc):
                 reads = ','.join(value[4])
                 mates = ','.join(value[6])
                 split, disc = condense(value[7])
-                # if len(strand) == 1:  #and len(value[4]) == len(set(value[4])):  # this removes a lot of true positives
-                if disc >= num_disc or split >= num_split:  # filter where there are lots of split reads or a disc read, lose true pos here
+                if split >= num_reads:
+                # if (disc+split) >= num_reads:
                     outf.write('{ch}\t{sta}\t{sto}\t{str}\t{name}\t{ref}\t{reads}\t{mates}\t{sd}\n'.format(ch=chrom,
                                                                                                            sta=start,
                                                                                                            sto=stop,
@@ -206,9 +206,13 @@ def _merge(chrom1, start1, stop1, d, x, strands, reads, mates, ref_coords, skips
 
 
 def _overlap(start1, stop1, start2, stop2):
-    """returns True if sets of coordinates overlap. Assumes coordinates are on same chromosome"""
-    for y in xrange(start2, stop2+1):
-        if start1 < y < stop1:
+    """
+    Returns True if sets of coordinates overlap.
+    Assumes coordinates are on same chromosome.
+    10 bp window (seems to work better)
+    """
+    for y in xrange(start2-10, stop2+10):
+        if start1 <= y <= stop1:
             return True
         else:
             pass
@@ -667,7 +671,7 @@ def append_origin(feature, word):
     return feature
 
 
-def annotate_insertions(collapse_file, insertion_file, num_reads):
+def annotate_insertions(collapse_file, insertion_file):
     """
     Find insertion coordinates and TE orientation.
     assumes all read pairs are discordant
@@ -701,18 +705,16 @@ def annotate_insertions(collapse_file, insertion_file, num_reads):
                 else:
                     orientation = reference[3]
                 if pair is False:
-                    if (split+disc) > num_reads:
-                        outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
-                                                                                                                   start=start,
-                                                                                                                   stop=stop,
-                                                                                                                   orient=orientation,
-                                                                                                                   name=te_name,
-                                                                                                                   ref='\t'.join(reference),
-                                                                                                                   reads='|'.join(te_reads),
-                                                                                                                   mates='|'.join(mate)))
-                    else:
-                        pass
+                    outfile.write('{chr}\t{start}\t{stop}\t{orient}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(chr=chrom,
+                                                                                                               start=start,
+                                                                                                               stop=stop,
+                                                                                                               orient=orientation,
+                                                                                                               name=te_name,
+                                                                                                               ref='\t'.join(reference),
+                                                                                                               reads='|'.join(te_reads),
+                                                                                                               mates='|'.join(mate)))
                 else:
+                    print 'pair'
                     pair_start = pair[0]
                     next_read_names = pair[1]
                     pair_mates = pair[2]
@@ -747,7 +749,7 @@ def _find_next(lines, i, x, chrom, strand, start, stop, te_name):
         next_mate = next_mate.split(',')
         next_te_reads = line[9]
         next_te_reads = next_te_reads.split(',')
-        if strand != next_strand and te_name == next_te_name and chrom == next_chrom and stop <= next_start and (stop + 100) > next_start:
+        if te_name == next_te_name and chrom == next_chrom and stop <= next_start and (stop + 100) > next_start:
             return next_start, next_te_reads, next_mate
         elif stop + 100 < next_start:
             return False

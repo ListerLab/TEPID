@@ -76,14 +76,14 @@ print 'Intersecting TE coordinates with reads'
 Split = split_bedpe.each(locate.append_origin, word='split').saveas()
 Disc = disc.each(locate.append_origin, word='disc').saveas()
 disc_split = Split.cat(Disc, postmerge=False).sort().saveas('disc_split.temp')
-te_intersect = disc_split.pair_to_bed(te, f=0.2).saveas('intersect.temp')
+te_intersect = disc_split.pair_to_bed(te, f=0.80).saveas('intersect.temp')
 
 print 'Merging TE intersections'
 locate.reorder('intersect.temp', 'reorder_intersect.temp')
-locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp', 10, 2)
+locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp', 25)
 
 print 'Annotating insertions'
-locate.annotate_insertions('merged_intersections.temp', 'insertions.temp', 20)
+locate.annotate_insertions('merged_intersections.temp', 'insertions.temp')
 locate.separate_reads(name)
 pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{}.bed'.format(name))
 
