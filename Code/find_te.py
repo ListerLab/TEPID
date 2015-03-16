@@ -43,13 +43,13 @@ max_dist = (4*std) + mn
 
 print 'Processing split reads'
 split_mapped = locate.checkArgs('-s', '--split')
-split = pybedtools.BedTool(split_mapped).bam_to_bed()\
-.saveas('split.temp')
-locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
-split_bedpe = pybedtools.BedTool('split_bedpe.temp').each(locate.append_origin, word='split').saveas()
-split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
-breakpoints = split.sort().merge(c='2,3', o='count_distinct,count_distinct')\
+split = pybedtools.BedTool(split_mapped).bam_to_bed().saveas('split.temp').sort()
+breakpoints = split.merge(c='2,3', o='count_distinct,count_distinct')\
 .filter(locate.filter_unique_break).each(locate.break_coords).saveas('breakpoints.temp')
+locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
+split_bedpe = pybedtools.BedTool('split_bedpe.temp').each(locate.append_origin, word='split').saveas().\
+intersect(breakpoints, c=True).each(locate.append_break).saveas().sort()
+split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
 
 # Can't use main bam file because problem when reads don't have their pair,
 # due to filtering unmapped reads. This can be fixed when pybedtools problem
@@ -59,7 +59,7 @@ disc_mapped = locate.checkArgs('-d', '--disc')
 disc = pybedtools.BedTool(disc_mapped)\
 .bam_to_bed(bedpe=True, mate1=True)\
 .filter(lambda x: (abs(int(x[1]) - int(x[4])) > max_dist) or (x[0] != x[3])).saveas()\
-.each(locate.append_origin, word='disc').saveas()
+.each(locate.append_origin, word='disc\tFalse').saveas()
 disc_split_dels = split_bedpe.cat(disc, postmerge=False).sort().saveas('disc_split_dels.temp')
 disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas('disc_split_ins.temp')
 
@@ -70,7 +70,7 @@ te_intersect_ins = disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.
 
 print 'Merging TE intersections'
 locate.reorder('intersect_ins.temp', 'reorder_intersect.temp')
-locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp', 22, breakpoints)
+locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp', 25) 
 
 print 'Finding deletions'
 locate.create_deletion_coords(disc_split_dels, 'del_coords.temp')
