@@ -25,22 +25,6 @@ def checkArgs(arg1, arg2):
         return variable
 
 
-def filter_lines(feature, max_dist):
-    """
-    Filters discordant reads and removes
-    reads mapped to mitochondria and chloroplast
-    use in pybedtools.filter()
-    """
-    start1 = int(feature[2])
-    start2 = int(feature[4])
-    chr1 = feature[0]
-    chr2 = feature[3]
-    if abs(start1 - start2) > max_dist or chr1 != chr2:
-        return True
-    else:
-        return False
-
-
 def _create_te_dict(infile):
     """
     Create dictionary where key is TE name
@@ -63,7 +47,7 @@ def _create_te_dict(infile):
     return TE_dict
 
 
-def merge_te_coords(infile, outfile, num_reads):
+def merge_te_coords(infile, outfile, num_reads, breakpoint):
     """
     takes file containing reads coordinates
     that overlap annotated TEs and creates a 
@@ -81,11 +65,14 @@ def merge_te_coords(infile, outfile, num_reads):
                 start = value[1]
                 stop = value[2]
                 strand = value[5]
-                ref = '\t'.join(value[3])
+                te_coords = value[3]
+                ref = '\t'.join(te_coords)
                 reads = ','.join(value[4])
                 mates = ','.join(value[6])
                 split, disc = condense(value[7])
-                if (disc+split) >= num_reads:
+                te_break = pybedtools.BedTool('{}\t{}\t{}'.format(te_coords[0], int(te_coords[1])-10, int(te_coords[2])+10), from_string=True).saveas().intersect(breakpoint)
+                # ins_break = pybedtools.BedTool('{}\t{}\t{}'.format(chrom, start, stop), from_string=True).saveas().intersect(breakpoint)
+                if ((disc+split) >= num_reads) or (len(te_break) == 1 and (disc+split) > num_reads/2):
                     outf.write('{ch}\t{sta}\t{sto}\t{str}\t{name}\t{ref}\t{reads}\t{mates}\t{sd}\n'.format(ch=chrom,
                                                                                                            sta=start,
                                                                                                            sto=stop,
@@ -713,7 +700,6 @@ def annotate_insertions(collapse_file, insertion_file):
                                                                                                                reads='|'.join(te_reads),
                                                                                                                mates='|'.join(mate)))
                 else:
-                    print 'pair'
                     pair_start = pair[0]
                     next_read_names = pair[1]
                     pair_mates = pair[2]
