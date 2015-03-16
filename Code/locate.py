@@ -4,6 +4,7 @@ from sys import argv
 import numpy as np
 import pybedtools
 import pysam
+import time  ###
 
 
 def checkArgs(arg1, arg2):
@@ -47,7 +48,7 @@ def _create_te_dict(infile):
     return TE_dict
 
 
-def merge_te_coords(infile, outfile, num_reads, breakpoint):
+def merge_te_coords(infile, outfile, num_reads, breakpoint):  # this step is very slow, esp for large genomes (lots of reads)
     """
     takes file containing reads coordinates
     that overlap annotated TEs and creates a 
@@ -58,6 +59,7 @@ def merge_te_coords(infile, outfile, num_reads, breakpoint):
     with open(infile, 'r') as inp:
         TE_dict = _create_te_dict(inp)
     with open(outfile, 'w+') as outf:
+        t0 = time.time()
         for name in TE_dict.keys():
             _modify_coords(TE_dict[name])
             for key, value in TE_dict[name].items():
@@ -69,37 +71,24 @@ def merge_te_coords(infile, outfile, num_reads, breakpoint):
                 ref = '\t'.join(te_coords)
                 reads = ','.join(value[4])
                 mates = ','.join(value[6])
-                split, disc = condense(value[7])
-                te_break = pybedtools.BedTool('{}\t{}\t{}'.format(te_coords[0], int(te_coords[1])-10, int(te_coords[2])+10), from_string=True).saveas().intersect(breakpoint)
+                read_count = len(value[7])
+                # could add column with breakpoint == True or False when making merged reads file...add step checking if breakpoint == True
+                # should check all bedtools steps as they add time
+                te_break = pybedtools.BedTool('{}\t{}\t{}'.format(te_coords[0], int(te_coords[1])-10, int(te_coords[2])+10), from_string=True).intersect(breakpoint, sorted=True)  # this step takes a long time
                 # ins_break = pybedtools.BedTool('{}\t{}\t{}'.format(chrom, start, stop), from_string=True).saveas().intersect(breakpoint)
-                if ((disc+split) >= num_reads) or (len(te_break) == 1 and (disc+split) > num_reads/2):
-                    outf.write('{ch}\t{sta}\t{sto}\t{str}\t{name}\t{ref}\t{reads}\t{mates}\t{sd}\n'.format(ch=chrom,
-                                                                                                           sta=start,
-                                                                                                           sto=stop,
-                                                                                                           str=strand[0],
-                                                                                                           name=name,
-                                                                                                           ref=ref,
-                                                                                                           reads=reads,
-                                                                                                           mates=mates,
-                                                                                                           sd=str(split)+','+str(disc)))
+                if (read_count >= num_reads):# or (len(te_break) == 1 and read_count > num_reads/2):
+                    outf.write('{ch}\t{sta}\t{sto}\t{str}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(ch=chrom,
+                                                                                                     sta=start,
+                                                                                                     sto=stop,
+                                                                                                     str=strand[0],  # this is wrong...
+                                                                                                     name=name,
+                                                                                                     ref=ref,
+                                                                                                     reads=reads,
+                                                                                                     mates=mates))
                 else:
                     pass
-
-
-def condense(l):
-    """
-    counts number of split and disc reads in list, returns two numbers
-    """
-    split = 0
-    disc = 0
-    for i in l:
-        if i == 'split':
-            split += 1
-        elif i == 'disc':
-            disc += 1
-        else:
-            raise Exception('Incorrect read types')
-    return split, disc
+        t1 = time.time()
+        print t1-t0
 
 
 def _modify_coords(inp):
@@ -269,42 +258,6 @@ def separate_reads(acc):
             x += 1
 
 
-def _filter_del(inf, master, outf, ref):
-    """
-    Take bedfile containing all TE deletions and create
-    polymorphic TE file with coordinates of TE and
-    list of accessions that contain the TE
-    """
-    with open(inf, 'r') as infile, open(outf, 'w+') as outfile:
-        for line in infile:
-            line = line.rsplit()
-            accessions = line[6]
-            accessions = accessions.split(',')
-            coords = line[:5]
-            temp = [ref]
-            for item in master:
-                if item not in accessions:
-                    temp.append(item)
-                else:
-                    pass
-            info = '\t'.join(coords) + '\t' + ','.join(temp) + '\n'
-            outfile.write(info)
-
-
-def _create_names_list(inf):
-    names = []
-    with open(inf, 'r') as infile:
-        for line in infile:
-            line = line.rsplit()
-            names.append(line[0])
-    return names
-
-
-def inverse_del(inf, outf, ref):
-    master = _create_names_list(inf)
-    _filter_del(inf, master, outf, ref)
-
-
 def filter_unique_break(feature):
     """
     filters where there is a breakpoint
@@ -316,6 +269,7 @@ def filter_unique_break(feature):
         return True
     else:
         return False
+
 
 def break_coords(feature):
     """
@@ -376,51 +330,6 @@ def create_deletion_coords(bedfile, saveas):
                                                                                      rt=read_type))
                     else:
                         pass
-            else:
-                pass
-
-
-def count_inserts(inf, outf, chrom):
-    """
-    Splits chromosome into 50 bins.
-    Finds frequency of TE inserts in each bin.
-    Returns bin start points and number of insertions in each bin as tsv file.
-    """
-    with open(inf, 'r') as infile, open(outf, 'w+') as outfile:
-        chr_size = {'chr1': 30427617, 'chr2': 19698289, 'chr3': 23459830, 'chr4': 18585056, 'chr5': 26975502}  # Arabidopsis
-        length = chr_size[chrom]
-        bins = length / 50
-        bins = int(bins)
-        bins_dict = {}
-        for x in range(50):
-            bins_dict[x] = 0
-        for line in infile:
-            line = line.rsplit()
-            ins_chr = line[0]
-            ins_chr = int(ins_chr)
-            ins_start = int(line[1])
-            ins_end = line[2]
-            if ins_chr == chrom:
-                bin_no = _which_bin(bins, 50, ins_start)
-                bins_dict[bin_no] += 1
-            else:
-                pass
-        for key, value in bins_dict.items():
-            outfile.write('{v}\n'.format(v=value))
-
-
-def _which_bin(size, number, inp):
-    """
-    Takes number of bins, bin size, and a number to evaluate.
-    Finds which bin the input number goes into.
-    Returns bin number.
-    """
-    if inp <= size:
-        return 1
-    else:
-        for x in xrange(number):
-            if (x*size) <= inp <= ((x+1)*size):
-                return x
             else:
                 pass
 
@@ -571,10 +480,10 @@ def annotate_deletions(inp, acc, num_split, bam, mn):
     
     # check if indexed
     if '{}.bai'.format(bam) in os.listdir('.'):
-        print 'Using index {}.bai'.format(bam)
+        print '  Using index {}.bai'.format(bam)
         allreads = pysam.AlignmentFile(bam, 'rb')
     else:
-        print 'Indexing bam file'
+        print '  Indexing bam file'
         pysam.index(bam)
         allreads = pysam.AlignmentFile(bam, 'rb')
 
@@ -677,10 +586,6 @@ def annotate_insertions(collapse_file, insertion_file):
                 mate = mate.split(',')
                 te_reads = line[9]
                 te_reads = te_reads.split(',')
-                sd = line[11]
-                sd = sd.split(',')
-                split = int(sd[0])
-                disc = int(sd[1])
                 reference = [line[5], line[6], line[7], line[8]]  # reference chrom, start, stop, strand
                 pair = _find_next(lines, i, x, chrom, strand, start, stop, te_name)
                 if strand != reference[3]:
@@ -716,11 +621,12 @@ def annotate_insertions(collapse_file, insertion_file):
         else:
             pass
 
-
-# As file is processed top to bottom, sorted by coords, + will come up first. This will avoid identifying each insertion twice (once for each end)
+ 
 def _find_next(lines, i, x, chrom, strand, start, stop, te_name):
     """
     Find next read linked to same TE. Looks in 100 bp window.
+    As file is processed top to bottom, sorted by coords, + will come up first.
+    This will avoid identifying each insertion twice (once for each end)
     """
     while True:
         line = lines[x+1]
