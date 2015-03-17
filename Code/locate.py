@@ -3,7 +3,6 @@ import os
 from sys import argv
 import numpy as np
 import pysam
-import time  ###
 
 
 def checkArgs(arg1, arg2):
@@ -24,29 +23,6 @@ def checkArgs(arg1, arg2):
         variable = raw_input("\nEnter {arg2}: ".format(arg2=arg2))
         return variable
 
-
-def _create_te_dict(infile):
-    """
-    Create dictionary where key is TE name
-    value is another dictionary where key is 
-    read number (arbitrary), value is line in original
-    bedfile
-    """
-    TE_dict = {}
-    for line in infile:
-        fields = line.rsplit()
-        line = line.strip().split('\t')
-        name = fields[9]
-        try:
-            TE_dict[name]
-        except KeyError:
-            TE_dict[name] = {1: line}
-        else:
-            x = len(TE_dict[name])
-            TE_dict[name][x+1] = line
-    return TE_dict
-
-
 def append_break(feature):
     """
     use with pybedtools.each()
@@ -58,142 +34,6 @@ def append_break(feature):
     feature = feature[:11]
     feature.append(breakpoint)
     return feature
-
-
-def merge_te_coords(infile, outfile, num_reads):  # this step is very slow, esp for large genomes (lots of reads)
-    """
-    takes file containing reads coordinates
-    that overlap annotated TEs and creates a 
-    new file with merged coordinates
-    only writes lines if there are at least
-    num_split and num_disc split and disc reads
-    """
-    with open(infile, 'r') as inp:
-        TE_dict = _create_te_dict(inp)
-    with open(outfile, 'w+') as outf:
-        t0 = time.time()
-        for name in TE_dict.keys():
-            _modify_coords(TE_dict[name])
-            for key, value in TE_dict[name].items():
-                chrom = value[0]
-                start = value[1]
-                stop = value[2]
-                strand = value[5]
-                te_coords = value[3]
-                ref = '\t'.join(te_coords)
-                reads = ','.join(value[4])
-                mates = ','.join(value[6])
-                read_count = len(value[7])
-                breakpoint = value[8]
-                if 'True' in breakpoint:
-                    breakpoint = True
-                else:
-                    breakpoint = False
-                if (read_count >= num_reads) or (breakpoint == True and read_count > num_reads/2):
-                    outf.write('{ch}\t{sta}\t{sto}\t{name}\t{ref}\t{reads}\t{mates}\n'.format(ch=chrom,
-                                                                                              sta=start,
-                                                                                              sto=stop,
-                                                                                              name=name,
-                                                                                              ref=ref,
-                                                                                              reads=reads,
-                                                                                              mates=mates))
-                else:
-                    pass
-        t1 = time.time()
-        print t1-t0
-
-
-def _modify_coords(inp):
-    """
-    Go through each read mapped to TE and merge
-    if they overlap, modify dictionary with new
-    information
-    """
-    if len(inp) > 1:
-        skips = []  # keys that have already been merged
-        for x in inp.keys():
-            if x not in skips:
-                line = inp[x]
-                chrom1 = line[0]
-                start1 = int(line[1])
-                stop1 = int(line[2])
-                reads = [line[11]]
-                strands = [line[3]]
-                ref_coords = line[5:9]
-                mates = [line[12]]
-                sd = [line[13]]
-                breakpoints = [line[14]]
-                _merge(chrom1, start1, stop1, inp, x, strands, reads, mates, ref_coords, skips, sd, breakpoints)
-            else:
-                pass
-    else:
-        _no_merging(1, inp)
-
-
-def _no_merging(x, inp):
-    """
-    modify format of unmerged read coordinates
-    """
-    line = inp[x]
-    chrom1 = line[0]
-    start1 = int(line[1])
-    stop1 = int(line[2])
-    reads = [line[11]]
-    strands = [line[3]]
-    ref_coords = line[5:9]
-    mates = [line[12]]
-    sd = [line[13]]
-    breakpoints = [line[14]]
-    inp[x] = [chrom1, start1, stop1, ref_coords, reads, strands, mates, sd, breakpoints]
-
-
-def _merge(chrom1, start1, stop1, d, x, strands, reads, mates, ref_coords, skips, sd, breakpoints):
-    """
-    merge overlapping read coordinates where TE name is the same
-    """
-    for key in d.keys():
-        if key == x or key in skips:
-            pass
-        else:
-            line = d[key]
-            chrom2 = line[0]
-            start2 = int(line[1])
-            stop2 = int(line[2])
-            read2 = line[11]
-            strand2 = line[3]
-            mate2 = line[12]
-            sd2 = line[13]
-            breakpoint2 = line[14]
-            if chrom1 == chrom2 and _overlap(start1, stop1, start2, stop2) is True:
-                if start1 < start2:
-                    start = start1
-                else:
-                    start = start2
-                if stop1 > stop2:
-                    stop = stop1
-                else:
-                    stop = stop2
-                reads.append(read2)
-                strands.append(strand2)
-                mates.append(mate2)
-                sd.append(sd2)
-                breakpoints.append(breakpoint2)
-                d.pop(key)
-                skips.append(key)
-            else:
-                start = start1
-                stop = stop1
-    try:
-        start
-    except NameError:  # all keys were skipped as they were merged with other reads already
-        start = start1
-        stop = stop1
-        d[x] = [chrom1, start, stop, ref_coords, reads, strands, mates, sd, breakpoints]
-        skips.append(x)
-    else:
-        strands = list(set(strands))
-        d[x] = [chrom1, start, stop, ref_coords, reads, strands, mates, sd, breakpoints]
-        skips.append(x)
 
 
 def _overlap(start1, stop1, start2, stop2):

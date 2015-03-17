@@ -27,12 +27,14 @@ else:
 
 import pybedtools
 import locate
+import merge
 import os
 from glob import glob
+import time
+import profile
 
 
 name = locate.checkArgs('-n', '--name')
-
 all_mapped = locate.checkArgs('-c', '--conc')
 # this needs to have unmapped reads removed first due to problem with pybedtools
 # samtools view -hbF 0x04 -@ [number_threads] [input] > [output]
@@ -56,10 +58,11 @@ split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or 
 # with unmapped reads is fixed
 print 'Processing discordant reads'
 disc_mapped = locate.checkArgs('-d', '--disc')
+# this step takes a long time if there are lots of discordant reads
 disc = pybedtools.BedTool(disc_mapped)\
 .bam_to_bed(bedpe=True, mate1=True)\
 .filter(lambda x: (abs(int(x[1]) - int(x[4])) > max_dist) or (x[0] != x[3])).saveas()\
-.each(locate.append_origin, word='disc\tFalse').saveas()
+.each(locate.append_origin, word='disc\tFalse').moveto()
 disc_split_dels = split_bedpe.cat(disc, postmerge=False).sort().saveas('disc_split_dels.temp')
 disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas('disc_split_ins.temp')
 
@@ -70,7 +73,10 @@ te_intersect_ins = disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.
 
 print 'Merging TE intersections'
 locate.reorder('intersect_ins.temp', 'reorder_intersect.temp')
-locate.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp', 25) 
+t0 = time.time()
+merge.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp', 25) 
+t1 = time.time()
+print (t1-t0)
 
 print 'Finding deletions'
 locate.create_deletion_coords(disc_split_dels, 'del_coords.temp')
