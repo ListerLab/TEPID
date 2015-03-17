@@ -8,7 +8,7 @@ setup(
     author = 'Tim Stuart',
     author_email = 'timstuart90@gmail.com',
     url = 'https://github.com/timoast/locaTE',
-    scripts = "./Scripts/locate.py"  ##
-    packages = ['locate'],
-    ext_modules = cythonize("merge.pyx")
+    scripts = ["Scripts/pylocate"],
+    ext_modules = cythonize("./locate/merge.pyx"),
+    packages = ['locate']
 )
