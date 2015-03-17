@@ -11,10 +11,10 @@ if '-h' in args or '--help' in args or len(args) == 0:
             Created by Tim Stuart
 
             Usage:
-            pylocate -n <sample_name> \
-                     -c <all_mapped_reads_bamfile> \
-                     -d <discordant_reads_bamfile> \
-                     -s <split_reads_bamfile> \
+            pylocate -n <sample_name> \\
+                     -c <all_mapped_reads_bamfile> \\
+                     -d <discordant_reads_bamfile> \\
+                     -s <split_reads_bamfile> \\
                      -t <TE_annotation>
 
             Outputs TE insertions bedfile and TE deletions bedfile.
