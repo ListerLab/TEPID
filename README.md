@@ -15,7 +15,7 @@ git clone git@github.com:timoast/locaTE.git
 Run setup.py
 
 ```
-python setup.py build_ext --inplace
+python setup.py install
 ```
 
 Usage
