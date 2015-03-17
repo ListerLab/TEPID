@@ -360,26 +360,13 @@ def annotate_deletions(inp, acc, num_split, bam, mn):
                 tes[name] = [cov, 0]
             else:
                 pass
-            if gapsize <= 0 or name in written_tes or (length-mn) > gapsize:
+            if (gapsize <= 0) or (name in written_tes) or ((length-mn) > gapsize):
                 pass
             else:
                 percentage = overlap / gapsize
-                if length <= 1000 and percentage >= 0.2:  # 0.2 best so far
+                if percentage >= 0.2:  # 0.2 best so far
                     tes[name][1] += 1
-                    if read_type == 'split':
-                        if tes[name][0] <= 0.1:
-                            ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
-                            data = map(str, te)
-                            outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
-                            x += 1
-                            written_tes.append(name)
-                        elif tes[name][1] >= (num_split/2):
-                            ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
-                            data = map(str, te)
-                            outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
-                            x += 1
-                            written_tes.append(name)
-                    elif read_type == 'disc':
+                    if (tes[name][0] <= 0.1) or (tes[name][1] >= num_split) or (length <= 1000 and tes[name][1] >= (num_split/2)) or (read_type == 'disc'):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = map(str, te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
@@ -387,30 +374,6 @@ def annotate_deletions(inp, acc, num_split, bam, mn):
                         written_tes.append(name)
                     else:
                         pass
-
-                elif percentage >= 0.2:  # 0.2 best so far
-                    if read_type == 'split':
-                        tes[name][1] += 1
-                        if tes[name][0] <= 0.1:
-                            ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
-                            data = map(str, te)
-                            outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
-                            x += 1
-                            written_tes.append(name)
-                        elif tes[name][1] >= num_split:
-                            ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
-                            data = map(str, te)
-                            outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
-                            x += 1
-                            written_tes.append(name)
-                        else:
-                            pass
-                    else:
-                        ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
-                        data = map(str, te)
-                        outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
-                        x += 1
-                        written_tes.append(name)
                 else:
                     pass
 

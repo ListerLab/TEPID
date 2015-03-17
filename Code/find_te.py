@@ -30,8 +30,6 @@ import locate
 import merge
 import os
 from glob import glob
-import time
-import profile
 
 
 name = locate.checkArgs('-n', '--name')
@@ -73,10 +71,7 @@ te_intersect_ins = disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.
 
 print 'Merging TE intersections'
 locate.reorder('intersect_ins.temp', 'reorder_intersect.temp')
-t0 = time.time()
 merge.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp', 25) 
-t1 = time.time()
-print (t1-t0)
 
 print 'Finding deletions'
 locate.create_deletion_coords(disc_split_dels, 'del_coords.temp')
