@@ -12,6 +12,12 @@ Clone repository
 git clone git@github.com:timoast/locaTE.git
 ```
 
+Run setup.py
+
+```
+python setup.py build_ext --inplace
+```
+
 Usage
 -----
 
@@ -51,6 +57,7 @@ Required Tools
 **Python requirements**
 
 * [python](https://www.python.org) v2.7
+* [cython](http://docs.cython.org/index.html)
 * [numpy](http://www.numpy.org/)
 * [pybedtools](http://pythonhosted.org/pybedtools/)
 * [pysam](http://pysam.readthedocs.org/en/latest/)
