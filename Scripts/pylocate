@@ -6,19 +6,16 @@ args = argv[1:]
 if '-h' in args or '--help' in args or len(args) == 0:
     print(
             """
-            find_te.py
+            pylocate
 
             Created by Tim Stuart
 
             Usage:
-            python find_te.py -n <sample_name>
-                              -c <all_mapped_reads_bamfile>
-                              -d <discordant_reads_bamfile>
-                              -s <split_reads_bamfile>
-                              -t <TE_annotation>
-
-            find_te.py must be in the same folder as locate.py
-            so that code can be imported
+            pylocate -n <sample_name> \
+                     -c <all_mapped_reads_bamfile> \
+                     -d <discordant_reads_bamfile> \
+                     -s <split_reads_bamfile> \
+                     -t <TE_annotation>
 
             Outputs TE insertions bedfile and TE deletions bedfile.
             """

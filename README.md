@@ -24,7 +24,11 @@ Usage
 Go to the directory containing your bam files
 
 ```
-python find_te.py -n <sample_name> -c <mapped> -d <disc_mapped> -s <split_mapped> -t <te_bedfile>
+pylocate -n <sample_name> \
+         -c <mapped> \
+         -d <disc_mapped> \
+         -s <split_mapped> \
+         -t <te_bedfile>
 ```
 
 Where:
