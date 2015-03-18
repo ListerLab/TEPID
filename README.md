@@ -49,7 +49,6 @@ Where:
 
 Output files:
 
-  * bedfiles for split and discordant reads
   * TE insertions bedfile
   * TE deletions bedfile (TE present in reference but not sample)
 
