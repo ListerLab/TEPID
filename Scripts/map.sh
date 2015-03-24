@@ -39,11 +39,11 @@ if [ "$recursive" == true ]; then
   for directory in ./*; do
       if [ -d "$directory" ]; then
           cd $directory
-          sh $repo/Code/process_single.sh -p $proc -x $index -y $yhindex -s $size -z $zip
+          sh $repo/Scripts/process_single.sh -p $proc -x $index -y $yhindex -s $size -z $zip
           cd ..
       fi
   done
 
 else
-  sh $repo/Code/process_single.sh -p $proc -x $index -y $yhindex -s $size -z $zip
+  sh $repo/Scripts/process_single.sh -p $proc -x $index -y $yhindex -s $size -z $zip
 fi
