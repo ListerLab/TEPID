@@ -32,16 +32,14 @@ Go to the directory containing your bam files
 ```
 pylocate -n <sample_name> \
          -c <mapped> \
-         -d <disc_mapped> \
          -s <split_mapped> \
          -t <te_bedfile>
 ```
 
 Where:
 
-  * `<mapped>` is the name of your mapped bam file
-  * `<disc_mapped>` is the name of your discordant mapped bam file
-  * `<split_mapped` is the name of your split mapped bam file
+  * `<mapped>` is the name of your bam file from bowtie2
+  * `<split_mapped` is the name of your split mapped bam file from yaha
   * `<te_bedfile>` is path to the TE bedfile included in the repository. Currently supports:  
       - *Arabidopsis thaliana* (TAIR9 and TAIR10)
       - *Brachypodium distachyon*
@@ -66,7 +64,6 @@ Required Tools
 **Python requirements**
 
 * [python](https://www.python.org) v2.7
-* [cython](http://docs.cython.org/index.html)
 * [numpy](http://www.numpy.org/)
 * [pybedtools](http://pythonhosted.org/pybedtools/)
 * [pysam](http://pysam.readthedocs.org/en/latest/)
