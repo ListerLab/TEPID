@@ -12,8 +12,7 @@ if '-h' in args or '--help' in args or len(args) == 0:
 
             Usage:
             pylocate -n <sample_name> \\
-                     -c <all_mapped_reads_bamfile> \\
-                     -d <discordant_reads_bamfile> \\
+                     -c <main_bamfile> \\
                      -s <split_reads_bamfile> \\
                      -t <TE_annotation>
 
@@ -25,62 +24,64 @@ else:
     pass
 
 import pybedtools
-from locate import te_tools, merge
+import pysam
+import locate
 import os
 from glob import glob
 
 
-name = te_tools.checkArgs('-n', '--name')
-all_mapped = te_tools.checkArgs('-c', '--conc')
-# this needs to have unmapped reads removed first due to problem with pybedtools
-# samtools view -hbF 0x04 -@ [number_threads] [input] > [output]
+name = locate.checkArgs('-n', '--name')
+all_mapped = locate.checkArgs('-c', '--conc')
+split_mapped = locate.checkArgs('-s', '--split')
+te_bed = locate.checkArgs('-t', '--te')
+
 print 'Estimating mean insert size'
 bam = pybedtools.BedTool(all_mapped)
-mn, std = te_tools.calc_mean(bam[100000:120000])
+mn, std = locate.calc_mean(bam[100000:120000])
 max_dist = (4*std) + mn
 
 print 'Processing split reads'
-split_mapped = te_tools.checkArgs('-s', '--split')
 split = pybedtools.BedTool(split_mapped).bam_to_bed().saveas('split.temp').sort()
-breakpoints = split.merge(c='2,3', o='count_distinct,count_distinct')\
-.filter(te_tools.filter_unique_break).each(te_tools.break_coords).saveas('breakpoints.temp')
-te_tools.convert_split_pairbed('split.temp', 'split_bedpe.temp')
-split_bedpe = pybedtools.BedTool('split_bedpe.temp').each(te_tools.append_origin, word='split').saveas().\
-intersect(breakpoints, c=True).each(te_tools.append_break).saveas().sort()
+locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
+split_bedpe = pybedtools.BedTool('split_bedpe.temp').each(locate.append_origin, word='split').saveas().sort()
 split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
 
-# Can't use main bam file because problem when reads don't have their pair,
-# due to filtering unmapped reads. This can be fixed when pybedtools problem
-# with unmapped reads is fixed
-print 'Processing discordant reads'
-disc_mapped = te_tools.checkArgs('-d', '--disc')
-# this step takes a long time if there are lots of discordant reads
-disc = pybedtools.BedTool(disc_mapped)\
+print 'Finding discordant reads'
+locate.filter_discordant(all_mapped, max_dist, 'disc_bam.temp')
+pysam.sort('-n', 'disc_bam.temp', 'disc_sorted')
+disc = pybedtools.BedTool('disc_sorted.bam')\
 .bam_to_bed(bedpe=True, mate1=True)\
-.filter(lambda x: (abs(int(x[1]) - int(x[4])) > max_dist) or (x[0] != x[3])).saveas()\
-.each(te_tools.append_origin, word='disc\tFalse').moveto()
+.each(locate.append_origin, word='disc').saveas()
 disc_split_dels = split_bedpe.cat(disc, postmerge=False).sort().saveas('disc_split_dels.temp')
 disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas('disc_split_ins.temp')
 
 print 'Processing TE annotation'
-te_bed = te_tools.checkArgs('-t', '--te')
 te = pybedtools.BedTool(te_bed).sort()
-te_intersect_ins = disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
-
-print 'Merging TE intersections'
-te_tools.reorder('intersect_ins.temp', 'reorder_intersect.temp')
-merge.merge_te_coords('reorder_intersect.temp', 'merged_intersections.temp', 25) 
+disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
 
 print 'Finding deletions'
-te_tools.create_deletion_coords(disc_split_dels, 'del_coords.temp')
+locate.create_deletion_coords(disc_split_dels, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
-te_tools.annotate_deletions('deletions.temp', name, 10, all_mapped, mn)
+locate.annotate_deletions('deletions.temp', name, 10, all_mapped, mn)
 
 print 'Finding insertions'
-te_tools.annotate_insertions('merged_intersections.temp', 'insertions.temp')
-te_tools.separate_reads(name)
+locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
+pybedtools.BedTool('reorder_split.temp').sort().merge(c='4,5,6,9,10,11',
+                                                      o='distinct,collapse,collapse,distinct,distinct,count').saveas('split_merged.temp')
+pybedtools.BedTool('forward_disc.temp').sort().merge(c='4,5,6,9,10,11',
+                                                     o='distinct,collapse,collapse,distinct,distinct,count').saveas('forward_merged.temp')
+pybedtools.BedTool('reverse_disc.temp').sort().merge(c='4,5,6,9,10,11',
+                                                     o='distinct,collapse,collapse,distinct,distinct,count').saveas('reverse_merged.temp')
+locate.process_merged('split_merged.temp', 'split_processed.temp')
+locate.process_merged('forward_merged.temp', 'forward_processed.temp')
+locate.process_merged('reverse_merged.temp', 'reverse_processed.temp')
+# need to join all these files, sort and find pairs.
+# Then can merge with split reads and count total reads, adjust insertion coordinates
+
+locate.annotate_insertions('merged.temp', 'insertions_unsorted.temp', 'id_{}.fa'.format(name), 20)
 pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{}.bed'.format(name))
 
 temp = glob('./*.temp')
 for i in temp:
     os.remove(i)
+os.remove('disc_sorted.bam')
