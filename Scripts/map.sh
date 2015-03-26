@@ -29,12 +29,6 @@ shift $((OPTIND - 1))
 samtools --version
 samblaster --version
 
-if [ "$zip" == true ]; then
-  zip=$zip
-else
-  zip=false
-fi
-
 if [ "$recursive" == true ]; then
   for directory in ./*; do
       if [ -d "$directory" ]; then
