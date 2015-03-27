@@ -100,7 +100,7 @@ def reorder(insert_file, split_outf, disc_forw, disc_rev):
                 split_out.write(write_string)
 
 
-def process_merged(infile, outfile):
+def process_merged(infile, outfile, sd):
     """
     take merged coordinates and filter out those where multiple non-nested TEs insert into same locus
     """
@@ -131,7 +131,7 @@ def process_merged(infile, outfile):
                     else:
                         break
                 else:
-                    outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\n'.format(ch=line[0],
+                    outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\t{sd}\n'.format(ch=line[0],
                                                                                                         sta=line[1],
                                                                                                         stp=line[2],
                                                                                                         tec=line[3],
@@ -139,14 +139,15 @@ def process_merged(infile, outfile):
                                                                                                         tesp=stop,
                                                                                                         rds=line[6],
                                                                                                         nm=line[7],
-                                                                                                        cnt=line[8]
+                                                                                                        cnt=line[8],
+                                                                                                        sd=sd
                                                                                                         ))
             else:
                 start = line[4].split(',')
                 start = start[0]
                 stop = line[5].split(',')
                 stop = stop[0]
-                outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\n'.format(ch=line[0],
+                outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\t{sd}\n'.format(ch=line[0],
                                                                                                         sta=line[1],
                                                                                                         stp=line[2],
                                                                                                         tec=line[3],
@@ -154,7 +155,8 @@ def process_merged(infile, outfile):
                                                                                                         tesp=stop,
                                                                                                         rds=line[6],
                                                                                                         nm=line[7],
-                                                                                                        cnt=line[8]
+                                                                                                        cnt=line[8],
+                                                                                                        sd=sd
                                                                                                         ))
 
 
@@ -477,74 +479,42 @@ def annotate_insertions(collapse_file, insertion_file, id_file, num_reads):
                 chrom = line[0]
                 start = int(line[1])
                 stop = int(line[2])
-                te_chrom = line[4].split(',')
-                te_start = line[5].split(',')  # these will be ordered because input was coordinate sorted, so if one doesn't overlap it's neighbour it won't overlap any others.
-                te_stop = line[6].split(',')
-                te_name = line[8].split(',')
-                direction = line[10]
-                sd = line[11].split(',')
-                te_reads = line[9].split(',')
-                if len(te_chrom) > 1:
-                    pass
-                else:
-                    if len(te_start) > 1 or len(te_stop) > 1:
-                        # condense te coordinates
-                        te_starts = [int(a) for a in te_start]
-                        te_stops = [int(a) for a in te_stop]
-                        te_start = min(te_starts)
-                        te_stop = max(te_stops)
-                        # for x in range(len(te_starts)-1):
-                        #     print te_name
-                        #     te_nm = te_name[x+1]
-                        #     if _overlap(te_starts[x], te_stops[x], te_starts[x+1], te_stops[x+1]) is True:
-                        #         if te_starts[x] < te_start:
-                        #             te_start = te_starts[x]
-                        #         else:
-                        #             pass
-                        #         if te_stops[x] > te_stop:
-                        #             te_stop = te_stops[x]
-                        #         else:
-                        #             pass
-                        #     else:
-                        #         # no overlap, remove the corresponding TE from the list
-                        #         te_name.remove(te_nm)
-                        # print te_name
-                    else:
-                        te_start = int(te_start[0])
-                        te_stop = int(te_stop[0])
-                    pair = _find_next(lines, i, x, chrom, start, stop, te_name, direction)
-                    if pair is False:
-                        if len(sd) > num_reads:
-                            outfile.write('{chr}\t{start}\t{stop}\t{name}\t{te_chr}\t{te_start}\t{te_stop}\n'.format(chr=chrom,
-                                                                                                                     start=start,
-                                                                                                                     stop=stop,
-                                                                                                                     name=','.join(te_name),
-                                                                                                                     te_chr=te_chrom[0],
-                                                                                                                     te_start=te_start,
-                                                                                                                     te_stop=te_stop))
-                            # ins.write()
-                    else:
-                        pair_start = int(pair[0])
-                        if pair_start < stop:
-                            pair_start = stop
-                        next_read_names = pair[1]
-                        te_reads = next_read_names + te_reads
-                        sd = sd + pair[2]
-                        # if len(sd) > num_reads:
+                te_chrom = line[3]
+                te_start = line[4]
+                te_stop = line[5]
+                te_reads = line[6]
+                te_name = line[7].split(',')
+                count = int(line[8])
+                sd = line[9]
+                pair = _find_next(lines, i, x, chrom, start, stop, te_name, sd)
+                if pair is False:
+                    if len(sd) > num_reads:
                         outfile.write('{chr}\t{start}\t{stop}\t{name}\t{te_chr}\t{te_start}\t{te_stop}\n'.format(chr=chrom,
-                                                                                                                 start=stop,
-                                                                                                                 stop=pair_start,
+                                                                                                                 start=start,
+                                                                                                                 stop=stop,
                                                                                                                  name=','.join(te_name),
-                                                                                                                 te_chr=te_chrom[0],
+                                                                                                                 te_chr=te_chrom,
                                                                                                                  te_start=te_start,
                                                                                                                  te_stop=te_stop))
-                        # else:
-                            # pass
+                else:
+                    pair_start = int(pair[0])
+                    if pair_start < stop:
+                        pair_start = stop
+                    next_read_names = pair[1]
+                    te_reads = next_read_names + te_reads
+                    sd = sd + pair[2]
+                    outfile.write('{chr}\t{start}\t{stop}\t{name}\t{te_chr}\t{te_start}\t{te_stop}\n'.format(chr=chrom,
+                                                                                                             start=stop,
+                                                                                                             stop=pair_start,
+                                                                                                             name=','.join(te_name),
+                                                                                                             te_chr=te_chrom,
+                                                                                                             te_start=te_start,
+                                                                                                             te_stop=te_stop))
         else:
             pass
 
  
-def _find_next(lines, i, x, chrom, start, stop, te_name, direction):
+def _find_next(lines, i, x, chrom, start, stop, te_name, sd):
     """
     Find next read linked to same TE. Looks in 10 bp window.
     """
@@ -555,11 +525,14 @@ def _find_next(lines, i, x, chrom, start, stop, te_name, direction):
             next_chrom = line[0]
             next_start = int(line[1])
             next_stop = int(line[2])
-            next_te_name = line[8].split(',')
-            next_te_reads = line[9].split(',')
-            next_direction = line[10]
+            next_te_chrom = line[3]
+            next_te_start = line[4]
+            next_te_stop = line[5]
+            next_te_reads = line[6]
+            next_te_name = line[7].split(',')
+            next_count = int(line[8])
+            next_sd = line[9]
             correct_te = False
-            next_sd = line[11].split(',')
             for n in next_te_name:
                 if n in te_name:
                     correct_te = True
