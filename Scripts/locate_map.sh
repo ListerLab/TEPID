@@ -39,7 +39,7 @@ map () {
     bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X $size\
      -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" \
     | samblaster -e -u "${fname}.umap.fastq" \
-    | samtools view -b - > "${fname}.bam"
+    | samtools view -b - > "${fname}_unsort.bam"
 
     yaha -t $proc -x $yhindex -q "${fname}.umap.fastq" -L 11 -H 2000 -M 15 -osh stdout \
     | samblaster -s "${fname}.split.sam" > /dev/null
@@ -49,11 +49,11 @@ map () {
     rm "${fname}.split.sam"
 
     echo "Sorting alignment"
-    samtools sort -@ $proc "${fname}.bam" "${fname}_sorted"
-    rm "${fname}.bam"
+    samtools sort -@ $proc "${fname}_unsort.bam" "${fname}"
+    rm "${fname}_unsort.bam"
 
     echo "Indexing alignment"
-    samtools index "${fname}_sorted.bam"
+    samtools index "${fname}.bam"
 
     if [ "$zip" == true ]; then
       echo "Zipping fastq files"
