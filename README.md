@@ -38,12 +38,16 @@ locate_map.sh -x <path/to/bowtie2/index> \
               -z <gzip_fastq_files> (optional)
 ```
 
+This will look for two files named `[name]_1.fastq` and `[name]_2.fastq`, and map these using the number of processors specified in `-p`. These files must be present in the current directory, or in direcories immediately below the current directory if the `-r` option is used.
+
 This will give you the following files:
 
 * [name].bam
 * [name].bam.bai
 * [name].split.bam
-* [name].umap.fastq (this will be compressed if you selected the -z option)
+* [name].umap.fastq (this will be compressed if you selected the `-z` option)
+
+The name of these output files will come from the name of the input fastq files
 
 Next go to the directory containing your bam files
 
