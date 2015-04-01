@@ -100,6 +100,30 @@ def reorder(insert_file, split_outf, disc_forw, disc_rev):
                 split_out.write(write_string)
 
 
+def _condense_coords(starts, stops):
+    """
+    finds if lists of coordinate sets all overlap one another
+    Returns widest set of merged coordinates (to encompass all overlapping TEs)
+    Returns None if there is no overlap
+    """
+    start = starts[0]
+    stop = stops[0]
+    for x in range(1, len(starts)):
+        if _overlap(start, stop, starts[x], stops[x]) is True:
+            if start > starts[x]:
+                start = starts[x]
+            else:
+                continue
+            if stops[x] < stops[x]:
+                stop = stops[x]
+            else:
+                continue
+        else:
+            break
+    else:
+        return start, stop
+
+
 def process_merged(infile, outfile, sd):
     """
     take merged coordinates and filter out those where multiple non-nested TEs insert into same locus
@@ -116,32 +140,20 @@ def process_merged(infile, outfile, sd):
                 starts = [int(x) for x in starts]
                 stops = line[5].split(',')
                 stops = [int(x) for x in stops]
-                start = starts[0]
-                stop = stops[0]
-                for x in range(1, len(starts)):
-                    if _overlap(start, stop, starts[x], stops[x]) is True:
-                        if start < starts[x]:
-                            start = starts[x]
-                        else:
-                            continue
-                        if stops[x] > stops[x]:
-                            stop = stops[x]
-                        else:
-                            continue
-                    else:
-                        break
-                else:
+                coords = _condense_coords(starts, stops)
+                if coords is not None:
                     outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\t{sd}\n'.format(ch=line[0],
                                                                                                         sta=line[1],
                                                                                                         stp=line[2],
                                                                                                         tec=line[3],
-                                                                                                        tesa=start,
-                                                                                                        tesp=stop,
+                                                                                                        tesa=coords[0],
+                                                                                                        tesp=coords[1],
                                                                                                         rds=line[6],
                                                                                                         nm=line[7],
                                                                                                         cnt=line[8],
-                                                                                                        sd=sd
-                                                                                                        ))
+                                                                                                        sd=sd))
+                else:
+                    pass
             else:
                 start = line[4].split(',')
                 start = start[0]
@@ -156,9 +168,56 @@ def process_merged(infile, outfile, sd):
                                                                                                         rds=line[6],
                                                                                                         nm=line[7],
                                                                                                         cnt=line[8],
-                                                                                                        sd=sd
-                                                                                                        ))
+                                                                                                        sd=sd))
 
+
+def process_merged_disc(infile, outfile):
+    """
+    takes merged coordinates and finds where there are discordant reads in both direction
+    collects read count information and writes to file when read count > num_reads
+    """
+    with open(infile, 'r') as inf, open(outfile, 'w+') as outf:
+        for line in inf:
+            line = line.rsplit()
+            te_chroms = line[3].split(',')
+            te_names = line[7].split(',')
+            read_types = line[9].split(',')
+            starts = line[4].split(',')
+            stops = line[5].split(',')
+            if len(te_chroms) > 1:
+                pass
+            elif len(te_names) > 1:
+                starts = [int(x) for x in starts]
+                stops = [int(x) for x in stops]
+                coords = _condense_coords(starts, stops)
+                if coords is not None and len(read_types) == 2:
+                    outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{count}\n'.format(
+                        ch=line[0],
+                        sta=line[1],
+                        stp=line[2],
+                        tec=line[3],
+                        tesa=coords[0],
+                        tesp=coords[1],
+                        rds=line[6],
+                        nm=line[7],
+                        count=line[8]))
+                else:
+                    pass
+            elif len(read_types) == 2:
+                start = starts[0]
+                stop = stops[0]
+                outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{count}\n'.format(
+                        ch=line[0],
+                        sta=line[1],
+                        stp=line[2],
+                        tec=line[3],
+                        tesa=start,
+                        tesp=stop,
+                        rds=line[6],
+                        nm=line[7],
+                        count=line[8]))
+            else:
+                pass
 
 
 def separate_reads(acc):
@@ -247,7 +306,6 @@ def create_deletion_coords(bedfile, saveas):
             read = line[6]
             strand2 = line[9]
             read_type = line[10]
-            # could add the breakpoint info
             if chr1 == chr2:
                 if _overlap(start1, stop1, start2, stop2) is True:
                     pass
@@ -456,95 +514,102 @@ def annotate_deletions(inp, acc, num_split, bam, mn):
                     pass
 
 
-def append_origin(feature, word):
-    """
-    use with pybedtools.each()
-    append 'word' as final column in file
-    """
-    feature.append(word)
-    return feature
+# def append_origin(feature, word):
+#     """
+#     use with pybedtools.each()
+#     append 'word' as final column in file
+#     """
+#     feature.append(word)
+#     return feature
 
 
-def annotate_insertions(collapse_file, insertion_file, id_file, num_reads):
-    """
-    Find insertion coordinates and TE orientation.
-    assumes all read pairs are discordant
-    """
-    with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile, open(id_file, 'w+') as ids:
-        i, lines = _get_len(infile)
-        if i > 0:
-            for x in range(i):
-                line = lines[x]
-                line = line.rsplit()
-                chrom = line[0]
-                start = int(line[1])
-                stop = int(line[2])
-                te_chrom = line[3]
-                te_start = line[4]
-                te_stop = line[5]
-                te_reads = line[6]
-                te_name = line[7].split(',')
-                count = int(line[8])
-                sd = line[9]
-                pair = _find_next(lines, i, x, chrom, start, stop, te_name, sd)
-                if pair is False:
-                    if len(sd) > num_reads:
-                        outfile.write('{chr}\t{start}\t{stop}\t{name}\t{te_chr}\t{te_start}\t{te_stop}\n'.format(chr=chrom,
-                                                                                                                 start=start,
-                                                                                                                 stop=stop,
-                                                                                                                 name=','.join(te_name),
-                                                                                                                 te_chr=te_chrom,
-                                                                                                                 te_start=te_start,
-                                                                                                                 te_stop=te_stop))
-                else:
-                    pair_start = int(pair[0])
-                    if pair_start < stop:
-                        pair_start = stop
-                    next_read_names = pair[1]
-                    te_reads = next_read_names + te_reads
-                    sd = sd + pair[2]
-                    outfile.write('{chr}\t{start}\t{stop}\t{name}\t{te_chr}\t{te_start}\t{te_stop}\n'.format(chr=chrom,
-                                                                                                             start=stop,
-                                                                                                             stop=pair_start,
-                                                                                                             name=','.join(te_name),
-                                                                                                             te_chr=te_chrom,
-                                                                                                             te_start=te_start,
-                                                                                                             te_stop=te_stop))
-        else:
-            pass
+# def annotate_insertions(collapse_file, insertion_file, id_file, num_reads):
+#     """
+#     Find insertion coordinates and TE orientation.
+#     assumes all read pairs are discordant
+#     """
+#     with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile, open(id_file, 'w+') as ids:
+#         i, lines = _get_len(infile)
+#         if i > 0:
+#             for x in range(i):
+#                 line = lines[x]
+#                 line = line.rsplit()
+#                 chrom = line[0]
+#                 start = int(line[1])
+#                 stop = int(line[2])
+#                 te_chrom = line[3]
+#                 te_start = line[4]
+#                 te_stop = line[5]
+#                 te_reads = line[6]
+#                 te_name = line[7].split(',')
+#                 count = int(line[8])
+#                 sd = line[9]
+#                 pair = _find_next(lines, i, x, chrom, start, stop, te_name, sd)
+#                 if pair is False:
+#                     if count > num_reads:  # need to require both split and disc reads
+#                         outfile.write('{chr}\t{start}\t{stop}\t{name}\t{te_chr}\t{te_start}\t{te_stop}\n'.format(chr=chrom,
+#                                                                                                                  start=start,
+#                                                                                                                  stop=stop,
+#                                                                                                                  name=','.join(te_name),
+#                                                                                                                  te_chr=te_chrom,
+#                                                                                                                  te_start=te_start,
+#                                                                                                                  te_stop=te_stop))
+#                 else:
+#                     pair_start = int(pair[0])
+#                     if pair_start < stop:
+#                         pair_start = stop
+#                     next_read_names = pair[1]
+#                     te_reads = next_read_names + te_reads
+#                     count = count + int(pair[2])
+#                     if count > num_reads:  # need to require both split and disc reads
+#                         outfile.write('{chr}\t{start}\t{stop}\t{name}\t{te_chr}\t{te_start}\t{te_stop}\n'.format(chr=chrom,
+#                                                                                                                  start=stop,
+#                                                                                                                  stop=pair_start,
+#                                                                                                                  name=','.join(te_name),
+#                                                                                                                  te_chr=te_chrom,
+#                                                                                                                  te_start=te_start,
+#                                                                                                                  te_stop=te_stop))
+#                     else:
+#                         pass
+#         else:
+#             pass
 
  
-def _find_next(lines, i, x, chrom, start, stop, te_name, sd):
-    """
-    Find next read linked to same TE. Looks in 10 bp window.
-    """
-    if x+1 < i:
-        while True:
-            line = lines[x+1]
-            line = line.rsplit()
-            next_chrom = line[0]
-            next_start = int(line[1])
-            next_stop = int(line[2])
-            next_te_chrom = line[3]
-            next_te_start = line[4]
-            next_te_stop = line[5]
-            next_te_reads = line[6]
-            next_te_name = line[7].split(',')
-            next_count = int(line[8])
-            next_sd = line[9]
-            correct_te = False
-            for n in next_te_name:
-                if n in te_name:
-                    correct_te = True
-                else:
-                    pass
-            if correct_te is True and chrom == next_chrom and _overlap(start, stop, next_start, next_stop) is True:
-                return next_start, next_te_reads, next_sd
-            elif stop + 100 < next_start:
-                return False
-            else:
-                x += 1
-                if x >= i:
-                    return False
-    else:
-        return False
+# def _find_next(lines, i, x, chrom, start, stop, te_name, sd):
+#     """
+#     Find next read linked to same TE. Looks in 10 bp window.
+#     """
+#     if x+1 < i:
+#         while True:
+#             line = lines[x+1]
+#             line = line.rsplit()
+#             next_chrom = line[0]
+#             next_start = int(line[1])
+#             next_stop = int(line[2])
+#             next_te_chrom = line[3]
+#             next_te_start = line[4]
+#             next_te_stop = line[5]
+#             next_te_reads = line[6]
+#             next_te_name = line[7].split(',')
+#             next_count = int(line[8])
+#             next_sd = line[9]
+#             correct_te = False
+#             for n in next_te_name:
+#                 if n in te_name:
+#                     correct_te = True
+#                 else:
+#                     pass
+#             if sd == 'disc_forward' and next_sd == 'disc_reverse':
+#                 orient = True
+#             else:
+#                 orient = False
+#             if correct_te is True and chrom == next_chrom and _overlap(start, stop, next_start, next_stop) is True and orient is True:
+#                 return next_start, next_te_reads, next_count
+#             elif stop + 100 < next_start:
+#                 return False
+#             else:
+#                 x += 1
+#                 if x >= i:
+#                     return False
+#     else:
+#         return False
