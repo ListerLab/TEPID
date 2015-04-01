@@ -40,10 +40,10 @@ locate_map.sh -x <path/to/bowtie2/index> \
 
 This will give you the following files:
 
-* <name>.bam
-* <name>.bam.bai
-* <name>.split.bam
-* <name>.umap.fastq (this will be compressed if you selected the -z option)
+* [name].bam
+* [name].bam.bai
+* [name].split.bam
+* [name].umap.fastq (this will be compressed if you selected the -z option)
 
 Next go to the directory containing your bam files
 
