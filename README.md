@@ -27,7 +27,25 @@ python setup.py install
 Usage
 -----
 
-Go to the directory containing your bam files
+Run the mapping script. This is added to your path during the installation.
+
+```
+locate_map.sh -x <path/to/bowtie2/index> \
+              -p <number_processors> \
+              -y <path/to/yaha/index> \
+              -s <approximate_fragment_size> \
+              -r <recursive> (optional) \
+              -z <gzip_fastq_files> (optional)
+```
+
+This will give you the following files:
+
+* <name>.bam
+* <name>.bam.bai
+* <name>.split.bam
+* <name>.umap.fastq (this will be compressed if you selected the -z option)
+
+Next go to the directory containing your bam files
 
 ```
 pylocate -n <sample_name> \
