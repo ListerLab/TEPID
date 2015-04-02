@@ -445,15 +445,14 @@ def get_coverages(chrom, start, stop, bam, chrom_sizes):
     return ratio
 
 
-def annotate_deletions(inp, acc, num_split, bam, mn):
+def annotate_deletions(inp, acc, num_reads, bam, mn):
     """
     Calls deletions where the gap between paired reads is at
     least 20 percent the length of the TE
     and there are either:
-       one discordant read pair spanning TE, or
-       1 split read spanning the TE and
+       1 split/disc read spanning the TE and
        coverage at TE is 1/10 the coverage in surrounding area, or
-       num_split split reads spanning the TE
+       num_reads split reads spanning the TE
     """
     x = 0
     tes = {}
@@ -502,7 +501,7 @@ def annotate_deletions(inp, acc, num_split, bam, mn):
                 percentage = overlap / gapsize
                 if percentage >= 0.2:  # 0.2 best so far
                     tes[name][1] += 1
-                    if (tes[name][0] <= 0.1) or (tes[name][1] >= num_split) or (length <= 1000 and tes[name][1] >= (num_split/2)) or (read_type == 'disc'):
+                    if (tes[name][0] <= 0.1) or (tes[name][1] >= num_reads) or (length <= 1000 and tes[name][1] >= (num_reads/2)):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
@@ -514,13 +513,29 @@ def annotate_deletions(inp, acc, num_split, bam, mn):
                     pass
 
 
-# def append_origin(feature, word):
-#     """
-#     use with pybedtools.each()
-#     append 'word' as final column in file
-#     """
-#     feature.append(word)
-#     return feature
+def append_origin(feature, word):
+    """
+    use with pybedtools.each()
+    append 'word' as final column in file
+    """
+    feature.append(word)
+    return feature
+
+
+def reorder_intersections(feature):
+    """
+    use with pybedtools.each()
+    """
+    chrom = feature[0]
+    start = feature[1]
+    stop = feature[2]
+    techrom = feature[13]
+    testart = feature[14]
+    testop = feature[15]
+    reads = set(feature[6].split(',') + feature[16].split(','))
+    names = set(feature[7].split(',') + feature[17].split(','))
+    feature = [chrom, start, stop, techrom, testart, testop, ','.join(reads), ','.join(names)]
+    return feature
 
 
 # def annotate_insertions(collapse_file, insertion_file, id_file, num_reads):
