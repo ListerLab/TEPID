@@ -208,20 +208,19 @@ def process_merged_disc(infile, outfile):
                 pass
 
 
-def separate_reads(acc):
+def separate_reads(infile, outfile, reads_file):
     """
     splits read name info into different file and adds unique IDs for insertions
     """
-    with open('insertions.temp', 'r') as infile, open('insertions_unsorted.temp', 'w+') as outfile, open('id_{a}.fa'.format(a=acc), 'w+') as id_file:
+    with open(infile, 'r') as inf, open(outfile, 'w+') as outf, open(reads_file, 'w+') as fasta_file:
         x = 0
-        for line in infile:
+        for line in inf:
             line = line.rsplit()
-            data = line[:8]
-            reads = line[8]
-            mates = line[9]
-            ident = acc + '_' + str(x)
-            outfile.write('{data}\t{id}\n'.format(data='\t'.join(data), id=ident))
-            id_file.write('>{id}\t{reads}\t{mates}\n'.format(id=ident, reads=reads, mates=mates))
+            data = line[:6]
+            name = line[7]
+            reads = line[6]
+            outf.write('{data}\t{te}\t{x}\n'.format(data='\t'.join(data), te=name, x=x))
+            fasta_file.write('>{x}\t{reads}\n'.format(x=x, reads=reads))
             x += 1
 
 
@@ -476,6 +475,16 @@ def append_origin(feature, word):
     feature.append(word)
     return feature
 
+
+def condense_names(feature):
+    """
+    use in pybedtools.each()
+    """
+    feature = feature[:-1]
+    names = set(feature[-1].split(','))
+    names = ','.join(names)
+    feature[-1] = names
+    return feature
 
 def reorder_intersections(feature):
     """
