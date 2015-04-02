@@ -60,9 +60,6 @@ te = pybedtools.BedTool(te_bed).sort()
 disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
 
 print 'Finding deletions'
-# should only allow discordant reads that face each other
-# if pair1 = forward and pair2 = reverse, sequence deleted
-# can get most of the deletions just from split reads...
 locate.create_deletion_coords(disc_split_dels, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
 locate.annotate_deletions('deletions.temp', name, 10, all_mapped, mn)
@@ -70,20 +67,33 @@ locate.annotate_deletions('deletions.temp', name, 10, all_mapped, mn)
 print 'Finding insertions'
 locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
 pybedtools.BedTool('reorder_split.temp').sort().merge(c='4,5,6,9,10,11',
-                                                      o='distinct,collapse,collapse,distinct,distinct,count').saveas('split_merged.temp')
+                                                      o='distinct,collapse,collapse,distinct,distinct,count',
+                                                      d='200').saveas('split_merged.temp')
 pybedtools.BedTool('forward_disc.temp').sort().merge(c='4,5,6,9,10,11',
-                                                     o='distinct,collapse,collapse,distinct,distinct,count').saveas('forward_merged.temp')
+                                                     o='distinct,collapse,collapse,distinct,distinct,count',
+                                                     d='200').saveas('forward_merged.temp')
 pybedtools.BedTool('reverse_disc.temp').sort().merge(c='4,5,6,9,10,11',
-                                                     o='distinct,collapse,collapse,distinct,distinct,count').saveas('reverse_merged.temp')
+                                                     o='distinct,collapse,collapse,distinct,distinct,count',
+                                                     d='200').saveas('reverse_merged.temp')
 locate.process_merged('split_merged.temp', 'split_processed.temp', 'split')
 locate.process_merged('forward_merged.temp', 'forward_processed.temp', 'disc_forward')
 locate.process_merged('reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse')
+pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postmerge=True,
+    c='4,5,6,7,8,9,10',
+    o='distinct,collapse,collapse,distinct,distinct,sum,distinct',
+    d='50').sort().saveas('condensed_disc.temp')
 
-# could merge these and find where there are disc reads in both directions at insertion site...then instersect with split reads
-pybedtools.BedTool('split_processed.temp').cat('forward_processed.temp', postmerge=False)\
-.cat('reverse_processed.temp', postmerge=False).sort().saveas('condensed.temp')
-locate.annotate_insertions('condensed.temp', 'insertions_unsorted.temp', 'id_{}.fa'.format(name), 20)
-pybedtools.BedTool('insertions_unsorted.temp').sort().moveto('insertions_{}.bed'.format(name))
+locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp')
+pybedtools.BedTool('processed_disc.temp').filter(lambda x: int(x[-1]) > 40)\
+.each(locate.condense_names).saveas('high_intersect.temp')
+pybedtools.BedTool('processed_disc.temp').filter(lambda x: 10 < int(x[-1]) < 40).saveas('low_intersect.temp')
+pybedtools.BedTool('split_processed.temp').filter(lambda x: int(x[8]) > 20).sort()\
+.intersect('low_intersect.temp', wo=True)\
+.each(locate.reorder_intersections)\
+.saveas()\
+.cat('high_intersect.temp', postmerge=False)\
+.sort().moveto('insertions.temp')
+locate.separate_reads('insertions.temp', 'insertions_{}.bed'.format(name), 'id_{}.fa'.format(name))
 
 temp = glob('./*.temp')
 for i in temp:
