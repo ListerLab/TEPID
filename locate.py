@@ -23,18 +23,6 @@ def checkArgs(arg1, arg2):
         variable = raw_input("\nEnter {arg2}: ".format(arg2=arg2))
         return variable
 
-# def append_break(feature):
-#     """
-#     use with pybedtools.each()
-#     """
-#     if int(feature[-1]) >= 1:
-#         breakpoint = 'True'
-#     else:
-#         breakpoint = 'False'
-#     feature = feature[:11]
-#     feature.append(breakpoint)
-#     return feature
-
 
 def _overlap(start1, stop1, start2, stop2):
     """
@@ -237,19 +225,6 @@ def separate_reads(acc):
             x += 1
 
 
-# def filter_unique_break(feature):
-#     """
-#     filters where there is a breakpoint
-#     use with pybedtools.filter()
-#     """
-#     if int(feature[3]) == 1 and int(feature[4]) != 1:
-#         return True
-#     elif int(feature[3]) != 1 and int(feature[4]) == 1:
-#         return True
-#     else:
-#         return False
-
-
 def filter_discordant(bam, dist, new_filename):
     """
     filters discordant reads in bamfile and writes to new bam
@@ -264,26 +239,6 @@ def filter_discordant(bam, dist, new_filename):
             pass
     new_bam.close()
     bamfile.close()
-
-
-# def break_coords(feature):
-#     """
-#     reorders split read coords with location of breakpoint
-#     use with pybedtools.each()
-#     """
-#     start_count = int(feature[3])
-#     stop_count = int(feature[4])
-#     start = feature[1]
-#     stop = feature[2]
-#     chrom = feature[0]
-#     if start_count == 1:
-#         feature = [chrom, start, start]
-#         return feature
-#     elif stop_count == 1:
-#         feature = [chrom, stop, stop]
-#         return feature
-#     else:
-#         raise Exception('incorrect filtering of breakpoints')
 
 
 def create_deletion_coords(bedfile, saveas):
@@ -536,95 +491,3 @@ def reorder_intersections(feature):
     names = set(feature[7].split(',') + feature[17].split(','))
     feature = [chrom, start, stop, techrom, testart, testop, ','.join(reads), ','.join(names)]
     return feature
-
-
-# def annotate_insertions(collapse_file, insertion_file, id_file, num_reads):
-#     """
-#     Find insertion coordinates and TE orientation.
-#     assumes all read pairs are discordant
-#     """
-#     with open(collapse_file, 'r') as infile, open(insertion_file, 'w+') as outfile, open(id_file, 'w+') as ids:
-#         i, lines = _get_len(infile)
-#         if i > 0:
-#             for x in range(i):
-#                 line = lines[x]
-#                 line = line.rsplit()
-#                 chrom = line[0]
-#                 start = int(line[1])
-#                 stop = int(line[2])
-#                 te_chrom = line[3]
-#                 te_start = line[4]
-#                 te_stop = line[5]
-#                 te_reads = line[6]
-#                 te_name = line[7].split(',')
-#                 count = int(line[8])
-#                 sd = line[9]
-#                 pair = _find_next(lines, i, x, chrom, start, stop, te_name, sd)
-#                 if pair is False:
-#                     if count > num_reads:  # need to require both split and disc reads
-#                         outfile.write('{chr}\t{start}\t{stop}\t{name}\t{te_chr}\t{te_start}\t{te_stop}\n'.format(chr=chrom,
-#                                                                                                                  start=start,
-#                                                                                                                  stop=stop,
-#                                                                                                                  name=','.join(te_name),
-#                                                                                                                  te_chr=te_chrom,
-#                                                                                                                  te_start=te_start,
-#                                                                                                                  te_stop=te_stop))
-#                 else:
-#                     pair_start = int(pair[0])
-#                     if pair_start < stop:
-#                         pair_start = stop
-#                     next_read_names = pair[1]
-#                     te_reads = next_read_names + te_reads
-#                     count = count + int(pair[2])
-#                     if count > num_reads:  # need to require both split and disc reads
-#                         outfile.write('{chr}\t{start}\t{stop}\t{name}\t{te_chr}\t{te_start}\t{te_stop}\n'.format(chr=chrom,
-#                                                                                                                  start=stop,
-#                                                                                                                  stop=pair_start,
-#                                                                                                                  name=','.join(te_name),
-#                                                                                                                  te_chr=te_chrom,
-#                                                                                                                  te_start=te_start,
-#                                                                                                                  te_stop=te_stop))
-#                     else:
-#                         pass
-#         else:
-#             pass
-
- 
-# def _find_next(lines, i, x, chrom, start, stop, te_name, sd):
-#     """
-#     Find next read linked to same TE. Looks in 10 bp window.
-#     """
-#     if x+1 < i:
-#         while True:
-#             line = lines[x+1]
-#             line = line.rsplit()
-#             next_chrom = line[0]
-#             next_start = int(line[1])
-#             next_stop = int(line[2])
-#             next_te_chrom = line[3]
-#             next_te_start = line[4]
-#             next_te_stop = line[5]
-#             next_te_reads = line[6]
-#             next_te_name = line[7].split(',')
-#             next_count = int(line[8])
-#             next_sd = line[9]
-#             correct_te = False
-#             for n in next_te_name:
-#                 if n in te_name:
-#                     correct_te = True
-#                 else:
-#                     pass
-#             if sd == 'disc_forward' and next_sd == 'disc_reverse':
-#                 orient = True
-#             else:
-#                 orient = False
-#             if correct_te is True and chrom == next_chrom and _overlap(start, stop, next_start, next_stop) is True and orient is True:
-#                 return next_start, next_te_reads, next_count
-#             elif stop + 100 < next_start:
-#                 return False
-#             else:
-#                 x += 1
-#                 if x >= i:
-#                     return False
-#     else:
-#         return False
