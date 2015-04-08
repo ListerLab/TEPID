@@ -31,13 +31,14 @@ import locate
 import os
 from glob import glob
 from argparse import ArgumentParser
+import multiprocessing as mp
 
 parser = ArgumentParser(description='discover polymorphic TE insertion sites from sequence data')
 parser.add_argument('-n', '--name', help='sample name', required=True)
 parser.add_argument('-c', '--conc', help='bam file from bowtie2', required=True)
 parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
 parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
-parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1)
+parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
 options = parser.parse_args()
 
 print 'Estimating mean insert size'
@@ -53,7 +54,7 @@ split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or 
 
 print 'Finding discordant reads'
 locate.filter_discordant(options.conc, max_dist, 'disc_bam.temp')
-pysam.sort('-n', 'disc_bam.temp', 'disc_sorted')
+pysam.sort('-@', str(options.proc), '-n', 'disc_bam.temp', 'disc_sorted')
 disc = pybedtools.BedTool('disc_sorted.bam')\
 .bam_to_bed(bedpe=True, mate1=True)\
 .each(locate.append_origin, word='disc').saveas()
@@ -71,18 +72,16 @@ locate.annotate_deletions('deletions.temp', options.name, 5, options.conc, mn)
 
 print 'Finding insertions'
 locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
-pybedtools.BedTool('reorder_split.temp').sort().merge(c='4,5,6,9,10,11',
-                                                      o='distinct,collapse,collapse,distinct,distinct,count',
-                                                      d='100').saveas('split_merged.temp')
-pybedtools.BedTool('forward_disc.temp').sort().merge(c='4,5,6,9,10,11',
-                                                     o='distinct,collapse,collapse,distinct,distinct,count',
-                                                     d='100').saveas('forward_merged.temp')
-pybedtools.BedTool('reverse_disc.temp').sort().merge(c='4,5,6,9,10,11',
-                                                     o='distinct,collapse,collapse,distinct,distinct,count',
-                                                     d='100').saveas('reverse_merged.temp')
-locate.process_merged('split_merged.temp', 'split_processed.temp', 'split')
-locate.process_merged('forward_merged.temp', 'forward_processed.temp', 'disc_forward')
-locate.process_merged('reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse')
+
+file_pairs = [['reorder_split.temp','split_merged.temp'], ['forward_disc.temp', 'forward_merged.temp'], ['reverse_disc.temp', 'reverse_merged.temp']]
+pool = mp.Pool(processes=options.proc)
+for x in range(3):
+    pool.apply(locate.merge_bed, args=(file_pairs[x][0], file_pairs[x][1]))
+
+info = [['split_merged.temp', 'split_processed.temp', 'split'], ['forward_merged.temp', 'forward_processed.temp', 'disc_forward'], ['reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse']]
+for x in range(3):
+    pool.apply(locate.process_merged, args=(info[x][0], info[x][1], info[x][2]))
+
 pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postmerge=True,
     c='4,5,6,7,8,9,10',
     o='distinct,collapse,collapse,distinct,distinct,sum,distinct',
