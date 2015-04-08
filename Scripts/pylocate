@@ -68,13 +68,13 @@ print 'Finding insertions'
 locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
 pybedtools.BedTool('reorder_split.temp').sort().merge(c='4,5,6,9,10,11',
                                                       o='distinct,collapse,collapse,distinct,distinct,count',
-                                                      d='200').saveas('split_merged.temp')
+                                                      d='100').saveas('split_merged.temp')
 pybedtools.BedTool('forward_disc.temp').sort().merge(c='4,5,6,9,10,11',
                                                      o='distinct,collapse,collapse,distinct,distinct,count',
-                                                     d='200').saveas('forward_merged.temp')
+                                                     d='100').saveas('forward_merged.temp')
 pybedtools.BedTool('reverse_disc.temp').sort().merge(c='4,5,6,9,10,11',
                                                      o='distinct,collapse,collapse,distinct,distinct,count',
-                                                     d='200').saveas('reverse_merged.temp')
+                                                     d='100').saveas('reverse_merged.temp')
 locate.process_merged('split_merged.temp', 'split_processed.temp', 'split')
 locate.process_merged('forward_merged.temp', 'forward_processed.temp', 'disc_forward')
 locate.process_merged('reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse')
@@ -84,14 +84,11 @@ pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postm
     d='50').sort().saveas('condensed_disc.temp')
 
 locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp')
-pybedtools.BedTool('processed_disc.temp').filter(lambda x: int(x[-1]) > 40)\
-.each(locate.condense_names).saveas('high_intersect.temp')
-pybedtools.BedTool('processed_disc.temp').filter(lambda x: 10 < int(x[-1]) < 40).saveas('low_intersect.temp')
-pybedtools.BedTool('split_processed.temp').filter(lambda x: int(x[8]) > 20).sort()\
+pybedtools.BedTool('processed_disc.temp').filter(lambda x: 10 < int(x[-1])).saveas('low_intersect.temp')
+pybedtools.BedTool('split_processed.temp').filter(lambda x: 20 < int(x[8])).sort()\
 .intersect('low_intersect.temp', wo=True)\
 .each(locate.reorder_intersections)\
 .saveas()\
-.cat('high_intersect.temp', postmerge=False)\
 .sort().moveto('insertions.temp')
 locate.separate_reads('insertions.temp', 'insertions_{}.bed'.format(name), 'id_{}.fa'.format(name))
 
