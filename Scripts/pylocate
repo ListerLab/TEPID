@@ -4,20 +4,22 @@ from sys import argv, exit
 
 args = argv[1:]
 if '-h' in args or '--help' in args or len(args) == 0:
-    print(
-            """
-            pylocate
+    print("""
+    pylocate  -- discover polymorphic TE insertion sites from sequence data
+    Created by Tim Stuart
 
-            Created by Tim Stuart
+    Version: 1.0
+    Usage: pylocate [options]
+    
+    Options:
+    -n   sample name
+    -c   bam file from Bowtie2
+    -s   split reads bam file from Yaha
+    -t   TE annotation bedfile
+    -p   number of processors to use (default = 1)
 
-            Usage:
-            pylocate -n <sample_name> \\
-                     -c <main_bamfile> \\
-                     -s <split_reads_bamfile> \\
-                     -t <TE_annotation>
-
-            Outputs TE insertions bedfile and TE deletions bedfile.
-            """
+    Outputs TE insertions bedfile and TE deletions bedfile.
+        """
             )
     exit()
 else:
@@ -28,26 +30,29 @@ import pysam
 import locate
 import os
 from glob import glob
+from argparse import ArgumentParser
 
-
-name = locate.checkArgs('-n', '--name')
-all_mapped = locate.checkArgs('-c', '--conc')
-split_mapped = locate.checkArgs('-s', '--split')
-te_bed = locate.checkArgs('-t', '--te')
+parser = ArgumentParser(description='discover polymorphic TE insertion sites from sequence data')
+parser.add_argument('-n', '--name', help='sample name', required=True)
+parser.add_argument('-c', '--conc', help='bam file from bowtie2', required=True)
+parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
+parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
+parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1)
+options = parser.parse_args()
 
 print 'Estimating mean insert size'
-bam = pybedtools.BedTool(all_mapped)
+bam = pybedtools.BedTool(options.conc)
 mn, std = locate.calc_mean(bam[100000:120000])
 max_dist = (4*std) + mn
 
 print 'Processing split reads'
-split = pybedtools.BedTool(split_mapped).bam_to_bed().saveas('split.temp').sort()
+split = pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp').sort()
 locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
 split_bedpe = pybedtools.BedTool('split_bedpe.temp').each(locate.append_origin, word='split').saveas().sort()
 split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
 
 print 'Finding discordant reads'
-locate.filter_discordant(all_mapped, max_dist, 'disc_bam.temp')
+locate.filter_discordant(options.conc, max_dist, 'disc_bam.temp')
 pysam.sort('-n', 'disc_bam.temp', 'disc_sorted')
 disc = pybedtools.BedTool('disc_sorted.bam')\
 .bam_to_bed(bedpe=True, mate1=True)\
@@ -56,13 +61,13 @@ disc_split_dels = split_bedpe.cat(disc, postmerge=False).sort().saveas('disc_spl
 disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas('disc_split_ins.temp')
 
 print 'Processing TE annotation'
-te = pybedtools.BedTool(te_bed).sort()
+te = pybedtools.BedTool(options.te).sort()
 disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
 
 print 'Finding deletions'
 locate.create_deletion_coords(disc_split_dels, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
-locate.annotate_deletions('deletions.temp', name, 10, all_mapped, mn)
+locate.annotate_deletions('deletions.temp', options.name, 5, options.conc, mn)
 
 print 'Finding insertions'
 locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
@@ -90,7 +95,7 @@ pybedtools.BedTool('split_processed.temp').filter(lambda x: 20 < int(x[8])).sort
 .each(locate.reorder_intersections)\
 .saveas()\
 .sort().moveto('insertions.temp')
-locate.separate_reads('insertions.temp', 'insertions_{}.bed'.format(name), 'id_{}.fa'.format(name))
+locate.separate_reads('insertions.temp', 'insertions_{}.bed'.format(options.name), 'id_{}.fa'.format(options.name))
 
 temp = glob('./*.temp')
 for i in temp:
