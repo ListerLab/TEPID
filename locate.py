@@ -5,25 +5,6 @@ import numpy as np
 import pysam
 
 
-def checkArgs(arg1, arg2):
-    """
-    arg1 is short arg, eg h
-    arg2 is long arg, eg host
-    """
-    args = argv[1:]
-    if arg1 in args:
-        index = args.index(arg1)+1
-        variable = args[index]
-        return variable
-    elif arg2 in args:
-        index = args.index(arg2)+1
-        variable = args[index]
-        return variable
-    else:
-        variable = raw_input("\nEnter {arg2}: ".format(arg2=arg2))
-        return variable
-
-
 def _overlap(start1, stop1, start2, stop2):
     """
     Returns True if sets of coordinates overlap.
@@ -446,16 +427,26 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
             read_type = line[4]
             if name not in tes.keys():
                 cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
-                tes[name] = [cov, 0]
+                tes[name] = [cov, 0, 0]  # coverage, split, disc
             else:
                 pass
             if (gapsize <= 0) or (name in written_tes) or ((length-mn) > gapsize):
                 pass
             else:
                 percentage = overlap / gapsize
-                if percentage >= 0.2:  # 0.2 best so far
-                    tes[name][1] += 1
-                    if (tes[name][0] <= 0.1) or (tes[name][1] >= num_reads) or (length <= 1000 and tes[name][1] >= (num_reads/2)):
+                if (read_type == 'split' and percentage >= 0.7) or (read_type == 'disc' and percentage >= 0.2):
+                    if read_type == 'split':
+                        tes[name][1] += 1
+                    elif read_type == 'disc':
+                        tes[name][2] += 1
+                    else:
+                        raise Exception('Incorrect read type information')
+                    total_reads = tes[name][1] + tes[name][2]
+                    if tes[name][1] > 0 and tes[name][2] > 0:
+                        both_types = True
+                    else:
+                        both_types = False
+                    if (tes[name][0] <= 0.2 and total_reads >= (num_reads/4)) or (total_reads >= num_reads) or (length <= 1000 and total_reads >= (num_reads/2)) or (both_types == True and total_reads >= (num_reads/2)):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
