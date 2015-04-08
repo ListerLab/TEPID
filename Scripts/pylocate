@@ -9,7 +9,7 @@ if '-h' in args or '--help' in args or len(args) == 0:
     Created by Tim Stuart
 
     Version: 1.0
-    Usage: pylocate [options]
+    Usage: pylocate [-h] -n NAME -c CONC -s SPLIT -t TE [-p PROC]
     
     Options:
     -n   sample name
@@ -73,12 +73,23 @@ locate.annotate_deletions('deletions.temp', options.name, 5, options.conc, mn)
 print 'Finding insertions'
 locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
 
-file_pairs = [['reorder_split.temp','split_merged.temp'], ['forward_disc.temp', 'forward_merged.temp'], ['reverse_disc.temp', 'reverse_merged.temp']]
+def merge_bed(infile, outfile):
+    pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11',
+                                          o='distinct,collapse,collapse,distinct,distinct,count',
+                                          d='100').saveas(outfile)
+
+file_pairs = [['reorder_split.temp','split_merged.temp'],
+              ['forward_disc.temp', 'forward_merged.temp'],
+              ['reverse_disc.temp', 'reverse_merged.temp']]
+
 pool = mp.Pool(processes=options.proc)
 for x in range(3):
-    pool.apply(locate.merge_bed, args=(file_pairs[x][0], file_pairs[x][1]))
+    pool.apply(merge_bed, args=(file_pairs[x][0], file_pairs[x][1]))
 
-info = [['split_merged.temp', 'split_processed.temp', 'split'], ['forward_merged.temp', 'forward_processed.temp', 'disc_forward'], ['reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse']]
+info = [['split_merged.temp', 'split_processed.temp', 'split'],
+        ['forward_merged.temp', 'forward_processed.temp', 'disc_forward'],
+        ['reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse']]
+
 for x in range(3):
     pool.apply(locate.process_merged, args=(info[x][0], info[x][1], info[x][2]))
 
