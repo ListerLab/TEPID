@@ -2,32 +2,43 @@
 
 index=  proc=  yhindex=  size=  recursive=  zip=  
 
-while getopts x:p:y:s:rz opt; do
+usage="$(basename "$0") -- map paired-end data using bowtie2 and yaha
+  -h  show help and exit
+  -x  path to bowtie2 index
+  -y  path to yaha index
+  -p  number of cores to use
+  -s  average insert size
+  -r  recursive (optional)
+  -z  gzip fastq files (optional)"
+
+while getopts :x:p:y:s:rzh opt; do
   case $opt in
-  x)
-      index=$OPTARG
-      ;;
-  p)
-      proc=$OPTARG
-      ;;
-  y)
-      yhindex=$OPTARG
-      ;;
-  s)
-      size=$OPTARG
-      ;;
-  r)
-      recursive=true
-      ;;
-  z)
-      zip=true
-      ;;
+    h)  echo "$usage"
+        exit
+        ;;
+    x)  index=$OPTARG
+        ;;
+    p)  proc=$OPTARG
+        ;;
+    y)  yhindex=$OPTARG
+        ;;
+    s)  size=$OPTARG
+        ;;
+    r)  recursive=true
+        ;;
+    z)  zip=true
+        ;;
+    :)  printf "missing argument for -%s\n" "$OPTARG" >&2
+        echo "$usage" >&2
+        exit 1
+        ;;
+    \?) printf "illegal option: -%s\n" "$OPTARG" >&2
+        echo "$usage" >&2
+        exit 1
+        ;;
   esac
 done
 shift $((OPTIND - 1))
-
-samtools --version
-samblaster --version
 
 map () {
 
