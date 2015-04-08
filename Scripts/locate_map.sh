@@ -11,6 +11,11 @@ usage="$(basename "$0") -- map paired-end data using bowtie2 and yaha
   -r  recursive (optional)
   -z  gzip fastq files (optional)"
 
+if [ $# -eq 0 ]; then
+  echo "$usage"
+  exit 1
+fi
+
 while getopts :x:p:y:s:rzh opt; do
   case $opt in
     h)  echo "$usage"
