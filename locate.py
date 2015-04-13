@@ -29,6 +29,18 @@ def _get_len(infile):
         return 0, 0
 
 
+def calc_dist(te_coords, read_coords):
+    """
+    Finds distance from read to closest TE edge
+    """
+    start_dist = int(read_coords['start']) - int(te_coords['start'])
+    stop_dist = int(te_coords['stop']) - int(read_coords['stop'])
+    if start_dist <= stop_dist:
+        return start_dist
+    else:
+        return stop_dist
+
+
 def reorder(insert_file, split_outf, disc_forw, disc_rev):
     """
     Reorder columns so that TE read is in second position.
@@ -40,26 +52,34 @@ def reorder(insert_file, split_outf, disc_forw, disc_rev):
             read2 = {'chrom': field[3], 'start': field[4], 'stop': field[5], 'strand': field[9]}
             sd = field[10]
             te_coords = {'chrom': field[11], 'start': field[12], 'stop': field[13], 'strand': field[14], 'name': field[15]}
-            if _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
+            r1 = True if _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop'])) is True else False
+            r2 = True if _overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop'])) is True else False
+            if r1 is True and r2 is True:  # both reads overlap the same TE
+                pass
+            elif r1 is True and r2 is False:
                 dna_read = read2
-                mate = 2  # DNA read is mate 1 in paired data
-            elif _overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop'])) is True:
+                te_read = [read1['chrom'], read1['start'], read1['stop']]
+                mate = 2
+            elif r1 is False and r2 is True:
                 dna_read = read1
+                te_read = [read2['chrom'], read2['start'], read2['stop']]
                 mate = 1
             else:
-                raise Exception('check coords')
+                pass
             # bedpe format demands chr-start-stop-chr-start-stop-strand1-strand2
-            write_string = '{chr1}\t{start1}\t{stop1}\t{chr2}\t{start2}\t{stop2}\t{strand1}\t{strand2}\t{rd}\t{te}\t{sd}\n'.format(chr1=dna_read['chrom'],
-                                                                                                                          start1=dna_read['start'],
-                                                                                                                          stop1=dna_read['stop'],
-                                                                                                                          chr2=te_coords['chrom'],
-                                                                                                                          start2=te_coords['start'],
-                                                                                                                          stop2=te_coords['stop'],
-                                                                                                                          strand1=dna_read['strand'],
-                                                                                                                          strand2=te_coords['strand'],
-                                                                                                                          rd=field[6],
-                                                                                                                          te=field[15],
-                                                                                                                          sd=sd)
+            write_string = '{chr1}\t{start1}\t{stop1}\t{chr2}\t{start2}\t{stop2}\t{strand1}\t{strand2}\t{rd}\t{te}\t{sd}\t{te_read}\n'.format(
+                chr1=dna_read['chrom'],
+                start1=dna_read['start'],
+                stop1=dna_read['stop'],
+                chr2=te_coords['chrom'],
+                start2=te_coords['start'],
+                stop2=te_coords['stop'],
+                strand1=dna_read['strand'],
+                strand2=te_coords['strand'],
+                rd=field[6],
+                te=field[15],
+                sd=sd,
+                te_read=','.join(te_read))
             if sd == 'disc':
                 if (mate == 1 and dna_read['strand'] == '+') or (mate == 2 and dna_read['strand'] == '-'):
                     disc_forward.write(write_string)
@@ -438,7 +458,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
                     if read_type == 'split':
                         tes[name][1] += 1
                     elif read_type == 'disc':
-                        tes[name][2] += 1
+                        tes[name][2] += 0.5
                     else:
                         raise Exception('Incorrect read type information')
                     total_reads = tes[name][1] + tes[name][2]
@@ -446,7 +466,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
                         both_types = True
                     else:
                         both_types = False
-                    if (tes[name][0] <= 0.2 and total_reads >= (num_reads/4)) or (total_reads >= num_reads) or (length <= 1000 and total_reads >= (num_reads/2)) or (both_types == True and total_reads >= (num_reads/2)):
+                    if tes[name][0] <= 0.1 or (total_reads >= num_reads) or (length <= 1000 and total_reads >= (num_reads/2)): #or (both_types == True and total_reads >= (num_reads/2)):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
@@ -477,7 +497,7 @@ def condense_names(feature):
     feature[-1] = names
     return feature
 
-def reorder_intersections(feature):
+def reorder_intersections(feature, num_disc, num_split):
     """
     use with pybedtools.each()
     """
@@ -489,5 +509,10 @@ def reorder_intersections(feature):
     testop = feature[15]
     reads = set(feature[6].split(',') + feature[16].split(','))
     names = set(feature[7].split(',') + feature[17].split(','))
-    feature = [chrom, start, stop, techrom, testart, testop, ','.join(reads), ','.join(names)]
-    return feature
+    disc_reads = feature[8]
+    split_reads = feature[-2]
+    if disc_reads >= num_disc and split_reads >= num_split:
+        feature = [chrom, start, stop, techrom, testart, testop, ','.join(reads), ','.join(names)]
+        return feature
+    else:
+        pass

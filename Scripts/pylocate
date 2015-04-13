@@ -68,7 +68,7 @@ disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
 print 'Finding deletions'
 locate.create_deletion_coords(disc_split_dels, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
-locate.annotate_deletions('deletions.temp', options.name, 5, options.conc, mn)
+locate.annotate_deletions('deletions.temp', options.name, 10, options.conc, mn)
 
 print 'Finding insertions'
 locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
@@ -99,10 +99,10 @@ pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postm
     d='50').sort().saveas('condensed_disc.temp')
 
 locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp')
-pybedtools.BedTool('processed_disc.temp').filter(lambda x: 10 < int(x[-1])).saveas('low_intersect.temp')
-pybedtools.BedTool('split_processed.temp').filter(lambda x: 20 < int(x[8])).sort()\
+pybedtools.BedTool('processed_disc.temp').filter(lambda x: 5 < int(x[-1])).saveas('low_intersect.temp')
+pybedtools.BedTool('split_processed.temp').filter(lambda x: 5 < int(x[8])).sort()\
 .intersect('low_intersect.temp', wo=True)\
-.each(locate.reorder_intersections)\
+.each(locate.reorder_intersections, num_disc=10, num_split=10)\
 .saveas()\
 .sort().moveto('insertions.temp')
 locate.separate_reads('insertions.temp', 'insertions_{}.bed'.format(options.name), 'id_{}.fa'.format(options.name))
