@@ -15,10 +15,11 @@ git clone git@github.com:timoast/locaTE.git
 Install requirements
 
 ```
+pip install cython
 pip install -r requirements.txt
 ```
 
-Run setup.py
+Run setup script
 
 ```
 python setup.py install
@@ -87,6 +88,7 @@ Required Tools
 
 * [python](https://www.python.org) v2.7
 * [numpy](http://www.numpy.org/)
+* [cython](http://cython.org/)
 * [pybedtools](http://pythonhosted.org/pybedtools/)
 * [pysam](http://pysam.readthedocs.org/en/latest/)
 
