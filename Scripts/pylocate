@@ -50,6 +50,7 @@ if cov <= 10:
 else:
     pass
 max_dist = (4*std) + mn
+print '  mean = {} bp, coverage = {}x'.format(mn, cov)
 
 print 'Processing split reads'
 split = pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp').sort()
@@ -73,7 +74,7 @@ disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
 print 'Finding deletions'
 locate.create_deletion_coords(disc_split_dels, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
-locate.annotate_deletions('deletions.temp', options.name, int(cov/4), options.conc, mn)
+locate.annotate_deletions('deletions.temp', options.name, int(cov/3), options.conc, mn)
 
 print 'Finding insertions'
 locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
