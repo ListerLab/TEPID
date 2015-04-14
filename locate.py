@@ -5,13 +5,14 @@ import numpy as np
 import pysam
 
 
-def _overlap(start1, stop1, start2, stop2):
+def _overlap(start1, stop1, start2, stop2, d=0):
     """
     Returns True if sets of coordinates overlap.
     Assumes coordinates are on same chromosome.
     10 bp window (seems to work better)
     """
-    for y in xrange(start2-10, stop2+10):
+    d = int(d)
+    for y in xrange(start2-d, stop2+d):
         if start1 <= y <= stop1:
             return True
         else:
@@ -29,18 +30,6 @@ def _get_len(infile):
         return 0, 0
 
 
-def calc_dist(te_coords, read_coords):
-    """
-    Finds distance from read to closest TE edge
-    """
-    start_dist = int(read_coords['start']) - int(te_coords['start'])
-    stop_dist = int(te_coords['stop']) - int(read_coords['stop'])
-    if start_dist <= stop_dist:
-        return start_dist
-    else:
-        return stop_dist
-
-
 def reorder(insert_file, split_outf, disc_forw, disc_rev):
     """
     Reorder columns so that TE read is in second position.
@@ -52,8 +41,8 @@ def reorder(insert_file, split_outf, disc_forw, disc_rev):
             read2 = {'chrom': field[3], 'start': field[4], 'stop': field[5], 'strand': field[9]}
             sd = field[10]
             te_coords = {'chrom': field[11], 'start': field[12], 'stop': field[13], 'strand': field[14], 'name': field[15]}
-            r1 = True if _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop'])) is True else False
-            r2 = True if _overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop'])) is True else False
+            r1 = True if _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop']), 10) is True else False
+            r2 = True if _overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop']), 10) is True else False
             if r1 is True and r2 is True:  # both reads overlap the same TE
                 pass
             elif r1 is True and r2 is False:
@@ -79,7 +68,7 @@ def reorder(insert_file, split_outf, disc_forw, disc_rev):
                 rd=field[6],
                 te=field[15],
                 sd=sd,
-                te_read=','.join(te_read))
+                te_read='\t'.join(te_read))
             if sd == 'disc':
                 if (mate == 1 and dna_read['strand'] == '+') or (mate == 2 and dna_read['strand'] == '-'):
                     disc_forward.write(write_string)
@@ -98,7 +87,7 @@ def _condense_coords(starts, stops):
     start = starts[0]
     stop = stops[0]
     for x in range(1, len(starts)):
-        if _overlap(start, stop, starts[x], stops[x]) is True:
+        if _overlap(start, stop, starts[x], stops[x], 0) is True:
             if start > starts[x]:
                 start = starts[x]
             else:
@@ -116,48 +105,59 @@ def _condense_coords(starts, stops):
 def process_merged(infile, outfile, sd):
     """
     take merged coordinates and filter out those where multiple non-nested TEs insert into same locus
+    resolve cases where insertion site is within another TE
     """
     with open(infile, 'r') as inf, open(outfile, 'w+') as outf:
         for line in inf:
             line = line.rsplit()
             te_chroms = line[3].split(',')
             te_names = line[7].split(',')
-            if len(te_chroms) > 1:
+            r2_chrom = line[9].split(',')
+            r2_start = line[10].split(',')
+            r2Starts = [int(x) for x in r2_start]
+            r2_stop = line[11].split(',')
+            r2Stops = [int(x) for x in r2_stop]
+            if len(te_chroms) > 1 or len(r2_chrom) > 1:
                 pass
-            elif len(te_names) > 1:
+            else:
+                r2_coords = _condense_coords(r2Starts, r2Stops)
                 starts = line[4].split(',')
                 starts = [int(x) for x in starts]
                 stops = line[5].split(',')
                 stops = [int(x) for x in stops]
-                coords = _condense_coords(starts, stops)
-                if coords is not None:
-                    outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\t{sd}\n'.format(ch=line[0],
-                                                                                                        sta=line[1],
-                                                                                                        stp=line[2],
-                                                                                                        tec=line[3],
-                                                                                                        tesa=coords[0],
-                                                                                                        tesp=coords[1],
-                                                                                                        rds=line[6],
-                                                                                                        nm=line[7],
-                                                                                                        cnt=line[8],
-                                                                                                        sd=sd))
+                if r2_coords is None or sd == 'disc' or (abs(max(stops) - min(starts) <= 200)):
+                    if len(te_names) > 1:
+                        coords = _condense_coords(starts, stops)
+                        if coords is not None:
+                            outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\t{sd}\n'.format(ch=line[0],
+                                                                                                                sta=line[1],
+                                                                                                                stp=line[2],
+                                                                                                                tec=line[3],
+                                                                                                                tesa=coords[0],
+                                                                                                                tesp=coords[1],
+                                                                                                                rds=line[6],
+                                                                                                                nm=line[7],
+                                                                                                                cnt=line[8],
+                                                                                                                sd=sd))
+                        else:
+                            pass
+                    else:
+                        start = line[4].split(',')
+                        start = start[0]
+                        stop = line[5].split(',')
+                        stop = stop[0]
+                        outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\t{sd}\n'.format(ch=line[0],
+                                                                                                                sta=line[1],
+                                                                                                                stp=line[2],
+                                                                                                                tec=line[3],
+                                                                                                                tesa=start,
+                                                                                                                tesp=stop,
+                                                                                                                rds=line[6],
+                                                                                                                nm=line[7],
+                                                                                                                cnt=line[8],
+                                                                                                                sd=sd))
                 else:
                     pass
-            else:
-                start = line[4].split(',')
-                start = start[0]
-                stop = line[5].split(',')
-                stop = stop[0]
-                outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\t{sd}\n'.format(ch=line[0],
-                                                                                                        sta=line[1],
-                                                                                                        stp=line[2],
-                                                                                                        tec=line[3],
-                                                                                                        tesa=start,
-                                                                                                        tesp=stop,
-                                                                                                        rds=line[6],
-                                                                                                        nm=line[7],
-                                                                                                        cnt=line[8],
-                                                                                                        sd=sd))
 
 
 def process_merged_disc(infile, outfile):
@@ -262,7 +262,7 @@ def create_deletion_coords(bedfile, saveas):
             strand2 = line[9]
             read_type = line[10]
             if chr1 == chr2:
-                if _overlap(start1, stop1, start2, stop2) is True:
+                if _overlap(start1, stop1, start2, stop2, 10) is True:
                     pass
                 else:
                     if start2 >= stop1:
@@ -355,6 +355,28 @@ def calc_mean(data):
     _reject_outliers(lengths)
     mn, std = _calc_size(lengths)
     return mn, std
+
+
+def calc_cov(bam_name, start, stop):
+    """
+    calculates average coverage
+    """
+    bam = pysam.AlignmentFile(bam_name)
+    # get chromosome names
+    nms = []
+    for i in bam.header['SQ']:
+        nms.append(i['SN'])
+    x = 0
+    l = 0
+    for read in bam.pileup(nms[0], start, stop):
+        x += read.n
+        l += 1
+    if l > 0 and x > 0:
+        bam.close()
+        return int(x/l)
+    else:
+        bam.close()
+        return 0
 
 
 def get_coverages(chrom, start, stop, bam, chrom_sizes):
@@ -476,6 +498,8 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
                         pass
                 else:
                     pass
+    test_head.close()
+    allreads.close()
 
 
 def append_origin(feature, word):
