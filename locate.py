@@ -43,9 +43,7 @@ def reorder(insert_file, split_outf, disc_forw, disc_rev):
             te_coords = {'chrom': field[11], 'start': field[12], 'stop': field[13], 'strand': field[14], 'name': field[15]}
             r1 = True if _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop']), 10) is True else False
             r2 = True if _overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop']), 10) is True else False
-            if r1 is True and r2 is True:  # both reads overlap the same TE
-                pass
-            elif r1 is True and r2 is False:
+            if r1 is True and r2 is False:
                 dna_read = read2
                 te_read = [read1['chrom'], read1['start'], read1['stop']]
                 mate = 2
@@ -163,7 +161,7 @@ def process_merged(infile, outfile, sd):
 def process_merged_disc(infile, outfile):
     """
     takes merged coordinates and finds where there are discordant reads in both direction
-    collects read count information and writes to file when read count > num_reads
+    collects read count information and writes to file
     """
     with open(infile, 'r') as inf, open(outfile, 'w+') as outf:
         for line in inf:
@@ -483,7 +481,9 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
                         tes[name][2] += 0.5
                     else:
                         raise Exception('Incorrect read type information')
-                    total_reads = tes[name][1] + tes[name][2]
+                    split = tes[name][1]
+                    disc = tes[name][2]
+                    total_reads = split + disc
                     if tes[name][1] > 0 and tes[name][2] > 0:
                         both_types = True
                     else:
