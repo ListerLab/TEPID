@@ -108,7 +108,6 @@ locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp')
 pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/4 <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
 pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/4 > int(x[8])).sort()\
 .intersect('processed_disc.temp', wo=True)\
-.saveas('test')\
 .each(locate.reorder_intersections, num_disc=10, num_split=1)\
 .saveas()\
 .cat('high.temp', postmerge=False)\
