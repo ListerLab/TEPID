@@ -2,6 +2,4 @@
 *.pyc
 .DS_Store
 ._*
-merge.c
 build/
-merge.so
