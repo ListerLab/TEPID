@@ -359,6 +359,7 @@ def calc_cov(bam_name, start, stop):
     """
     calculates average coverage
     """
+    check_bam(bam_name)
     bam = pysam.AlignmentFile(bam_name)
     # get chromosome names
     nms = []
@@ -420,19 +421,10 @@ def get_coverages(chrom, start, stop, bam, chrom_sizes):
     return ratio
 
 
-def annotate_deletions(inp, acc, num_reads, bam, mn):
+def check_bam(bam):
     """
-    Calls deletions where the gap between paired reads is at
-    least 20 percent the length of the TE
-    and there are either:
-       1 split/disc read spanning the TE and
-       coverage at TE is 1/10 the coverage in surrounding area, or
-       num_reads split reads spanning the TE
+    Sort and index bam file
     """
-    x = 0
-    tes = {}
-    written_tes = []
-
     # check if sorted
     test_head = pysam.AlignmentFile(bam, 'rb')
     chrom_sizes = {}
@@ -445,15 +437,30 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
         pysam.sort(bam, 'sorted.temp')
         os.remove(bam)
         os.rename('sorted.temp.bam', bam)
+    test_head.close()
     
     # check if indexed
     if '{}.bai'.format(bam) in os.listdir('.'):
-        print '  Using index {}.bai'.format(bam)
-        allreads = pysam.AlignmentFile(bam, 'rb')
+        pass
     else:
-        print '  Indexing bam file'
         pysam.index(bam)
-        allreads = pysam.AlignmentFile(bam, 'rb')
+    return chrom_sizes
+
+
+def annotate_deletions(inp, acc, num_reads, bam, mn):
+    """
+    Calls deletions where the gap between paired reads is at
+    least 20 percent the length of the TE
+    and there are either:
+       1 split/disc read spanning the TE and
+       coverage at TE is 1/10 the coverage in surrounding area, or
+       num_reads split reads spanning the TE
+    """
+    x = 0
+    tes = {}
+    written_tes = []
+    chrom_sizes = check_bam(bam)
+    allreads = pysam.AlignmentFile(bam, 'rb')
 
     with open(inp, 'r') as infile, open('deletions_{a}.bed'.format(a=acc), 'w+') as outfile:
         for line in infile:
@@ -474,7 +481,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
                 pass
             else:
                 percentage = overlap / gapsize
-                if (read_type == 'split' and percentage >= 0.7) or (read_type == 'disc' and percentage >= 0.2):
+                if percentage >= 0.8:
                     if read_type == 'split':
                         tes[name][1] += 1
                     elif read_type == 'disc':
@@ -484,7 +491,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
                     split = tes[name][1]
                     disc = tes[name][2]
                     total_reads = split + disc
-                    if( tes[name][0] <= 0.5 and total_reads >= int(num_reads/10)) or total_reads >= num_reads or (length <= 1000 and total_reads >= int(num_reads*0.6)):
+                    if( tes[name][0] <= 0.3 and split >= int(num_reads/10)) or(total_reads >= num_reads and split >= int(num_reads*0.5)):# or (length <= 1000 and num_reads >= int(num_reads*0.5)):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
@@ -494,7 +501,6 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
                         pass
                 else:
                     pass
-    test_head.close()
     allreads.close()
 
 
