@@ -81,8 +81,8 @@ locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 
 
 def merge_bed(infile, outfile):
     pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11,12,13,14',
-                                          o='distinct,collapse,collapse,distinct,distinct,count,distinct,collapse,collapse',
-                                          d='0').saveas(outfile)
+                                          o='distinct,collapse,collapse,distinct,distinct,count,distinct,collapse,collapse')\
+    .saveas(outfile)
 
 file_pairs = [['reorder_split.temp','split_merged.temp'],
               ['forward_disc.temp', 'forward_merged.temp'],
@@ -108,7 +108,7 @@ locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp')
 pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/4 <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
 pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/4 > int(x[8])).sort()\
 .intersect('processed_disc.temp', wo=True)\
-.each(locate.reorder_intersections, num_disc=10, num_split=1)\
+.each(locate.reorder_intersections, num_disc=cov, num_split=cov/2)\
 .saveas()\
 .cat('high.temp', postmerge=False)\
 .sort()\
