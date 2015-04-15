@@ -484,7 +484,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
                     split = tes[name][1]
                     disc = tes[name][2]
                     total_reads = split + disc
-                    if( tes[name][0] <= 0.1 and split >= num_reads/2) or (total_reads >= num_reads and split >= num_reads/2) or (length <= 1000 and total_reads >= (num_reads/2)):
+                    if( tes[name][0] <= 0.5 and total_reads >= int(num_reads/10)) or total_reads >= num_reads or (length <= 1000 and total_reads >= int(num_reads*0.6)):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
