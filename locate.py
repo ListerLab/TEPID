@@ -450,11 +450,10 @@ def check_bam(bam):
 def annotate_deletions(inp, acc, num_reads, bam, mn):
     """
     Calls deletions where the gap between paired reads is at
-    least 20 percent the length of the TE
+    least 80 percent the length of the TE
     and there are either:
-       1 split/disc read spanning the TE and
-       coverage at TE is 1/10 the coverage in surrounding area, or
-       num_reads split reads spanning the TE
+       num_reads split/disc read spanning the TE and 1/2 num_reads split reads
+       coverage at TE is 3/10 the coverage in surrounding area and there are num_reads/10 split reads
     """
     x = 0
     tes = {}
