@@ -7,8 +7,7 @@ import pysam
 
 def _overlap(start1, stop1, start2, stop2, d=0):
     """
-    Returns True if sets of coordinates overlap.
-    Assumes coordinates are on same chromosome.
+    Returns True if sets of coordinates overlap.  Assumes coordinates are on same chromosome.
     10 bp window (seems to work better)
     """
     d = int(d)
@@ -364,7 +363,10 @@ def calc_cov(bam_name, start, stop):
     # get chromosome names
     nms = []
     for i in bam.header['SQ']:
-        nms.append(i['SN'])
+        if 'scaffold' in i['SN']:
+            pass
+        else:
+            nms.append(i['SN'])
     x = 0
     l = 0
     for read in bam.pileup(nms[0], start, stop):
