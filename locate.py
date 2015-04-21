@@ -354,11 +354,11 @@ def calc_mean(data):
     return mn, std
 
 
-def calc_cov(bam_name, start, stop):
+def calc_cov(bam_name, start, stop, p):
     """
     calculates average coverage
     """
-    check_bam(bam_name)
+    check_bam(bam_name, p)
     bam = pysam.AlignmentFile(bam_name)
     # get chromosome names
     nms = []
@@ -423,20 +423,21 @@ def get_coverages(chrom, start, stop, bam, chrom_sizes):
     return ratio
 
 
-def check_bam(bam):
+def check_bam(bam, p):
     """
     Sort and index bam file
     """
     # check if sorted
     test_head = pysam.AlignmentFile(bam, 'rb')
     chrom_sizes = {}
+    p = str(p)
     for i in test_head.header['SQ']:
         chrom_sizes[i['SN']] = int(i['LN'])
     if test_head.header['HD']['SO'] == 'coordinate':
         pass
     else:
         print '  sorting bam file'
-        pysam.sort(bam, 'sorted.temp')
+        pysam.sort('-@', p, bam, 'sorted.temp')
         os.remove(bam)
         os.rename('sorted.temp.bam', bam)
     test_head.close()
@@ -450,7 +451,7 @@ def check_bam(bam):
     return chrom_sizes
 
 
-def annotate_deletions(inp, acc, num_reads, bam, mn):
+def annotate_deletions(inp, acc, num_reads, bam, mn, p):
     """
     Calls deletions where the gap between paired reads is at
     least 80 percent the length of the TE
@@ -461,7 +462,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn):
     x = 0
     tes = {}
     written_tes = []
-    chrom_sizes = check_bam(bam)
+    chrom_sizes = check_bam(bam, p)
     allreads = pysam.AlignmentFile(bam, 'rb')
 
     with open(inp, 'r') as infile, open('deletions_{a}.bed'.format(a=acc), 'w+') as outfile:
