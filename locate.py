@@ -435,7 +435,7 @@ def check_bam(bam):
     if test_head.header['HD']['SO'] == 'coordinate':
         pass
     else:
-        print 'Sorting bam file'
+        print '  sorting bam file'
         pysam.sort(bam, 'sorted.temp')
         os.remove(bam)
         os.rename('sorted.temp.bam', bam)
@@ -445,6 +445,7 @@ def check_bam(bam):
     if '{}.bai'.format(bam) in os.listdir('.'):
         pass
     else:
+        print '  indexing bam file'
         pysam.index(bam)
     return chrom_sizes
 
