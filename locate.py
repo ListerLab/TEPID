@@ -320,7 +320,7 @@ def _get_data(inp):
     lengths = []
     for line in inp:
         length = int(line[8])
-        if length > 0:
+        if 10000 > length > 0 and line[6] == '=':
             lengths.append(length)
         else:
             pass
@@ -334,6 +334,10 @@ def _reject_outliers(data, m=2.):
     """
     median = np.median(data)
     std = np.std(data)
+    if std > median:
+        std = median
+    else:
+        pass
     for item in data:
         if abs(item - median) > m * std:
             data.remove(item)
