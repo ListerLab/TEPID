@@ -44,6 +44,7 @@ options = parser.parse_args()
 print 'Estimating mean insert size and coverage'
 bam = pybedtools.BedTool(options.conc)
 mn, std = locate.calc_mean(bam[100000:120000])
+rd_len = len(bam[0][9])
 cov = locate.calc_cov(options.conc, 100000, 120000, str(options.proc))
 if cov <= 10:
     print '  Warning: coverage may not be sufficiently high to reliably discover polymorphic TE insertions'
@@ -81,7 +82,7 @@ locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 
 
 def merge_bed(infile, outfile):
     pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11,12,13,14',
-                                          o='collapse,collapse,collapse,distinct,distinct,count,collapse,collapse,collapse')\
+                                          o='collapse,collapse,collapse,distinct,collapse,count,collapse,collapse,collapse')\
     .saveas(outfile)
 
 file_pairs = [['reorder_split.temp','split_merged.temp'],
@@ -101,14 +102,14 @@ for x in xrange(3):
 
 pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postmerge=True,
     c='4,5,6,7,8,9,10',
-    o='distinct,collapse,collapse,distinct,distinct,sum,distinct',
+    o='collapse,collapse,collapse,distinct,distinct,sum,distinct',
     d='200').sort().saveas('condensed_disc.temp')
 
-locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp', cov/5)
+locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp', cov, (mn+std), rd_len)
 pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/3 <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
 pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/3 > int(x[8])).sort()\
 .intersect('processed_disc.temp', wo=True)\
-.each(locate.reorder_intersections, num_disc=cov/5, num_split=cov/5)\
+.each(locate.reorder_intersections, num_disc=cov, num_split=cov/5)\
 .saveas()\
 .cat('high.temp', postmerge=False)\
 .sort()\

@@ -89,14 +89,27 @@ def _condense_coords(coords, d):
     chr1 = coords[0][0]
     st1 = coords[0][1]
     sto1 = coords[0][2]
+    if len(coords[0]) == 4:
+        te1 = [coords[0][3]]
+        te = True
+    else:
+        te = False
 
     for x in range(1, len(coords)):
         # unpack values
         chr2 = coords[x][0]
         st2 = coords[x][1]
         sto2 = coords[x][2]
+        if te is True:
+            te2 = coords[x][3]
+        else:
+            pass
         if chr1 == chr2 and _overlap(st1, sto1, st2, sto2, d) is True:
             c += 1
+            if te is True and te2 not in te1:
+                te1.append(te2)
+            else:
+                pass
             if st1 > st2:
                 st1 = st2
             else:
@@ -107,14 +120,21 @@ def _condense_coords(coords, d):
                 continue
         else:
             # save cluster coords and reset counter
-            clusters.append([chr1, st1, sto1, c])
+            if te is True:
+                clusters.append([chr1, st1, sto1, c, te1])
+                te1 = [te2]
+            else:
+                clusters.append([chr1, st1, sto1, c])
             c = 1
             st1 = st2
             sto1 = sto2
             chr1 = chr2
     else:
         # write final cluster
-        clusters.append([chr1, st1, sto1, c])
+        if te is True:
+            clusters.append([chr1, st1, sto1, c, te1])
+        else:
+            clusters.append([chr1, st1, sto1, c])
         return clusters
 
 
@@ -123,6 +143,7 @@ def process_merged(infile, outfile, sd, num_reads):
     take merged coordinates and filter out those where multiple non-nested TEs insert into same locus
     resolve cases where insertion site is within another TE
     """
+    disc = ['disc_forward', 'disc_reverse']
     with open(infile, 'r') as inf, open(outfile, 'w+') as outf:
         for line in inf:
             line = line.rsplit()
@@ -137,7 +158,7 @@ def process_merged(infile, outfile, sd, num_reads):
             # create list of tuples to record read positions
             r2 = []
             for x in xrange(len(r2_chrom)):
-                r2.append((r2_chrom[x], r2Starts[x], r2Stops[x]))
+                r2.append((r2_chrom[x], r2Starts[x], r2Stops[x], te_names[x]))
             # now sort reads by chr, start
             r2 = sorted(r2, key=lambda x: (x[0], x[1]))
             r2_coords = _condense_coords(r2, 10)
@@ -148,20 +169,22 @@ def process_merged(infile, outfile, sd, num_reads):
             stops = [int(x) for x in stops]
             te_reads = []
             for x in xrange(len(te_chroms)):
-                te_reads.append((te_chroms[x], starts[x], stops[x]))
+                te_reads.append((te_chroms[x], starts[x], stops[x], te_names[x]))
             te_reads = sorted(te_reads, key=lambda x: (x[0], x[1]))
 
             # filter where there are at least two clusters of reads in the TE if the TE length is more than 200 bp and read is split
-            if (len(r2_coords) >= 2) or sd == 'disc' or (abs(max(stops) - min(starts) <= 200)):
+            if (len(r2_coords) >= 2) or sd in disc or (abs(max(stops) - min(starts) <= 200)):
                 coords = _condense_coords(te_reads, 1000)
                 if len(coords) > 1:
                     crd, max_reads, total_smaller_clusters, dubs = get_main_cluster(coords)
+                    te_name = ','.join(crd[3])
                 else:
                     crd = coords[0][0:3]
                     max_reads = coords[0][3]
+                    te_name = ','.join(coords[0][4])
                     total_smaller_clusters = 0
                     dubs = 0
-                if max_reads > num_reads and total_smaller_clusters < num_reads and dubs < 2:
+                if (max_reads > num_reads and total_smaller_clusters < num_reads and dubs < 2) or (sd in disc and dubs < 2):
                     outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\t{sd}\n'.format(ch=line[0],
                                                                                                         sta=line[1],
                                                                                                         stp=line[2],
@@ -169,7 +192,7 @@ def process_merged(infile, outfile, sd, num_reads):
                                                                                                         tesa=crd[1],
                                                                                                         tesp=crd[2],
                                                                                                         rds=line[6],
-                                                                                                        nm=line[7],
+                                                                                                        nm=te_name,
                                                                                                         cnt=line[8],
                                                                                                         sd=sd))
                 else:  # TEs are not nested, not clear main cluster of reads
@@ -194,56 +217,52 @@ def get_main_cluster(clusters):
             chrom = i[0]
             start = i[1]
             stop = i[2]
-            coords = [chrom, start, stop]
+            te = i[4]
+            coords = [chrom, start, stop, te]
     return coords, max_read, second_max, dubs
 
 
-def process_merged_disc(infile, outfile, num_reads):  # don't need to use the cluster function, just look at read types and number of reads.
+def process_merged_disc(infile, outfile, num_reads, max_dist, rd_len):  # don't need to filter smaller clusters here, that has been done in last step
     """
-    takes merged coordinates and finds where there are discordant reads in both direction
+    takes merged coordinates and finds where there are discordant reads in both direction, linked to same TE
     collects read count information and writes to file
+    filters out clusters of reads that span a distance greater than 2*(max_dist+rd_len)
     """
     with open(infile, 'r') as inf, open(outfile, 'w+') as outf:
         for line in inf:
             line = line.rsplit()
+            span = int(line[2]) - int(line[1])
+            max_span = (2 * (max_dist+rd_len))
             te_chroms = line[3].split(',')
             te_names = line[7].split(',')
             read_count = int(line[8])
             read_types = line[9].split(',')
             starts = line[4].split(',')
             stops = line[5].split(',')
-
             starts = [int(x) for x in starts]
             stops = [int(x) for x in stops]
-
             te_reads = []
             for x in xrange(len(te_chroms)):
                 te_reads.append((te_chroms[x], starts[x], stops[x]))
-
-            # sort by chr, start
             te_reads = sorted(te_reads, key=lambda x: (x[0], x[1]))
-            # take widest coordinates for nested TEs. If TEs not nested, or there is no clear major cluster, skip
-            coords = _condense_coords(te_reads, 1000)  # this is not counting reads correctly, data has already been merged into clusters
-            if len(coords) > 1:
-                crd, max_reads, total_smaller_clusters, dubs = get_main_cluster(coords)
+            coords = _condense_coords(te_reads, 1000)
+            if len(coords) > 1:  # multiple non-overlapping TEs
+                pass
             else:
                 crd = coords[0][0:3]
-                max_reads = coords[0][3]
-                total_smaller_clusters = 0
-                dubs = 0
-            if read_count >= num_reads:
-                outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{count}\n'.format(
-                    ch=line[0],
-                    sta=line[1],
-                    stp=line[2],
-                    tec=crd[0],
-                    tesa=crd[1],
-                    tesp=crd[2],
-                    rds=line[6],
-                    nm=line[7],
-                    count=line[8]))
-            else:
-                pass
+                if read_count >= num_reads and span < max_span:
+                    outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{count}\n'.format(
+                        ch=line[0],
+                        sta=line[1],
+                        stp=line[2],
+                        tec=crd[0],
+                        tesa=crd[1],
+                        tesp=crd[2],
+                        rds=line[6],
+                        nm=line[7],
+                        count=line[8]))
+                else:
+                    pass
 
 
 def separate_reads(infile, outfile, reads_file):
