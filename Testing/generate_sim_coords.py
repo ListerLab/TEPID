@@ -1,8 +1,10 @@
+#! /usr/local/bin/python
+
 import random
 from sys import argv, exit
 
 args = argv[1:]
-if '-h' in args or '--help' in args:
+if '-h' in args or '--help' in args or len(args) == 0:
     print(
             """
             generate_sim_coords.py
@@ -54,7 +56,10 @@ class sim_data():
         with open(index, 'r') as infile:
             for line in infile:
                 line = line.rsplit()
-                self.chromosomes[line[0]] = int(line[1])
+                if 'super' in line[0] or 'scaffold' in line[0]:
+                    pass
+                else:
+                    self.chromosomes[line[0]] = int(line[1])
 
     def read_TE_file(self, TE_file):
         """
@@ -85,7 +90,7 @@ class sim_data():
         save to outfile
         """
         n_copied = n*percCopied
-        with open(outfile, 'a+') as ins:
+        with open(outfile, 'w+') as ins:
             ins.write("chr\tstart\tstop\tdest_chr\tdest_start\tis_copied\n")
             for x in xrange(n):
                 selection = random.choice(self.transposons.keys())
