@@ -564,17 +564,17 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
                 pass
             else:
                 percentage = overlap / gapsize
-                if percentage >= 0.8:
+                if percentage >= 0.5:
                     if read_type == 'split':
                         tes[name][1] += 1
                     elif read_type == 'disc':
-                        tes[name][2] += 0.5
+                        tes[name][2] += 1
                     else:
                         raise Exception('Incorrect read type information')
                     split = tes[name][1]
                     disc = tes[name][2]
                     total_reads = split + disc
-                    if (tes[name][0] <= 0.3 and split >= int(num_reads/10)) or(total_reads >= num_reads and split >= int(num_reads*0.5)):
+                    if (tes[name][0] <= 0.5 and split >= 1) or (total_reads >= num_reads and split >= 1):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))

@@ -54,7 +54,7 @@ max_dist = (4*std) + mn
 print '  mean = {} bp, coverage = {}x'.format(mn, cov)
 
 print 'Processing split reads'
-locate.filter_low_qual(options.split, 'split_filter.temp', 4)
+locate.filter_low_qual(options.split, 'split_filter.temp', 3)
 split = pybedtools.BedTool('split_filter.temp').bam_to_bed().saveas('split.temp').sort()
 locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
 split_bedpe = pybedtools.BedTool('split_bedpe.temp').each(locate.append_origin, word='split').saveas().sort()
@@ -76,7 +76,7 @@ disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
 print 'Finding deletions'
 locate.create_deletion_coords(disc_split_dels, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
-locate.annotate_deletions('deletions.temp', options.name, int(cov/4), options.conc, mn, str(options.proc))
+locate.annotate_deletions('deletions.temp', options.name, int(cov/10), options.conc, mn, str(options.proc))
 
 print 'Finding insertions'
 locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
