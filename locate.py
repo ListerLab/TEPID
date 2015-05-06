@@ -281,6 +281,23 @@ def separate_reads(infile, outfile, reads_file):
             x += 1
 
 
+def filter_low_qual(inp, outf, q):
+    """
+    filter out reads with mapping quality less than q, save as outf
+    """
+    q = int(q)
+    bam = pysam.AlignmentFile(inp, 'rb')
+    header = bam.header.copy()
+    new_bam = pysam.Samfile(outf, 'wb', header=header)
+    for i in bam:
+        if i.mapq > q:
+            new_bam.write(i)
+        else:
+            pass
+    new_bam.close()
+    bam.close()
+
+
 def filter_discordant(bam, dist, new_filename):
     """
     filters discordant reads in bamfile and writes to new bam

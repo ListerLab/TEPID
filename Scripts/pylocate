@@ -54,7 +54,8 @@ max_dist = (4*std) + mn
 print '  mean = {} bp, coverage = {}x'.format(mn, cov)
 
 print 'Processing split reads'
-split = pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp').sort()
+locate.filter_low_qual(options.split, 'split_filter.temp', 4)
+split = pybedtools.BedTool('split_filter.temp').bam_to_bed().saveas('split.temp').sort()
 locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
 split_bedpe = pybedtools.BedTool('split_bedpe.temp').each(locate.append_origin, word='split').saveas().sort()
 split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
@@ -105,11 +106,11 @@ pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postm
     o='collapse,collapse,collapse,distinct,distinct,sum,distinct',
     d='200').sort().saveas('condensed_disc.temp')
 
-locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp', cov, (mn+std), rd_len)
+locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp', cov/5, (mn+std), rd_len)
 pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/3 <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
 pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/3 > int(x[8])).sort()\
 .intersect('processed_disc.temp', wo=True)\
-.each(locate.reorder_intersections, num_disc=cov, num_split=cov/5)\
+.each(locate.reorder_intersections, num_disc=cov/5, num_split=cov/10)\
 .saveas()\
 .cat('high.temp', postmerge=False)\
 .sort()\
