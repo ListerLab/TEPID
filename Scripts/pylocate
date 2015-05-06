@@ -94,9 +94,9 @@ pool = mp.Pool(processes=options.proc)
 for x in xrange(3):
     pool.apply(merge_bed, args=(file_pairs[x][0], file_pairs[x][1]))
 
-info = [['split_merged.temp', 'split_processed.temp', 'split', 10],
-        ['forward_merged.temp', 'forward_processed.temp', 'disc_forward', 10],
-        ['reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse', 10]]
+info = [['split_merged.temp', 'split_processed.temp', 'split', cov/5],
+        ['forward_merged.temp', 'forward_processed.temp', 'disc_forward', cov/5],
+        ['reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse', cov/5]]
 
 for x in xrange(3):
     pool.apply(locate.process_merged, args=(info[x][0], info[x][1], info[x][2], info[x][3]))
