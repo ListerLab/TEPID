@@ -281,23 +281,6 @@ def separate_reads(infile, outfile, reads_file):
             x += 1
 
 
-def filter_low_qual(inp, outf, q):
-    """
-    filter out reads with mapping quality less than q, save as outf
-    """
-    q = int(q)
-    bam = pysam.AlignmentFile(inp, 'rb')
-    header = bam.header.copy()
-    new_bam = pysam.Samfile(outf, 'wb', header=header)
-    for i in bam:
-        if i.mapq > q:
-            new_bam.write(i)
-        else:
-            pass
-    new_bam.close()
-    bam.close()
-
-
 def filter_discordant(bam, dist, new_filename):
     """
     filters discordant reads in bamfile and writes to new bam
@@ -574,7 +557,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
                     split = tes[name][1]
                     disc = tes[name][2]
                     total_reads = split + disc
-                    if (tes[name][0] <= 0.5 and split >= 1) or (total_reads >= num_reads and split >= 1):
+                    if (tes[name][0] <= 0.4 and split >= 1) or (total_reads >= num_reads and split >= 1):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
