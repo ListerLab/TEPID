@@ -138,7 +138,7 @@ def _condense_coords(coords, d):
         return clusters
 
 
-def process_merged(infile, outfile, sd, num_reads):
+def process_merged(infile, outfile, sd):
     """
     take merged coordinates and filter out those where multiple non-nested TEs insert into same locus
     resolve cases where insertion site is within another TE
@@ -184,7 +184,9 @@ def process_merged(infile, outfile, sd, num_reads):
                     te_name = ','.join(coords[0][4])
                     total_smaller_clusters = 0
                     dubs = 0
-                if (max_reads > num_reads and total_smaller_clusters < num_reads and dubs < 2) or (sd in disc and dubs < 2):
+                if total_smaller_clusters >= (max_reads - 2) or dubs >= 2:
+                    pass
+                else:
                     outf.write('{ch}\t{sta}\t{stp}\t{tec}\t{tesa}\t{tesp}\t{rds}\t{nm}\t{cnt}\t{sd}\n'.format(ch=line[0],
                                                                                                         sta=line[1],
                                                                                                         stp=line[2],
@@ -195,8 +197,6 @@ def process_merged(infile, outfile, sd, num_reads):
                                                                                                         nm=te_name,
                                                                                                         cnt=line[8],
                                                                                                         sd=sd))
-                else:  # TEs are not nested, not clear main cluster of reads
-                    pass
             else:
                 pass
 
