@@ -375,53 +375,43 @@ def _get_features(inp):
     return coords, read, strand
 
 
-def _get_data(inp):
+def calc_mean(bam_name, p):
+    """
+    calculates mean and standard deviation insert size
+    """
+    check_bam(bam_name, p)
+    bam = pysam.AlignmentFile(bam_name)
     lengths = []
-    for line in inp:
-        length = int(line[8])
-        if 10000 > length > 0 and line[6] == '=':
-            lengths.append(length)
+    rd = []
+    x = 0
+    for i in bam:
+        if 10000 > i.tlen > 0 and i.tid == i.mrnm:
+            lengths.append(i.tlen)
         else:
             pass
-    return lengths
-
-
-def _reject_outliers(data, m=2.):
-    """
-    rejects outliers more than 2
-    standard deviations from the median
-    """
-    median = np.median(data)
-    std = np.std(data)
+        x += 1
+        rd.append(i.qlen)
+        if x > 20000:
+            break
+    bam.close()
+    median = np.median(lengths)
+    std = np.std(lengths)
     if std > median:
         std = median
     else:
         pass
-    for item in data:
-        if abs(item - median) > m * std:
-            data.remove(item)
+    for item in lengths:
+        if abs(item - median) > (2. * std):
+            lengths.remove(item)
         else:
             pass
-
-
-def _calc_size(data):
-    mn = int(np.mean(data))
-    std = int(np.std(data))
-    return mn, std
-
-
-def calc_mean(data):
-    lengths = _get_data(data)
-    _reject_outliers(lengths)
-    mn, std = _calc_size(lengths)
-    return mn, std
+    return int(np.mean(lengths)), int(np.std(lengths)), int(np.mean(rd))
 
 
 def calc_cov(bam_name, start, stop, p):
     """
     calculates average coverage
     """
-    check_bam(bam_name, p)
     bam = pysam.AlignmentFile(bam_name)
     # get chromosome names
     nms = []
@@ -557,7 +547,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
                     split = tes[name][1]
                     disc = tes[name][2]
                     total_reads = split + disc
-                    if (tes[name][0] <= 0.4 and split >= 1) or (total_reads >= num_reads and split >= 1):
+                    if (tes[name][0] <= 0.2 and split >= 1) or (total_reads >= num_reads and split >= 1):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
