@@ -107,8 +107,8 @@ pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postm
     d='200').sort().saveas('condensed_disc.temp')
 
 locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp', cov/5, (mn+std), rd_len)
-pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/6 <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
-pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/6 > int(x[8])).sort()\
+pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/5 <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
+pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/5 > int(x[8])).sort()\
 .intersect('processed_disc.temp', wo=True)\
 .each(locate.reorder_intersections, num_disc=cov/5, num_split=cov/10)\
 .saveas()\
