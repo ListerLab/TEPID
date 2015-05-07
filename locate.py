@@ -444,6 +444,10 @@ def get_coverages(chrom, start, stop, bam, chrom_sizes):
     ul = 0
     dstream = 0
     dl = 0
+    if chrom not in chrom_sizes.keys():
+        raise Exception('Chromosome names do not match TE annotation')
+    else:
+        pass
 
     if (start - 2000) > 0:
         ustart = (start - 2000)
