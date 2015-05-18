@@ -439,11 +439,8 @@ def get_coverages(chrom, start, stop, bam, chrom_sizes):
     compared to +/- 2kb surrounding region
     """
     te = 0
-    l = 0
     ustream = 0
-    ul = 0
     dstream = 0
-    dl = 0
     if chrom not in chrom_sizes.keys():
         raise Exception('Chromosome names do not match TE annotation')
     else:
@@ -459,15 +456,16 @@ def get_coverages(chrom, start, stop, bam, chrom_sizes):
     else:
         dstop = chrom_sizes[chrom]
 
+    ul = start - ustart
+    dl = dstop - stop
+    l = stop - start
+
     for read in bam.pileup(chrom, start, stop):
         te += read.n
-        l += 1
     for read in bam.pileup(chrom, ustart, start):
         ustream += read.n
-        ul += 1
     for read in bam.pileup(chrom, stop, dstop):
         dstream += read.n
-        dl += 1
     if (ustream + dstream) > 0:
         surround = (ustream + dstream) / (ul + dl)
     else:
@@ -532,16 +530,16 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
             overlap = int(line[12])
             gapsize = coords[2] - coords[1]
             read_type = line[4]
-            if name not in tes.keys():
-                cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
-                tes[name] = [cov, 0, 0]  # coverage, split, disc
-            else:
-                pass
             if (gapsize <= 0) or (name in written_tes) or ((length-mn) > gapsize):
                 pass
             else:
                 percentage = overlap / gapsize
-                if percentage >= 0.5:
+                if percentage >= 0.8:
+                    if name not in tes.keys():
+                        cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
+                        tes[name] = [cov, 0, 0]  # coverage, split, disc
+                    else:
+                        pass
                     if read_type == 'split':
                         tes[name][1] += 1
                     elif read_type == 'disc':
@@ -551,7 +549,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
                     split = tes[name][1]
                     disc = tes[name][2]
                     total_reads = split + disc
-                    if (tes[name][0] <= 0.2 and split >= 1) or (total_reads >= num_reads and split >= 1):
+                    if (tes[name][0] <= 0.1 and split >= num_reads/10) or (total_reads >= num_reads and split >= num_reads/10):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
@@ -598,7 +596,10 @@ def reorder_intersections(feature, num_disc, num_split):
     disc_reads = int(feature[8])
     split_reads = int(feature[-2])
     if disc_reads >= int(num_disc) or split_reads >= int(num_split):
-        feature = [chrom, start, stop, techrom, testart, testop, ','.join(reads), ','.join(names)]
-        return feature
+        if feature[3] == feature[13] and _overlap(int(feature[4]), int(feature[5]), int(feature[14]), int(feature[15]), 10) is True:
+            feature = [chrom, start, stop, techrom, testart, testop, ','.join(reads), ','.join(names)]
+            return feature
+        else:
+            pass
     else:
         pass
