@@ -520,7 +520,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
     chrom_sizes = check_bam(bam, p)
     allreads = pysam.AlignmentFile(bam, 'rb')
 
-    with open(inp, 'r') as infile, open('deletions_{a}.bed'.format(a=acc), 'w+') as outfile:
+    with open(inp, 'r') as infile, open('deletions_{}.bed'.format(acc), 'w+') as outfile, open('deletion_reads_{}.txt'.format(acc), 'w+') as deletions_reads:
         for line in infile:
             line = line.rsplit()
             coords = [line[0], int(line[1]), int(line[2])]  # chr, start, stop
@@ -530,6 +530,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
             overlap = int(line[12])
             gapsize = coords[2] - coords[1]
             read_type = line[4]
+            read_name = line[3]
             if (gapsize <= 0) or (name in written_tes) or ((length-mn) > gapsize):
                 pass
             else:
@@ -537,13 +538,15 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
                 if percentage >= 0.8:
                     if name not in tes.keys():
                         cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
-                        tes[name] = [cov, 0, 0]  # coverage, split, disc
+                        tes[name] = [cov, 0, 0, [read_name]]  # coverage, split, disc, read_name (list)
                     else:
                         pass
                     if read_type == 'split':
                         tes[name][1] += 1
+                        tes[name][3].append(read_name)
                     elif read_type == 'disc':
                         tes[name][2] += 1
+                        tes[name][3].append(read_name)
                     else:
                         raise Exception('Incorrect read type information')
                     split = tes[name][1]
@@ -553,6 +556,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
+                        deletions_reads.write(">" + ident + "\t" + ",".join(tes[name][3]) + "\n")
                         x += 1
                         written_tes.append(name)
                     else:

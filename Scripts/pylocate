@@ -115,7 +115,7 @@ pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/5 > int(x[8])).s
 .cat('high.temp', postmerge=False)\
 .sort()\
 .moveto('insertions.temp')
-locate.separate_reads('insertions.temp', 'insertions_{}.bed'.format(options.name), 'id_{}.fa'.format(options.name))
+locate.separate_reads('insertions.temp', 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
 
 temp = glob('./*.temp')
 for i in temp:
