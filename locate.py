@@ -9,7 +9,7 @@ import heapq
 def _overlap(start1, stop1, start2, stop2, d=0):
     """
     Returns True if sets of coordinates overlap.  Assumes coordinates are on same chromosome.
-    10 bp window (seems to work better)
+    set window size with d
     """
     d = int(d)
     for y in xrange(start2-d, stop2+d):

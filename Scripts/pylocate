@@ -9,16 +9,15 @@ if '-h' in args or '--help' in args or len(args) == 0:
     Created by Tim Stuart
 
     Version: 1.0
-    Usage: pylocate [-h] -n NAME -c CONC -s SPLIT -t TE [-p PROC]
+    Usage: pylocate [options] -n STR -c FILE -s FILE -t FILE
     
     Options:
-    -n   sample name
-    -c   bam file from Bowtie2
-    -s   split reads bam file from Yaha
-    -t   TE annotation bedfile
-    -p   number of processors to use (default = 1)
-
-    Outputs TE insertions bedfile and TE deletions bedfile.
+    -n STR    sample name
+    -c FILE   bam file from Bowtie2
+    -s FILE   split reads bam file from Yaha
+    -t FILE   TE annotation bedfile
+    -p INT    number of processors to use (default = 1)
+    -k        keep all intermediate files (default = false)
         """
             )
     exit()
@@ -39,6 +38,8 @@ parser.add_argument('-c', '--conc', help='bam file from bowtie2', required=True)
 parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
 parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
 parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
+parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
+parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 options = parser.parse_args()
 
 print 'Estimating mean insert size and coverage'
@@ -117,7 +118,8 @@ pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/5 > int(x[8])).s
 .moveto('insertions.temp')
 locate.separate_reads('insertions.temp', 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
 
-temp = glob('./*.temp')
-for i in temp:
-    os.remove(i)
-os.remove('disc_sorted.bam')
+if options.keep is False:
+    temp = glob('./*.temp')
+    for i in temp:
+        os.remove(i)
+    os.remove('disc_sorted.bam')
