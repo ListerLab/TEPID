@@ -1,46 +1,27 @@
 #! /usr/env/python
 
-from sys import argv, exit
+from argparse import ArgumentParser
+import pkg_resources
 
-args = argv[1:]
-if '-h' in args or '--help' in args or len(args) == 0:
-    print("""
-    pylocate -- discover polymorphic TE insertion sites from sequence data
-    Created by Tim Stuart
+version = pkg_resources.require("locaTE")[0].version
 
-    Version: 1.0
-    Usage: pylocate [options] -n STR -c FILE -s FILE -t FILE
-    
-    Options:
-    -n STR    sample name
-    -c FILE   bam file from Bowtie2
-    -s FILE   split reads bam file from Yaha
-    -t FILE   TE annotation bedfile
-    -p INT    number of processors to use (default = 1)
-    -k        keep all intermediate files (default = false)
-        """
-            )
-    exit()
-else:
-    pass
+parser = ArgumentParser(description='discover polymorphic TE insertion sites from sequence data')
+parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
+parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
+parser.add_argument('--version', action='version', version='%(prog)s '+str(version))
+parser.add_argument('-n', '--name', help='sample name', required=True)
+parser.add_argument('-c', '--conc', help='bam file from bowtie2', required=True)
+parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
+parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
+options = parser.parse_args()
 
 import pybedtools
 import pysam
 import locate
 import os
 from glob import glob
-from argparse import ArgumentParser
 import multiprocessing as mp
 
-parser = ArgumentParser(description='discover polymorphic TE insertion sites from sequence data')
-parser.add_argument('-n', '--name', help='sample name', required=True)
-parser.add_argument('-c', '--conc', help='bam file from bowtie2', required=True)
-parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
-parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
-parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
-parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
-parser.add_argument('--version', action='version', version='%(prog)s 1.0')
-options = parser.parse_args()
 
 print 'Estimating mean insert size and coverage'
 mn, std, rd_len = locate.calc_mean(options.conc, options.proc)
