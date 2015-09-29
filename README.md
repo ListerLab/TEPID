@@ -15,7 +15,6 @@ git clone git@github.com:timoast/locaTE.git
 Install requirements
 
 ```
-pip install cython
 pip install -r requirements.txt
 ```
 
