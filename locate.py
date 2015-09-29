@@ -1,6 +1,5 @@
 from __future__ import division
 import os
-from sys import argv
 import numpy as np
 import pysam
 import heapq
