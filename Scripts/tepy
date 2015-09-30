@@ -24,8 +24,8 @@ import multiprocessing as mp
 
 
 print 'Estimating mean insert size and coverage'
-mn, std, rd_len = locate.calc_mean(options.conc, options.proc)
-cov = locate.calc_cov(options.conc, 100000, 120000, str(options.proc))
+mn, std, rd_len = tepy.calc_mean(options.conc, options.proc)
+cov = tepy.calc_cov(options.conc, 100000, 120000, str(options.proc))
 if cov <= 10:
     print '  Warning: coverage may not be sufficiently high to reliably discover polymorphic TE insertions'
 else:
@@ -36,18 +36,18 @@ print '  mean = {} bp, coverage = {}x'.format(mn, cov)
 print 'Processing split reads'
 pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp')\
 .filter(lambda x: int(x[4]) >= 5).saveas('split_hq.temp')
-locate.convert_split_pairbed('split_hq.temp', 'split_hq_bedpe.temp')
-locate.convert_split_pairbed('split.temp', 'split_bedpe.temp')
-split_bedpe = pybedtools.BedTool('split_hq_bedpe.temp').each(locate.append_origin, word='split').saveas().sort()
-split_bedpe_dels = pybedtools.BedTool('split_bedpe.temp').each(locate.append_origin, word='split').saveas().sort()
+tepy.convert_split_pairbed('split_hq.temp', 'split_hq_bedpe.temp')
+tepy.convert_split_pairbed('split.temp', 'split_bedpe.temp')
+split_bedpe = pybedtools.BedTool('split_hq_bedpe.temp').each(tepy.append_origin, word='split').saveas().sort()
+split_bedpe_dels = pybedtools.BedTool('split_bedpe.temp').each(tepy.append_origin, word='split').saveas().sort()
 split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
 
 print 'Finding discordant reads'
-locate.filter_discordant(options.conc, max_dist, 'disc_bam.temp')
+tepy.filter_discordant(options.conc, max_dist, 'disc_bam.temp')
 pysam.sort('-@', str(options.proc), '-n', 'disc_bam.temp', 'disc_sorted')
 disc = pybedtools.BedTool('disc_sorted.bam')\
 .bam_to_bed(bedpe=True, mate1=True)\
-.each(locate.append_origin, word='disc').saveas()
+.each(tepy.append_origin, word='disc').saveas()
 disc_split_dels = split_bedpe_dels.cat(disc, postmerge=False).sort().saveas('disc_split_dels.temp')
 disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas('disc_split_ins.temp')
 
@@ -56,12 +56,12 @@ te = pybedtools.BedTool(options.te).sort()
 disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
 
 print 'Finding deletions'
-locate.create_deletion_coords(disc_split_dels, 'del_coords.temp')
+tepy.create_deletion_coords(disc_split_dels, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
-locate.annotate_deletions('deletions.temp', options.name, int(cov/2.5), options.conc, mn, str(options.proc))
+tepy.annotate_deletions('deletions.temp', options.name, int(cov/2.5), options.conc, mn, str(options.proc))
 
 print 'Finding insertions'
-locate.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
+tepy.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
 
 def merge_bed(infile, outfile):
     pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11,12,13,14',
@@ -81,23 +81,23 @@ info = [['split_merged.temp', 'split_processed.temp', 'split'],
         ['reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse']]
 
 for x in xrange(3):
-    pool.apply(locate.process_merged, args=(info[x][0], info[x][1], info[x][2]))
+    pool.apply(tepy.process_merged, args=(info[x][0], info[x][1], info[x][2]))
 
 pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postmerge=True,
     c='4,5,6,7,8,9,10',
     o='collapse,collapse,collapse,distinct,distinct,sum,distinct',
     d='200').sort().saveas('condensed_disc.temp')
 
-locate.process_merged_disc('condensed_disc.temp', 'processed_disc.temp', cov/5, (mn+std), rd_len)
+tepy.process_merged_disc('condensed_disc.temp', 'processed_disc.temp', cov/5, (mn+std), rd_len)
 pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/5 <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
 pybedtools.BedTool('split_processed.temp').filter(lambda x: cov/5 > int(x[8])).sort()\
 .intersect('processed_disc.temp', wo=True)\
-.each(locate.reorder_intersections, num_disc=cov/5, num_split=cov/10)\
+.each(tepy.reorder_intersections, num_disc=cov/5, num_split=cov/10)\
 .saveas()\
 .cat('high.temp', postmerge=False)\
 .sort()\
 .moveto('insertions.temp')
-locate.separate_reads('insertions.temp', 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
+tepy.separate_reads('insertions.temp', 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
 
 if options.keep is False:
     temp = glob('./*.temp')
