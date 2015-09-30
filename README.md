@@ -1,4 +1,4 @@
-*locaTE*
+*TEpy*
 ======
 
 Uses paired-end sequencing data to find transposable element insertion points.
@@ -9,7 +9,7 @@ Installation
 Clone repository
 
 ```
-git clone git@github.com:timoast/locaTE.git
+git clone git@github.com:timoast/TEpy.git
 ```
 
 Install requirements
@@ -30,7 +30,7 @@ Usage
 Run the mapping script. This is added to your path during the installation.
 
 ```
-locate_map.sh -x <path/to/bowtie2/index> \
+tepy_map.sh -x <path/to/bowtie2/index> \
               -p <number_processors> \
               -y <path/to/yaha/index> \
               -s <approximate_fragment_size> \
@@ -52,7 +52,7 @@ The name of these output files will come from the name of the input fastq files
 Next go to the directory containing your bam files
 
 ```
-pylocate -n <sample_name> \
+tepy -n <sample_name> \
          -c <mapped> \
          -s <split_mapped> \
          -t <te_bedfile>
