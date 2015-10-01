@@ -3,3 +3,5 @@
 .DS_Store
 ._*
 build/
+dist/
+TEpy.egg-info/
