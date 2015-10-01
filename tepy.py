@@ -19,7 +19,9 @@ def _overlap(start1, stop1, start2, stop2, d=0):
 
 
 def _get_len(infile):
-    """returns number of lines in file and all lines as part of list"""
+    """
+    returns number of lines in file and all lines as part of list
+    """
     lines = []
     for i, l in enumerate(infile):
         lines.append(l)
@@ -221,7 +223,7 @@ def get_main_cluster(clusters):
     return coords, max_read, second_max, dubs
 
 
-def process_merged_disc(infile, outfile, num_reads, max_dist, rd_len):  # don't need to filter smaller clusters here, that has been done in last step
+def process_merged_disc(infile, outfile, num_reads, max_dist, rd_len):
     """
     takes merged coordinates and finds where there are discordant reads in both direction, linked to same TE
     collects read count information and writes to file
@@ -480,6 +482,7 @@ def get_coverages(chrom, start, stop, bam, chrom_sizes):
 def check_bam(bam, p):
     """
     Sort and index bam file
+    returns dictionary of chromosome names and lengths
     """
     # check if sorted
     test_head = pysam.AlignmentFile(bam, 'rb')
@@ -495,7 +498,6 @@ def check_bam(bam, p):
         os.remove(bam)
         os.rename('sorted.temp.bam', bam)
     test_head.close()
-    
     # check if indexed
     if '{}.bai'.format(bam) in os.listdir('.'):
         pass
@@ -510,8 +512,9 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
     Calls deletions where the gap between paired reads is at
     least 80 percent the length of the TE
     and there are either:
-       num_reads split/disc read spanning the TE and 1/2 num_reads split reads
-       coverage at TE is 3/10 the coverage in surrounding area and there are num_reads/10 split reads
+       num_reads split/disc read spanning the TE
+    or
+       coverage at TE is 1/10 the coverage in surrounding area and there are num_reads/2 reads
     """
     x = 0
     tes = {}
@@ -551,7 +554,8 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
                     split = tes[name][1]
                     disc = tes[name][2]
                     total_reads = split + disc
-                    if (tes[name][0] <= 0.1 and split >= num_reads/10) or (total_reads >= num_reads and split >= num_reads/10):
+                    # 10% coverage and half the normally required reads
+                    if (tes[name][0] <= 0.1 and total_reads >= num_reads/2) or (total_reads >= num_reads):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
