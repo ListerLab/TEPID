@@ -5,3 +5,6 @@
 build/
 dist/
 TEpy.egg-info/
+.gitattributes
+.eggs/
+.gitattributes
