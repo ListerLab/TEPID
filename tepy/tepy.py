@@ -520,12 +520,12 @@ def check_multi_te_deletion(coords, te_file):
     coords = [str(x) for x in coords]
     interval = pybedtools.BedTool(" ".join(coords), from_string=True)
     tes = te_file.intersect(interval)
-    tes = []
+    te_start_stop = []
     for i in tes:
         start = int(i[1])
         stop = int(i[2])
-        tes.append([start, stop])
-    merged = merged_intervals(tes)
+        te_start_stop.append([start, stop])
+    merged = merged_intervals(te_start_stop)
     length = 0
     for i in merged:
         length += i[1]-i[0]
