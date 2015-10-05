@@ -17,7 +17,7 @@ options = parser.parse_args()
 
 import pybedtools
 import pysam
-import TEpy
+import tepy
 import os
 from glob import glob
 import multiprocessing as mp

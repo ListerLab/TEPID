@@ -4,7 +4,7 @@ import versioneer
 
 
 setup(
-    name = 'TEpy',
+    name = 'tepy',
     version = versioneer.get_version(),
     description="TEpy: Discover transposable element insertion sites",
     author = 'Tim Stuart',
