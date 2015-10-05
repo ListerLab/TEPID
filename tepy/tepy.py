@@ -7,7 +7,6 @@ import pysam
 import heapq
 import pybedtools
 from glob import glob
-import multiprocessing as mp
 
 
 def _overlap(start1, stop1, start2, stop2, d=0):
@@ -518,8 +517,7 @@ def check_multi_te_deletion(coords, te_file):
     check if there are multiple TEs in the region that could all be deleted
     """
     coords = [str(x) for x in coords]
-    interval = pybedtools.BedTool(" ".join(coords), from_string=True)
-    tes = te_file.intersect(interval)
+    tes = te_file.intersect(pybedtools.BedTool(" ".join(coords), from_string=True), nonamecheck=True)
     te_start_stop = []
     for i in tes:
         start = int(i[1])
@@ -578,8 +576,10 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
             if (gapsize <= 0) or (name in written_tes) or ((length-mn) > gapsize):
                 pass
             else:
-                lengths = check_multi_te_deletion(coords, te_file)
-                percentage = lengths / gapsize
+                percentage = overlap / gapsize
+                if percentage < 0.8:  # if percentage is low, check if gap spans multiple TEs
+                    lengths = check_multi_te_deletion(coords, te_file)
+                    percentage = lengths / gapsize
                 if percentage >= 0.8:
                     if name not in tes.keys():
                         cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
@@ -695,7 +695,8 @@ def main(options):
 
     print 'Finding deletions'
     create_deletion_coords(disc_split_dels, 'del_coords.temp')
-    pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
+    dels = pybedtools.BedTool('del_coords.temp').sort()
+    dels.intersect(te, wo=True, sorted=True, nonamecheck=True).sort().saveas('deletions.temp')
     annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te)
 
     print 'Finding insertions'
@@ -710,16 +711,15 @@ def main(options):
                   ['forward_disc.temp', 'forward_merged.temp'],
                   ['reverse_disc.temp', 'reverse_merged.temp']]
 
-    pool = mp.Pool(processes=options.proc)
     for x in xrange(3):
-        pool.apply(merge_bed, args=(file_pairs[x][0], file_pairs[x][1]))
+        merge_bed(file_pairs[x][0], file_pairs[x][1])
 
     info = [['split_merged.temp', 'split_processed.temp', 'split'],
             ['forward_merged.temp', 'forward_processed.temp', 'disc_forward'],
             ['reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse']]
 
     for x in xrange(3):
-        pool.apply(process_merged, args=(info[x][0], info[x][1], info[x][2]))
+        process_merged(info[x][0], info[x][1], info[x][2])
 
     pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postmerge=True,
         c='4,5,6,7,8,9,10',
@@ -729,7 +729,7 @@ def main(options):
     process_merged_disc('condensed_disc.temp', 'processed_disc.temp', insertion_disc_reads, (mn+std), rd_len)
     pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_disc_reads <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
     pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_disc_reads > int(x[8])).sort()\
-    .intersect('processed_disc.temp', wo=True)\
+    .intersect('processed_disc.temp', wo=True, nonamecheck=True)\
     .each(reorder_intersections, num_disc=insertion_disc_reads, num_split=insertion_split_reads)\
     .saveas()\
     .cat('high.temp', postmerge=False)\
