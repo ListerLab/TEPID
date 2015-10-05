@@ -525,7 +525,7 @@ def check_multi_te_deletion(coords, te_file):
         start = int(i[1])
         stop = int(i[2])
         te_start_stop.append([start, stop])
-    merged = merged_intervals(te_start_stop)
+    merged = merge_intervals(te_start_stop)
     length = 0
     for i in merged:
         length += i[1]-i[0]
