@@ -11,7 +11,7 @@ setup(
     install_requires = [
         'pysam>=0.8.2.1',
         'numpy>=1.9.2',
-        'pybedtools>=0.8.2.1',
+        'pybedtools>=0.6.9',
     ],
     author_email = 'timstuart90@gmail.com',
     url = 'https://github.com/timoast/TEpy',
