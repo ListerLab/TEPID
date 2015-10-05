@@ -1,8 +1,13 @@
+#!/usr/bin/env python
+
 from __future__ import division
 import os
 import numpy as np
 import pysam
 import heapq
+import pybedtools
+from glob import glob
+import multiprocessing as mp
 
 
 def _overlap(start1, stop1, start2, stop2, d=0):
@@ -627,6 +632,7 @@ def condense_names(feature):
     feature[-1] = names
     return feature
 
+
 def reorder_intersections(feature, num_disc, num_split):
     """
     use with pybedtools.each()
@@ -649,3 +655,111 @@ def reorder_intersections(feature, num_disc, num_split):
             pass
     else:
         pass
+
+
+def main(options):    
+    print 'Estimating mean insert size and coverage'
+    mn, std, rd_len = calc_mean(options.conc, options.proc)
+    cov = calc_cov(options.conc, 100000, 120000, str(options.proc))
+    if cov <= 10:
+        print '  Warning: coverage may not be sufficiently high to reliably discover polymorphic TE insertions'
+    else:
+        pass
+    max_dist = (4*std) + mn
+    print '  mean = {} bp, coverage = {}x'.format(mn, cov)
+
+    deletion_reads = int(cov/6)
+    insertion_split_reads = int(cov/10)
+    insertion_disc_reads = int(cov/5)
+
+    print 'Processing split reads'
+    pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp')\
+    .filter(lambda x: int(x[4]) >= 5).saveas('split_hq.temp')
+    convert_split_pairbed('split_hq.temp', 'split_hq_bedpe.temp')
+    convert_split_pairbed('split.temp', 'split_bedpe.temp')
+    split_bedpe = pybedtools.BedTool('split_hq_bedpe.temp').each(append_origin, word='split').saveas().sort()
+    split_bedpe_dels = pybedtools.BedTool('split_bedpe.temp').each(append_origin, word='split').saveas().sort()
+    split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
+
+    print 'Finding discordant reads'
+    filter_discordant(options.conc, max_dist, 'disc_bam.temp')
+    pysam.sort('-@', str(options.proc), '-n', 'disc_bam.temp', 'disc_sorted')
+    disc = pybedtools.BedTool('disc_sorted.bam')\
+    .bam_to_bed(bedpe=True, mate1=True)\
+    .each(append_origin, word='disc').saveas()
+    disc_split_dels = split_bedpe_dels.cat(disc, postmerge=False).sort().saveas('disc_split_dels.temp')
+    disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas('disc_split_ins.temp')
+
+    print 'Processing TE annotation'
+    te = pybedtools.BedTool(options.te).sort()
+    disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
+
+    print 'Finding deletions'
+    create_deletion_coords(disc_split_dels, 'del_coords.temp')
+    pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
+    annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te)
+
+    print 'Finding insertions'
+    reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
+
+    def merge_bed(infile, outfile):
+        pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11,12,13,14',
+                                              o='collapse,collapse,collapse,distinct,collapse,count,collapse,collapse,collapse')\
+        .saveas(outfile)
+
+    file_pairs = [['reorder_split.temp','split_merged.temp'],
+                  ['forward_disc.temp', 'forward_merged.temp'],
+                  ['reverse_disc.temp', 'reverse_merged.temp']]
+
+    pool = mp.Pool(processes=options.proc)
+    for x in xrange(3):
+        pool.apply(merge_bed, args=(file_pairs[x][0], file_pairs[x][1]))
+
+    info = [['split_merged.temp', 'split_processed.temp', 'split'],
+            ['forward_merged.temp', 'forward_processed.temp', 'disc_forward'],
+            ['reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse']]
+
+    for x in xrange(3):
+        pool.apply(process_merged, args=(info[x][0], info[x][1], info[x][2]))
+
+    pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postmerge=True,
+        c='4,5,6,7,8,9,10',
+        o='collapse,collapse,collapse,distinct,distinct,sum,distinct',
+        d='200').sort().saveas('condensed_disc.temp')
+
+    process_merged_disc('condensed_disc.temp', 'processed_disc.temp', insertion_disc_reads, (mn+std), rd_len)
+    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_disc_reads <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
+    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_disc_reads > int(x[8])).sort()\
+    .intersect('processed_disc.temp', wo=True)\
+    .each(reorder_intersections, num_disc=insertion_disc_reads, num_split=insertion_split_reads)\
+    .saveas()\
+    .cat('high.temp', postmerge=False)\
+    .sort()\
+    .moveto('insertions.temp')
+    separate_reads('insertions.temp', 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
+
+    if options.keep is False:
+        temp = glob('./*.temp')
+        for i in temp:
+            os.remove(i)
+        os.remove('disc_sorted.bam')
+
+
+if __name__ == "__main__":
+
+    from argparse import ArgumentParser
+    import pkg_resources
+
+    version = pkg_resources.require("TEpy")[0].version
+    
+    parser = ArgumentParser(description='discover polymorphic TE insertion sites from sequence data')
+    parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
+    parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
+    parser.add_argument('--version', action='version', version='%(prog)s '+str(version))
+    parser.add_argument('-n', '--name', help='sample name', required=True)
+    parser.add_argument('-c', '--conc', help='bam file from bowtie2', required=True)
+    parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
+    parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
+
+    options = parser.parse_args()
+    main(options)
