@@ -519,7 +519,7 @@ def check_multi_te_deletion(coords, te_file):
     """
     coords = [str(x) for x in coords]
     interval = pybedtools.BedTool(" ".join(coords), from_string=True)
-    tes = te.intersect(interval)
+    tes = te_file.intersect(interval)
     tes = []
     for i in tes:
         start = int(i[1])
