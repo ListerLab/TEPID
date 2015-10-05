@@ -518,10 +518,9 @@ def check_multi_te_deletion(coords, te_file):
     check if there are multiple TEs in the region that could all be deleted
     """
     coords = [str(x) for x in coords]
-    interval = pybedtools.Bedtool(" ".join(coords), from_string=True)
+    interval = pybedtools.BedTool(" ".join(coords), from_string=True)
     tes = te.intersect(interval)
     tes = []
-    # total length = all_lengths - overlaps
     for i in tes:
         start = int(i[1])
         stop = int(i[2])
@@ -751,7 +750,7 @@ if __name__ == "__main__":
     import pkg_resources
 
     version = pkg_resources.require("TEpy")[0].version
-    
+
     parser = ArgumentParser(description='discover polymorphic TE insertion sites from sequence data')
     parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
     parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
