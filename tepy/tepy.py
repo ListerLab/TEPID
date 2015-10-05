@@ -507,7 +507,45 @@ def check_bam(bam, p):
     return chrom_sizes
 
 
-def annotate_deletions(inp, acc, num_reads, bam, mn, p):
+def check_multi_te_deletion(coords, te_file):
+    """
+    If region spanned by split or disc reads is much larger than te,
+    check if there are multiple TEs in the region that could all be deleted
+    """
+    coords = [str(x) for x in coords]
+    interval = pybedtools.Bedtool(" ".join(coords), from_string=True)
+    tes = te.intersect(interval)
+    tes = []
+    # total length = all_lengths - overlaps
+    for i in tes:
+        start = int(i[1])
+        stop = int(i[2])
+        tes.append([start, stop])
+    merged = merged_intervals(tes)
+    length = 0
+    for i in merged:
+        length += i[1]-i[0]
+    return length
+
+
+def merge_intervals(coords):
+    """[[start,stop]...[start,stop]]"""
+    copy = sorted(list(coords))
+    for x in range(len(copy)-1):
+        if len(copy) <= x+1:  # list shortened in recursion
+                break
+        if _overlap(copy[x][0], copy[x][1], copy[x+1][0], copy[x+1][1], 0) is True:
+            start = min(copy[x][0], copy[x+1][0])
+            stop = max(copy[x][1], copy[x+1][1])
+            copy[x] = [start, stop]  # update copy
+            del copy[x+1]  #remove merged
+            copy = merge_intervals(copy)
+        else:
+            pass
+    return copy
+
+
+def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
     """
     Calls deletions where the gap between paired reads is at
     least 80 percent the length of the TE
@@ -536,7 +574,8 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p):
             if (gapsize <= 0) or (name in written_tes) or ((length-mn) > gapsize):
                 pass
             else:
-                percentage = overlap / gapsize
+                lengths = check_multi_te_deletion(coords, te_file)
+                percentage = lengths / gapsize
                 if percentage >= 0.8:
                     if name not in tes.keys():
                         cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)

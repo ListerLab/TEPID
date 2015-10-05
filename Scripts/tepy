@@ -17,7 +17,7 @@ options = parser.parse_args()
 
 import pybedtools
 import pysam
-import tepy
+import TEpy
 import os
 from glob import glob
 import multiprocessing as mp
@@ -33,7 +33,7 @@ else:
 max_dist = (4*std) + mn
 print '  mean = {} bp, coverage = {}x'.format(mn, cov)
 
-deletion_reads = int(cov/10)
+deletion_reads = int(cov/6)
 insertion_split_reads = int(cov/10)
 insertion_disc_reads = int(cov/5)
 
@@ -62,7 +62,7 @@ disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
 print 'Finding deletions'
 tepy.create_deletion_coords(disc_split_dels, 'del_coords.temp')
 pybedtools.BedTool('del_coords.temp').intersect(te, wo=True).sort().saveas('deletions.temp')
-tepy.annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc))
+tepy.annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te)
 
 print 'Finding insertions'
 tepy.reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
