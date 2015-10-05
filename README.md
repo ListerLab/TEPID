@@ -52,10 +52,7 @@ The name of these output files will come from the name of the input fastq files
 Next go to the directory containing your bam files
 
 ```
-tepy -n <sample_name> \
-         -c <mapped> \
-         -s <split_mapped> \
-         -t <te_bedfile>
+tepy.py -n <sample_name> -c <mapped> -s <split_mapped> -t <te_bedfile>
 ```
 
 Where:
@@ -71,6 +68,8 @@ Output files:
 
   * TE insertions bedfile
   * TE deletions bedfile (TE present in reference but not sample)
+  * File containing names of reads providing evidence for insertions
+  * File containing names of reads providing evidence for deletions
 
 ---
 Required Tools
@@ -87,7 +86,6 @@ Required Tools
 
 * [python](https://www.python.org) v2.7
 * [numpy](http://www.numpy.org/)
-* [cython](http://cython.org/)
 * [pybedtools](http://pythonhosted.org/pybedtools/)
 * [pysam](http://pysam.readthedocs.org/en/latest/)
 
