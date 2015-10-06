@@ -1,37 +1,30 @@
 from subprocess import call
+from argparse import ArgumentParser
+import os
 
 
-def sim_read(cov, read_length, d, s, name, genome, pair=True):
-    d = str(d)
-    s = str(s)
-    if pair is True:
+parser = ArgumentParser(description='Simulate illumina reads of variable coverages from fasta file')
+parser.add_argument('-g', '--genome', help='genome fasta file', required=True)
+parser.add_argument('-d', '--distance', help='outer distance between the two ends', required=True, type=str)
+parser.add_argument('-c', '--coverages', help='comma separated list of coverages to simulate', required=True)
+parser.add_argument('-s', '--std', help='standard deviation', required=True, type=str)
+parser.add_argument('-p', '--pe', help='paired end reads', default=True, type=bool, required=False)
+parser.add_argument('-l', '--length', help='read length', required=True, type=str)
+options = parser.parse_args()
+
+
+def sim_read(options, cov):
+    name = cov+'x'
+    if options.pe is True:
         multiplier = 2
     else:
         multiplier = 1
-    number_read = (cov * 120000000) / (read_length * multiplier)
-    call(['wgsim', '-d', d, '-s', s, '-N', str(number_read), '-1', str(read_length), '-2', str(read_length), genome, '{}_1.fastq'.format(name), '{}_2.fastq'.format(name)])
+    number_read = (int(cov) * 120000000) / (int(options.length) * multiplier)
+    if not os.path.exists('./'+name):
+        os.makedirs('./'+name)
+    call(['wgsim', '-d', options.distance, '-s', options.std, '-N', str(number_read), '-1', options.length, '-2', options.length, options.genome, './{c}/{c}_1.fastq'.format(c=name), './{c}/{c}_2.fastq'.format(c=name)])
 
 
-# 5x
-sim_read(5, 100, 250, 50, '5x', 'genome_rearranged.fasta', pair=True)
-
-# 10x
-sim_read(10, 100, 250, 50, '10x', 'genome_rearranged.fasta', pair=True)
-
-# 20x
-sim_read(20, 100, 250, 50, '20x', 'genome_rearranged.fasta', pair=True)
-
-# 30x
-sim_read(30, 100, 250, 50, '30x', 'genome_rearranged.fasta', pair=True)
-
-# 40x
-sim_read(40, 100, 250, 50, '40x', 'genome_rearranged.fasta', pair=True)
-
-# 50x
-sim_read(50, 100, 250, 50, '50x', 'genome_rearranged.fasta', pair=True)
-
-# 60x
-sim_read(60, 100, 250, 50, '60x', 'genome_rearranged.fasta', pair=True)
-
-# 70x
-sim_read(70, 100, 250, 50, '70x', 'genome_rearranged.fasta', pair=True)
+coverages = options.coverages.split(',')
+for cov in coverages:
+    sim_read(options, cov)
