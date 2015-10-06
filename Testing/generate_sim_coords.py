@@ -81,7 +81,7 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--deletions', help='deletions output file name', required=False, default='deletions.txt')
     parser.add_argument('-i', '--insertions', help='insertions output file name', required=False, default='insertions.txt')
     parser.add_argument('-n', '--number', help='number of transpositions to simulate', required=False, default=100, type=int)
-    parser.add_argument('-c', '--copy', help='fraction of transpositions that are copy-paste (ie 0.5 = 50%)', required=False, default=0.5, type=float)
+    parser.add_argument('-c', '--copy', help='fraction of transpositions that are copy-paste', required=False, default=0.5, type=float)
     options = parser.parse_args()
 
     sim = sim_data()
