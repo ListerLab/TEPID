@@ -79,7 +79,7 @@ Required Tools
 * [yaha](https://github.com/GregoryFaust/yaha) >= v0.1.82
 * [samtools](http://www.htslib.org/download/) >= v1.1
 * [samblaster](https://github.com/GregoryFaust/samblaster) >= v0.1.19
-* [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.21
+* [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.24.0
 
 
 **Python requirements**
