@@ -15,7 +15,7 @@ def bedtools():
     p = subprocess.check_output(['bedtools', '--version'])
     major, minor, micro = p.split()[1].split('.')
     major = major[1]
-    if int(major) >= 2 and int(minor) >= 24 and int(micro) >= 0:
+    if int(major) >= 2 and int(minor) >= 24:
         return True
     return False
 
