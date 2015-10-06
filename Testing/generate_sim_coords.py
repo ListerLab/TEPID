@@ -18,8 +18,10 @@ class sim_data():
                 line = line.rsplit()
                 if 'super' in line[0] or 'scaffold' in line[0]:
                     pass
-                else:
+                elif line[0].startswith('chr'):
                     self.chromosomes[line[0]] = int(line[1])
+                else:
+                    pass
 
     def read_TE_file(self, TE_file):
         """
@@ -30,7 +32,7 @@ class sim_data():
                 line = line.rsplit()
                 self.transposons[line[4]] = {'chrom':line[0], 'start':line[1], 'stop':line[2]}
 
-    def create_deletion_coords(self, outfile, n=100):
+    def create_deletion_coords(self, outfile, n):
         """
         randomly select n transposon coordinates and write to outfile
         """
@@ -44,7 +46,7 @@ class sim_data():
                                                                stp=info['stop'],
                                                                TE=selection))
 
-    def create_insertion_coords(self, outfile, percCopied=0.5, n=100):
+    def create_insertion_coords(self, outfile, percCopied, n):
         """
         randomly select n transposon coordinates and randomly generate insertion points
         save to outfile
@@ -78,10 +80,12 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--te', help='TE bedfile', required=True)
     parser.add_argument('-d', '--deletions', help='deletions output file name', required=False, default='deletions.txt')
     parser.add_argument('-i', '--insertions', help='insertions output file name', required=False, default='insertions.txt')
+    parser.add_argument('-n', '--number', help='number of transpositions to simulate', required=False, default=100, type=int)
+    parser.add_argument('-c', '--copy', help='fraction of transpositions that are copy-paste (ie 0.5 = 50%)', required=False, default=0.5, type=float)
     options = parser.parse_args()
 
     sim = sim_data()
     sim.read_genome_index(options.genome)
     sim.read_TE_file(options.te)
-    sim.create_deletion_coords(options.deletions)
-    sim.create_insertion_coords(options.insertions)
+    sim.create_deletion_coords(options.deletions, options.number)
+    sim.create_insertion_coords(options.insertions, options.copy, options.number)
