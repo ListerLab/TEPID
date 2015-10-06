@@ -665,9 +665,9 @@ def main(options):
     else:
         pass
     max_dist = (4*std) + mn
-    print '  mean = {} bp, coverage = {}x'.format(mn, cov)
+    print '  insert size = {} bp, coverage = {}x'.format(mn, cov)
 
-    deletion_reads = int(cov/6)
+    deletion_reads = int(cov/5)
     insertion_split_reads = int(cov/10)
     insertion_disc_reads = int(cov/5)
 
