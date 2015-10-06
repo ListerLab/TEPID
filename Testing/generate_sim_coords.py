@@ -1,47 +1,7 @@
-#! /usr/local/bin/python
+#! /usr/bin/env python
 
 import random
-from sys import argv, exit
 
-args = argv[1:]
-if '-h' in args or '--help' in args or len(args) == 0:
-    print(
-            """
-            generate_sim_coords.py
-
-            Created by Tim Stuart
-
-            Generates coordinates for synthetic TE insertions / deletions
-            for use in RSVSim package
-
-            Usage:
-            python generate_sim_coords.py -g <genome.fa.fai>
-                                          -t <te_bedfile>
-                                          -d <deletions_filename>
-                                          -i <insertions_filename>
-            """
-            )
-    exit()
-else:
-    pass
-
-def checkArgs(arg1, arg2):
-    """
-    arg1 is short arg, eg h
-    arg2 is long arg, eg host
-    """
-    args = argv[1:]
-    if arg1 in args:
-        index = args.index(arg1)+1
-        variable = args[index]
-        return variable
-    elif arg2 in args:
-        index = args.index(arg2)+1
-        variable = args[index]
-        return variable
-    else:
-        variable = raw_input("\nEnter {arg2}: ".format(arg2=arg2))
-        return variable
 
 class sim_data():
 
@@ -110,13 +70,18 @@ class sim_data():
                                                                                          copied=copied))
 
 if __name__ == "__main__":
-    genome = checkArgs('-g', '--genome')
-    te = checkArgs('-t', '--te')
-    del_file = checkArgs('-d', '--deletions')
-    ins_file = checkArgs('-i', '--insertions')
+
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser(description='Generates coordinates for synthetic TE insertions / deletions for use in RSVSim')
+    parser.add_argument('-g', '--genome', help='genome faidx file', required=True)
+    parser.add_argument('-t', '--te', help='TE bedfile', required=True)
+    parser.add_argument('-d', '--deletions', help='deletions output file name', required=False, default='deletions.txt')
+    parser.add_argument('-i', '--insertions', help='insertions output file name', required=False, defaul='insertions.txt')
+    options = parser.parse_args()
 
     sim = sim_data()
-    sim.read_genome_index(genome)
-    sim.read_TE_file(te)
-    sim.create_deletion_coords(del_file)
-    sim.create_insertion_coords(ins_file)
+    sim.read_genome_index(options.genome)
+    sim.read_TE_file(options.te)
+    sim.create_deletion_coords(options.deletions)
+    sim.create_insertion_coords(options.insertions)
