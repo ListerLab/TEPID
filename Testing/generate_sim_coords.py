@@ -77,7 +77,7 @@ if __name__ == "__main__":
     parser.add_argument('-g', '--genome', help='genome faidx file', required=True)
     parser.add_argument('-t', '--te', help='TE bedfile', required=True)
     parser.add_argument('-d', '--deletions', help='deletions output file name', required=False, default='deletions.txt')
-    parser.add_argument('-i', '--insertions', help='insertions output file name', required=False, defaul='insertions.txt')
+    parser.add_argument('-i', '--insertions', help='insertions output file name', required=False, default='insertions.txt')
     options = parser.parse_args()
 
     sim = sim_data()
