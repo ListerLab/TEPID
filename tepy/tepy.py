@@ -535,7 +535,7 @@ def merge_intervals(coords):
     copy = sorted(list(coords))
     for x in range(len(copy)-1):
         if len(copy) <= x+1:  # list shortened in recursion
-                break
+            break
         if _overlap(copy[x][0], copy[x][1], copy[x+1][0], copy[x+1][1], 0) is True:
             start = min(copy[x][0], copy[x+1][0])
             stop = max(copy[x][1], copy[x+1][1])
@@ -577,10 +577,10 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
                 pass
             else:
                 percentage = overlap / gapsize
-                if percentage < 0.8:  # if percentage is low, check if gap spans multiple TEs
+                if percentage < 0.9:  # if percentage is low, check if gap spans multiple TEs
                     lengths = check_multi_te_deletion(coords, te_file)
                     percentage = lengths / gapsize
-                if percentage >= 0.8:
+                if percentage >= 0.9:
                     if name not in tes.keys():
                         cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
                         tes[name] = [cov, 0, 0, [read_name]]  # coverage, split, disc, read_name (list)
@@ -727,8 +727,8 @@ def main(options):
         d='200').sort().saveas('condensed_disc.temp')
 
     process_merged_disc('condensed_disc.temp', 'processed_disc.temp', insertion_disc_reads, (mn+std), rd_len)
-    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_disc_reads <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
-    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_disc_reads > int(x[8])).sort()\
+    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_split_reads <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
+    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_split_reads > int(x[8])).sort()\
     .intersect('processed_disc.temp', wo=True, nonamecheck=True)\
     .each(reorder_intersections, num_disc=insertion_disc_reads, num_split=insertion_split_reads)\
     .saveas()\
