@@ -667,9 +667,9 @@ def main(options):
     max_dist = (4*std) + mn
     print '  insert size = {} bp, coverage = {}x'.format(mn, cov)
 
-    deletion_reads = int(cov/5)
-    insertion_split_reads = int(cov/10)
-    insertion_disc_reads = int(cov/5)
+    deletion_reads = int(cov/5) if (int(cov/5) > 4) else 4
+    insertion_split_reads = int(cov/10) if (int(cov/10) > 2) else 2
+    insertion_disc_reads = int(cov/5) if (int(cov/10) > 2) else 2
 
     print 'Processing split reads'
     pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp')\
@@ -728,14 +728,17 @@ def main(options):
 
     process_merged_disc('condensed_disc.temp', 'processed_disc.temp', insertion_disc_reads, (mn+std), rd_len)
     pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_split_reads <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
-    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_split_reads > int(x[8])).sort()\
+    disc_split = pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_split_reads > int(x[8])).sort()\
     .intersect('processed_disc.temp', wo=True, nonamecheck=True)\
     .each(reorder_intersections, num_disc=insertion_disc_reads, num_split=insertion_split_reads)\
-    .saveas()\
-    .cat('high.temp', postmerge=False)\
     .sort()\
-    .moveto('insertions.temp')
-    separate_reads('insertions.temp', 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
+    .saveas()
+    if len(disc_split) > 0:
+        disc_split.cat('high.temp', postmerge=False).sort().moveto('insertions.temp')
+        nm = 'insertions.temp'
+    else:
+        nm = 'high.temp'
+    separate_reads(nm, 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
 
     if options.keep is False:
         temp = glob('./*.temp')
