@@ -577,10 +577,10 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
                 pass
             else:
                 percentage = overlap / gapsize
-                if percentage < 0.9:  # if percentage is low, check if gap spans multiple TEs
+                if percentage < 0.4:  # if percentage is low, check if gap spans multiple TEs
                     lengths = check_multi_te_deletion(coords, te_file)
                     percentage = lengths / gapsize
-                if percentage >= 0.9:
+                if percentage >= 0.4:
                     if name not in tes.keys():
                         cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
                         tes[name] = [cov, 0, 0, [read_name]]  # coverage, split, disc, read_name (list)
@@ -598,7 +598,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
                     disc = tes[name][2]
                     total_reads = split + disc
                     # 10% coverage and half the normally required reads
-                    if (tes[name][0] <= 0.1 and total_reads >= num_reads/2) or (total_reads >= num_reads):
+                    if (tes[name][0] <= 0.1 and total_reads >= num_reads/2) or (percentage >= 0.8 and total_reads >= num_reads) or (total_reads >= num_reads*2):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
