@@ -547,6 +547,25 @@ def merge_intervals(coords):
     return copy
 
 
+def determine_overlaps(coords, te_file, te_length, overlap, gapsize, target_percentage):
+    """
+    check if read spans enough of TE to call a deletion
+    check that enough of TE spans gapsize
+    """
+    te_overlap = overlap / te_length
+    read_overlap = te_length / gapsize
+    if te_overlap < target_percentage:
+        return False
+    if read_overlap > target_percentage:
+        return True
+    else:
+        multi_len = check_multi_te_deletion(coords, te_file)
+        if (multi_len / gapsize) > target_percentage:
+            return True
+        else:
+            return False
+
+
 def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
     """
     Calls deletions where the gap between paired reads is at
@@ -576,11 +595,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
             if (gapsize <= 0) or (name in written_tes) or ((length-mn) > gapsize):
                 pass
             else:
-                percentage = overlap / gapsize
-                if percentage < 0.4:  # if percentage is low, check if gap spans multiple TEs
-                    lengths = check_multi_te_deletion(coords, te_file)
-                    percentage = lengths / gapsize
-                if percentage >= 0.4:
+                if determine_overlaps(coords, te_file, length, overlap, gapsize, 0.8) is True:
                     if name not in tes.keys():
                         cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
                         tes[name] = [cov, 0, 0, [read_name]]  # coverage, split, disc, read_name (list)
@@ -597,8 +612,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
                     split = tes[name][1]
                     disc = tes[name][2]
                     total_reads = split + disc
-                    # 10% coverage and half the normally required reads
-                    if (tes[name][0] <= 0.1 and total_reads >= num_reads/2) or (percentage >= 0.8 and total_reads >= num_reads) or (total_reads >= num_reads*2):
+                    if (tes[name][0] <= 0.1 and total_reads >= num_reads/2) or (total_reads >= num_reads):
                         ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
                         data = (str(x) for x in te)
                         outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
@@ -727,8 +741,8 @@ def main(options):
         d='200').sort().saveas('condensed_disc.temp')
 
     process_merged_disc('condensed_disc.temp', 'processed_disc.temp', insertion_disc_reads, (mn+std), rd_len)
-    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_split_reads <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
-    disc_split = pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_split_reads > int(x[8])).sort()\
+    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_disc_reads <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
+    disc_split = pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_disc_reads > int(x[8])).sort()\
     .intersect('processed_disc.temp', wo=True, nonamecheck=True)\
     .each(reorder_intersections, num_disc=insertion_disc_reads, num_split=insertion_split_reads)\
     .sort()\
