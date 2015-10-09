@@ -413,7 +413,7 @@ def calc_mean(bam_name, p):
     return int(np.mean(lengths)), int(np.std(lengths)), int(np.mean(rd))
 
 
-def calc_cov(bam_name, start, stop, p):
+def calc_cov(bam_name, start, stop):
     """
     calculates average coverage
     """
@@ -673,7 +673,7 @@ def reorder_intersections(feature, num_disc, num_split):
 def main(options):    
     print 'Estimating mean insert size and coverage'
     mn, std, rd_len = calc_mean(options.conc, options.proc)
-    cov = calc_cov(options.conc, 100000, 120000, str(options.proc))
+    cov = calc_cov(options.conc, 100000, 120000)
     if cov <= 10:
         print '  Warning: coverage may not be sufficiently high to reliably discover polymorphic TE insertions'
     else:
