@@ -670,7 +670,7 @@ def reorder_intersections(feature, num_disc, num_split):
         pass
 
 
-def main(options):    
+def main(options):
     print 'Estimating mean insert size and coverage'
     mn, std, rd_len = calc_mean(options.conc, options.proc)
     cov = calc_cov(options.conc, 100000, 120000)
@@ -681,7 +681,7 @@ def main(options):
     max_dist = (4*std) + mn
     print '  insert size = {} bp, coverage = {}x'.format(mn, cov)
 
-    deletion_reads = int(cov/7) if (int(cov/7) > 4) else 4
+    deletion_reads = int(cov/5) if (int(cov/5) > 4) else 4
     insertion_split_reads = int(cov/20) if (int(cov/20) > 2) else 2
     insertion_disc_reads = int(cov/20) if (int(cov/20) > 2) else 2
 
