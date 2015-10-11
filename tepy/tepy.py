@@ -547,20 +547,20 @@ def merge_intervals(coords):
     return copy
 
 
-def determine_overlaps(coords, te_file, te_length, overlap, gapsize, target_percentage):
+def determine_overlaps(coords, te_file, te_length, overlap, gapsize, target_te_overlap, target_gap_span):
     """
     check if read spans enough of TE to call a deletion
     check that enough of TE spans gapsize
     """
     te_overlap = overlap / te_length
     read_overlap = te_length / gapsize
-    if te_overlap < target_percentage:
+    if te_overlap < target_te_overlap:  # not enough TE covered to call deletion
         return False
-    if read_overlap > target_percentage:
+    if read_overlap > target_gap_span:
         return True
     else:
         multi_len = check_multi_te_deletion(coords, te_file)
-        if (multi_len / gapsize) > target_percentage:
+        if (multi_len / gapsize) > target_gap_span:
             return True
         else:
             return False
@@ -595,7 +595,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
             if (gapsize <= 0) or (name in written_tes) or ((length-mn) > gapsize):
                 pass
             else:
-                if determine_overlaps(coords, te_file, length, overlap, gapsize, 0.8) is True:
+                if determine_overlaps(coords, te_file, length, overlap, gapsize, 0.8, 0.4) is True:
                     if name not in tes.keys():
                         cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
                         tes[name] = [cov, 0, 0, [read_name]]  # coverage, split, disc, read_name (list)
@@ -681,9 +681,9 @@ def main(options):
     max_dist = (4*std) + mn
     print '  insert size = {} bp, coverage = {}x'.format(mn, cov)
 
-    deletion_reads = int(cov/5) if (int(cov/5) > 4) else 4
-    insertion_split_reads = int(cov/15) if (int(cov/15) > 2) else 2
-    insertion_disc_reads = int(cov/10) if (int(cov/10) > 2) else 2
+    deletion_reads = int(cov/7) if (int(cov/7) > 4) else 4
+    insertion_split_reads = int(cov/20) if (int(cov/20) > 2) else 2
+    insertion_disc_reads = int(cov/20) if (int(cov/20) > 2) else 2
 
     print 'Processing split reads'
     pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp')\
