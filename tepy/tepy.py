@@ -681,8 +681,8 @@ def discover(options):
     print '  insert size = {} bp, coverage = {}x'.format(mn, cov)
 
     deletion_reads = int(cov/5) if (int(cov/5) > 4) else 4
-    insertion_split_reads = int(cov/20) if (int(cov/20) > 2) else 2
-    insertion_disc_reads = int(cov/20) if (int(cov/20) > 2) else 2
+    insertion_split_reads = int(cov/10) if (int(cov/10) > 2) else 2
+    insertion_disc_reads = int(cov/5) if (int(cov/5) > 2) else 2
 
     print 'Processing split reads'
     pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp')\
