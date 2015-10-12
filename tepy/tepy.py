@@ -84,7 +84,7 @@ def write_te(te_file_name, read_file_name, data, read_names, iterator):
         read_file.write(">"+iterator+"\t"+",".join(read_names)+"\n")
 
 
-def process_missed(data, indel, concordant, split_alignments, name_indexed, acc):
+def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te):
     for i in data:
         coords = (i[0][0], int(i[0][1]), int(i[0][2]))
         te_list = i[0][-2].split(",")
@@ -135,9 +135,9 @@ def refine(options):
                 name_indexed.build()
 
                 print "  deletions"
-                process_missed(deletions, "deletions", concordant, split_alignments, name_indexed, acc)
+                process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te)
                 print "  insertions"
-                process_missed(insertions, "insertions", concordant, split_alignments, name_indexed, acc)
+                process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te)
 
                 os.chdir('..')
             else:
@@ -631,13 +631,21 @@ def check_bam(bam, p):
     p = str(p)
     for i in test_head.header['SQ']:
         chrom_sizes[i['SN']] = int(i['LN'])
-    if test_head.header['HD']['SO'] == 'coordinate':
-        pass
-    else:
+    try:
+        test_head.header['HD']['SO']
+    except KeyError:
         print '  sorting bam file'
         pysam.sort('-@', p, bam, 'sorted.temp')
         os.remove(bam)
         os.rename('sorted.temp.bam', bam)
+    else:
+        if test_head.header['HD']['SO'] == 'coordinate':
+            pass
+        else:
+            print '  sorting bam file'
+            pysam.sort('-@', p, bam, 'sorted.temp')
+            os.remove(bam)
+            os.rename('sorted.temp.bam', bam)
     test_head.close()
     # check if indexed
     if '{}.bai'.format(bam) in os.listdir('.'):
