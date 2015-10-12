@@ -14,7 +14,10 @@ def readNames(names):
     with open(names, 'r') as infile:
         for line in infile:
             line = line.rsplit()
-            n.append(line[0])
+            if len(line) > 0:
+                n.append(line[0])
+            else:
+                pass
     return n
 
 
