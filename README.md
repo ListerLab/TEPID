@@ -30,12 +30,12 @@ Usage
 Run the mapping script. This is added to your path during the installation.
 
 ```
-tepy_map.sh -x <path/to/bowtie2/index> \
-              -p <number_processors> \
-              -y <path/to/yaha/index> \
-              -s <approximate_fragment_size> \
-              -r <recursive> (optional) \
-              -z <gzip_fastq_files> (optional)
+tepy_map -x <path/to/bowtie2/index> \
+         -p <number_processors> \
+         -y <path/to/yaha/index> \
+         -s <approximate_fragment_size> \
+         -r <recursive> (optional) \
+         -z <gzip_fastq_files> (optional)
 ```
 
 This will look for two files named `[name]_1.fastq` and `[name]_2.fastq`, and map these using the number of processors specified in `-p`. These files must be present in the current directory, or in direcories immediately below the current directory if the `-r` option is used.
@@ -52,7 +52,7 @@ The name of these output files will come from the name of the input fastq files
 Next go to the directory containing your bam files
 
 ```
-tepy.py -n <sample_name> -c <mapped> -s <split_mapped> -t <te_bedfile>
+tepy-discover -n <sample_name> -c <mapped> -s <split_mapped> -t <te_bedfile>
 ```
 
 Where:
