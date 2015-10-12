@@ -131,7 +131,7 @@ def refine(options):
                 conc = acc+"_filtered.bam"
                 split = acc+".split.bam"
                 check_bam(conc, options.proc)
-                check_bam(split, options.proc)
+                check_bam(split, options.proc, make_new_index=True)
                 concordant = pysam.AlignmentFile(conc, 'rb')
                 split_alignments = pysam.AlignmentFile(split, 'rb')
                 name_indexed = pysam.IndexedReads(split_alignments)
@@ -490,6 +490,7 @@ def convert_split_pairbed(inp, outf):
     converts split read bedfile into bedpe format
     with each read on one line
     read names need to be order
+    must be sorted by read name
     """
     with open(inp, 'r') as infile, open(outf, 'w+') as outfile:
         i, lines = _get_len(infile)
@@ -623,7 +624,7 @@ def get_coverages(chrom, start, stop, bam, chrom_sizes):
     return ratio
 
 
-def check_bam(bam, p):
+def check_bam(bam, p, make_new_index=False):
     """
     Sort and index bam file
     returns dictionary of chromosome names and lengths
@@ -651,7 +652,7 @@ def check_bam(bam, p):
             os.rename('sorted.temp.bam', bam)
     test_head.close()
     # check if indexed
-    if '{}.bai'.format(bam) in os.listdir('.'):
+    if '{}.bai'.format(bam) in os.listdir('.') and make_new_index is False:
         pass
     else:
         print '  indexing bam file'
@@ -817,7 +818,37 @@ def reorder_intersections(feature, num_disc, num_split):
         pass
 
 
+def check_name_sorted(bam, p):
+    """
+    Sort bam file by name if position sorted
+    """
+    test_head = pysam.AlignmentFile(bam, 'rb')
+    p = str(p)
+    try:
+        test_head.header['HD']['SO']
+    except KeyError:
+        print '  sorting bam file'
+        pysam.sort('-@', p, '-n', bam, 'sorted.temp')
+        os.remove(bam)
+        os.rename('sorted.temp.bam', bam)
+    else:
+        if test_head.header['HD']['SO'] == 'queryname':
+            pass
+        else:
+            print '  sorting bam file'
+            pysam.sort('-@', p, '-n', bam, 'sorted.temp')
+            os.remove(bam)
+            os.rename('sorted.temp.bam', bam)
+    test_head.close()
+
+
 def discover(options):
+    """
+    Discover TE insertions and deletions using read mapping information and TE annotation
+    input concordant reads bam file must be position sorted
+    imput split reads bam file must be name sorted
+    TE annotation can be gzipped
+    """
     print 'Estimating mean insert size and coverage'
     mn, std, rd_len = calc_mean(options.conc, options.proc)
     cov = calc_cov(options.conc, 100000, 120000)
@@ -833,6 +864,7 @@ def discover(options):
     insertion_disc_reads = int(cov/5) if (int(cov/5) > 2) else 2
 
     print 'Processing split reads'
+    check_name_sorted(options.split, options.proc)
     pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp')\
     .filter(lambda x: int(x[4]) >= 5).saveas('split_hq.temp')
     convert_split_pairbed('split_hq.temp', 'split_hq_bedpe.temp')
