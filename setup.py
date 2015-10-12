@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from setuptools import setup
 import versioneer
 import subprocess
@@ -30,6 +31,7 @@ if __name__ == "__main__":
 setup(
     name = 'TEpy',
     version = versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     description="TEpy: Discover transposable element insertion sites",
     author = 'Tim Stuart',
     install_requires = [
