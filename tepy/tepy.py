@@ -52,9 +52,14 @@ def extract_reads(bam, name_indexed, names, acc):
     out_name = 'extracted_reads_{}.bam'.format(acc)
     out_bam = pysam.Samfile(out_name, 'wb', header=header)
     for name in names:
-        iterator = name_indexed.find(name)
-        for x in iterator:
-            out_bam.write(x)
+        try:
+            name_indexed.find(name)
+        except KeyError:
+            pass
+        else:
+            iterator = name_indexed.find(name)
+            for x in iterator:
+                out_bam.write(x)
     out_bam.close()
     return out_name
 
