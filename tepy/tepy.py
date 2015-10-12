@@ -613,10 +613,9 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
                     disc = tes[name][2]
                     total_reads = split + disc
                     if (tes[name][0] <= 0.1 and total_reads >= num_reads/2) or (total_reads >= num_reads):
-                        ident = 'del_{acc}_{x}'.format(acc=acc, x=x)
-                        data = (str(x) for x in te)
-                        outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=ident))
-                        deletions_reads.write(">" + ident + "\t" + ",".join(tes[name][3]) + "\n")
+                        data = (str(a) for a in te)
+                        outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=str(x)))
+                        deletions_reads.write(">" + str(x) + "\t" + ",".join(tes[name][3]) + "\n")
                         x += 1
                         written_tes.append(name)
                     else:
@@ -670,7 +669,7 @@ def reorder_intersections(feature, num_disc, num_split):
         pass
 
 
-def main(options):
+def discover(options):
     print 'Estimating mean insert size and coverage'
     mn, std, rd_len = calc_mean(options.conc, options.proc)
     cov = calc_cov(options.conc, 100000, 120000)
@@ -778,4 +777,4 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
 
     options = parser.parse_args()
-    main(options)
+    discover(options)
