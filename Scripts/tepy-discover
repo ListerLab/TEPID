@@ -3,7 +3,7 @@
 if __name__ == "__main__":
     from argparse import ArgumentParser
     import pkg_resources
-    from TEpy import tepy
+    from tepy import tepy
 
     version = pkg_resources.require("TEpy")[0].version
 
