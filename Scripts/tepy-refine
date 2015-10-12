@@ -1,0 +1,19 @@
+#! /usr/bin/env python
+
+if __name__ == "__main__":
+    from argparse import ArgumentParser
+    import pkg_resources
+    from TEpy import tepy
+
+    version = pkg_resources.require("TEpy")[0].version
+
+    parser = ArgumentParser(description='Perform second pass over population data to catch false negatives')
+    parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
+    parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
+    parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
+    parser.add_argument('--version', action='version', version='%(prog)s '+str(version))
+    parser.add_argument('-i', '--insertions', help='File containing collapsed TE insertions for all samples in population', required=True)
+    parser.add_argument('-d', '--deletions', help='File containing collapsed TE deletions for all samples in population', required=True)
+    parser.add_argument('-a', '--all_samples', help='List of all sample names', required=True)
+    options = parser.parse_args()
+    tepy.refine(options)
