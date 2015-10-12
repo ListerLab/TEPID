@@ -40,5 +40,5 @@ setup(
     author_email = 'timstuart90@gmail.com',
     url = 'https://github.com/timoast/TEpy',
     scripts = ["Scripts/tepy-map", "Scripts/tepy-discover", "Scripts/tepy-refine"],
-    packages = ['TEpy'],
+    packages = ['tepy'],
 )
