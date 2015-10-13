@@ -30,7 +30,7 @@ Usage
 Run the mapping script. This is added to your path during the installation.
 
 ```
-tepy_map -x <path/to/bowtie2/index> \
+tepy-map -x <path/to/bowtie2/index> \
          -p <number_processors> \
          -y <path/to/yaha/index> \
          -s <approximate_fragment_size> \
