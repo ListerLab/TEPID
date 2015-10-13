@@ -451,7 +451,7 @@ def create_deletion_coords(bedfile, saveas):
     """
     Creates set of putative deletion coordinates where discordant
     read pairs are on same chromosome, different strands, and
-    are at least 3 standard deviations from the mean insert size
+    are at least 4 standard deviations from the mean insert size
     and less than 20 kb from each other.
     Assumes input bedfile only contains discordant reads
     """
@@ -799,7 +799,7 @@ def condense_names(feature):
     return feature
 
 
-def reorder_intersections(feature, num_disc, num_split):
+def reorder_intersections(feature, read_count):
     """
     use with pybedtools.each()
     """
@@ -813,7 +813,8 @@ def reorder_intersections(feature, num_disc, num_split):
     names = set(feature[7].split(',') + feature[17].split(','))
     disc_reads = int(feature[8])
     split_reads = int(feature[-2])
-    if disc_reads >= int(num_disc) or split_reads >= int(num_split):
+    total_reads = disc_reads + split_reads
+    if total_reads >= int(read_count):
         if feature[3] == feature[13] and _overlap(int(feature[4]), int(feature[5]), int(feature[14]), int(feature[15]), 10) is True:
             feature = [chrom, start, stop, techrom, testart, testop, ','.join(reads), ','.join(names)]
             return feature
@@ -865,8 +866,8 @@ def discover(options):
     print '  insert size = {} bp, coverage = {}x'.format(mn, cov)
 
     deletion_reads = int(cov/5) if (int(cov/5) > 4) else 4
-    insertion_split_reads = int(cov/10) if (int(cov/10) > 2) else 2
-    insertion_disc_reads = int(cov/5) if (int(cov/5) > 2) else 2
+    insertion_reads_low = int(cov/10) if (int(cov/10) > 2) else 2
+    insertion_reads_high = int(cov/5) if (int(cov/5) > 2) else 2
 
     print 'Processing split reads'
     check_name_sorted(options.split, options.proc)
@@ -924,11 +925,11 @@ def discover(options):
         o='collapse,collapse,collapse,distinct,distinct,sum,distinct',
         d='200').sort().saveas('condensed_disc.temp')
 
-    process_merged_disc('condensed_disc.temp', 'processed_disc.temp', insertion_disc_reads, (mn+std), rd_len)
-    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_disc_reads <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
-    disc_split = pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_disc_reads > int(x[8])).sort()\
+    process_merged_disc('condensed_disc.temp', 'processed_disc.temp', 2, (mn+std), rd_len)
+    pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_reads_high <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
+    disc_split = pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_reads_high > int(x[8])).sort()\
     .intersect('processed_disc.temp', wo=True, nonamecheck=True)\
-    .each(reorder_intersections, num_disc=insertion_disc_reads, num_split=insertion_split_reads)\
+    .each(reorder_intersections, read_count=insertion_reads_low)\
     .sort()\
     .saveas()
     if len(disc_split) > 0:
