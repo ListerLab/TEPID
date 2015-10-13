@@ -65,17 +65,14 @@ def extract_reads(bam, name_indexed, names, acc):
 
 
 def check_te_overlaps(te, bamfile, te_list):
-    intersections = pybedtools.BedTool(bamfile).bam_to_bed().intersect(te, wb=True)
+    intersections = pybedtools.BedTool(bamfile).bam_to_bed().intersect(te, wb=True, nonamecheck=True)
     reads = []
     for r in intersections:
         if r[-3] in te_list:
             reads.append(r[3])
         else:
             pass
-    if len(reads) > 0:
-        return reads
-    else:
-        return False
+    return reads
 
 
 def get_last_id(acc, indel):
@@ -85,41 +82,42 @@ def get_last_id(acc, indel):
     return int(line.rsplit()[0][1:])
 
 
-def write_te(te_file_name, read_file_name, data, read_names, iterator):
-    with open(te_file_name, 'a+') as te_file, open(read_file_name, 'a+') as read_file:
-        coords = [str(x) for x in i[0]]
-        te_file.write("\t".join(coords)+"\t"+i[2]+"\n")
-        read_file.write(">"+iterator+"\t"+",".join(read_names)+"\n")
+def write_te(te_file, read_file, data, read_names, iterator):
+    # chr start stop chr start stop te accessions
+    coords = [str(x) for x in data[:-2]]
+    te_file.write("\t".join(coords)+"\t"+data[-2]+"\t"+str(iterator)+"\n")
+    read_file.write(">"+str(iterator)+"\t"+",".join(read_names)+"\n")
 
 
 def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te):
-    for i in data:
-        coords = (i[0][0], int(i[0][1]), int(i[0][2]))
-        te_list = i[0][-2].split(",")
-        if acc in i[1]:
-            # if find_reads(coords, concordant) is False:  # this will be a problem, maybe just look for split reads
-            split_names = find_reads(coords, split_alignments)
-            if split_names is not False:
-                extracted = extract_reads(split_alignments, name_indexed, split_names, acc)
-                read_names = check_te_overlaps(te, extracted, te_list)
-                if read_names is not False:
-                    read_file_name = "second_pass_reads_{t}_{a}.txt".format(t=indel, a=acc)
-                    te_file_name = "second_pass_deletions_{t}_{a}.bed".format(t=indel, a=acc)
-                    try:
-                        iterator
-                    except NameError:
-                        iterator = get_last_id(acc, indel)
+    read_file_name = "second_pass_reads_{t}_{a}.txt".format(t=indel, a=acc)
+    te_file_name = "second_pass_{t}_{a}.bed".format(t=indel, a=acc)
+    with open(read_file_name, 'w+') as read_file, open(te_file_name, 'w+') as te_file:
+        for i in data:
+            coords = (i[0][0], int(i[0][1]), int(i[0][2]))
+            te_list = i[0][-2].split(",")
+            if acc in i[1]:
+                # if find_reads(coords, concordant) is False:  # this will be a problem, maybe just look for split reads
+                split_names = find_reads(coords, split_alignments)
+                if split_names is not False:
+                    extracted = extract_reads(split_alignments, name_indexed, split_names, acc)
+                    read_names = check_te_overlaps(te, extracted, te_list)
+                    if len(read_names) > 5:
+                        try:
+                            iterator
+                        except NameError:
+                            iterator = get_last_id(acc, indel)
+                        else:
+                            iterator += 1
+                        write_te(te_file, read_file, i[0], read_names, iterator)
                     else:
-                        iterator += 1
-                    write_te(te_file_name, read_file_name, i[0], read_names, iterator)
+                        pass
                 else:
                     pass
+                # else:
+                #     pass
             else:
                 pass
-            # else:
-            #     pass
-        else:
-            pass
 
 
 def refine(options):
@@ -143,7 +141,8 @@ def refine(options):
                 name_indexed.build()
 
                 print "  deletions"
-                process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te)
+                # for deletions, will need to make deletions coordinates from split read alignments and intersect that with TEs instead
+                # process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te)
                 print "  insertions"
                 process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te)
 
@@ -837,6 +836,7 @@ def check_name_sorted(bam, p):
         pysam.sort('-@', p, '-n', bam, 'sorted.temp')
         os.remove(bam)
         os.rename('sorted.temp.bam', bam)
+        pysam.index(bam)
     else:
         if test_head.header['HD']['SO'] == 'queryname':
             pass
@@ -845,6 +845,7 @@ def check_name_sorted(bam, p):
             pysam.sort('-@', p, '-n', bam, 'sorted.temp')
             os.remove(bam)
             os.rename('sorted.temp.bam', bam)
+            pysam.index(bam)
     test_head.close()
 
 
@@ -927,13 +928,13 @@ def discover(options):
 
     process_merged_disc('condensed_disc.temp', 'processed_disc.temp', 2, (mn+std), rd_len)
     pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_reads_high <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
-    disc_split = pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_reads_high > int(x[8])).sort()\
+    disc_split = pybedtools.BedTool('split_processed.temp')\
+    .filter(lambda x: insertion_reads_high > int(x[8]))\
+    .saveas().sort()\
     .intersect('processed_disc.temp', wo=True, nonamecheck=True)\
-    .each(reorder_intersections, read_count=insertion_reads_low)\
-    .sort()\
-    .saveas()
+    .each(reorder_intersections, read_count=insertion_reads_low).saveas().sort().saveas()
     if len(disc_split) > 0:
-        disc_split.cat('high.temp', postmerge=False).sort().moveto('insertions.temp')
+        disc_split.cat('high.temp', postmerge=False).saveas().sort().saveas().moveto('insertions.temp')
         nm = 'insertions.temp'
     else:
         nm = 'high.temp'
