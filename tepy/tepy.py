@@ -55,7 +55,7 @@ def find_reads_conc(coords, bam):
     intervals = []
     for read in reads:
         intervals.append([read.pos, read.aend])
-    merged = merge_intervals(all_reads)
+    merged = merge_intervals(intervals)
     if len(merged) == 1:
         return True
     else:
