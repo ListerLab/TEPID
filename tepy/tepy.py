@@ -47,6 +47,21 @@ def find_reads(coords, bam):
         return False
 
 
+def find_reads_conc(coords, bam):
+    """
+    If there are concordant reads spanning input coordinates return true, else return False
+    """
+    reads = bam.fetch(coords[0], coords[1], coords[2])
+    intervals = []
+    for read in reads:
+        intervals.append([i.pos, i.aend])
+    merged = merge_intervals(all_reads)
+    if len(merged) == 1:
+        return True
+    else:
+        return False
+
+
 def extract_reads(bam, name_indexed, names, acc):
     header = bam.header.copy()
     out_name = 'extracted_reads_{}.bam'.format(acc)
@@ -97,30 +112,36 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
             coords = (i[0][0], int(i[0][1]), int(i[0][2]))
             te_list = i[0][-2].split(",")
             if acc in i[1]:
-                # if find_reads(coords, concordant) is False:  # this will be a problem, maybe just look for split reads
-                split_names = find_reads(coords, split_alignments)
-                if split_names is not False:
-                    extracted = extract_reads(split_alignments, name_indexed, split_names, acc)
-                    read_names = check_te_overlaps(te, extracted, te_list)
-                    if len(read_names) > refine_read_count:
-                        try:
-                            iterator
-                        except NameError:
-                            iterator = get_last_id(acc, indel)
+                if find_reads_conc(coords, concordant) is False:  # need to do this step, otherwise false positives
+                    split_names = find_reads(coords, split_alignments)
+                    if split_names is not False:
+                        extracted = extract_reads(split_alignments, name_indexed, split_names, acc)
+                        read_names = check_te_overlaps(te, extracted, te_list)
+                        if len(read_names) > refine_read_count:
+                            try:
+                                iterator
+                            except NameError:
+                                iterator = get_last_id(acc, indel)
+                            else:
+                                iterator += 1
+                            write_te(te_file, read_file, i[0], read_names, iterator)
                         else:
-                            iterator += 1
-                        write_te(te_file, read_file, i[0], read_names, iterator)
+                            pass
                     else:
                         pass
                 else:
                     pass
-                # else:
-                #     pass
             else:
                 pass
 
 
 def refine(options):
+    """
+    Refine TE insertion and deletion calls within a group of related samples
+    Use indel calls from other samples in the group, inspect areas of the genome in samples where
+    indel was not called, and look for evidence of the same indel with much lower
+    read count threshold
+    """
     te = pybedtools.BedTool(options.te).sort()
     names = readNames(options.all_samples)
     insertions = getOtherLines(names, options.insertions)
