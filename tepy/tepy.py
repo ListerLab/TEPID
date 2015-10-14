@@ -47,6 +47,25 @@ def find_reads(coords, bam):
         return False
 
 
+def flatten_list(l):
+    s = []
+    for i in l:
+        if i not in s:
+            s.append(i)
+    return s
+
+
+def check_no_breaks(coords):
+    """[[start,stop]...[start,stop]]"""
+    copy = sorted(list(coords))
+    for x in range(len(copy)-1):
+        if _overlap(copy[x][0], copy[x][1], copy[x+1][0], copy[x+1][1], 0) is False:
+            return False
+        else:
+            pass
+    return True
+
+
 def find_reads_conc(coords, bam):
     """
     If there are concordant reads spanning input coordinates return true, else return False
@@ -55,11 +74,8 @@ def find_reads_conc(coords, bam):
     intervals = []
     for read in reads:
         intervals.append([read.pos, read.aend])
-    merged = merge_intervals(intervals)
-    if len(merged) == 1:
-        return True
-    else:
-        return False
+    intervals = flatten_list(intervals)
+    return check_no_breaks(intervals)
 
 
 def extract_reads(bam, name_indexed, names, acc):
@@ -184,6 +200,7 @@ def _overlap(start1, stop1, start2, stop2, d=0):
             return True
         else:
             pass
+    return False
 
 
 def _get_len(infile):
