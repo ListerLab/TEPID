@@ -89,7 +89,7 @@ def write_te(te_file, read_file, data, read_names, iterator):
     read_file.write(">"+str(iterator)+"\t"+",".join(read_names)+"\n")
 
 
-def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te):
+def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te, refine_read_count):
     read_file_name = "second_pass_reads_{t}_{a}.txt".format(t=indel, a=acc)
     te_file_name = "second_pass_{t}_{a}.bed".format(t=indel, a=acc)
     with open(read_file_name, 'w+') as read_file, open(te_file_name, 'w+') as te_file:
@@ -102,7 +102,7 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
                 if split_names is not False:
                     extracted = extract_reads(split_alignments, name_indexed, split_names, acc)
                     read_names = check_te_overlaps(te, extracted, te_list)
-                    if len(read_names) > 5:
+                    if len(read_names) > refine_read_count:
                         try:
                             iterator
                         except NameError:
@@ -130,22 +130,21 @@ def refine(options):
             os.chdir(acc)
             if os.path.isfile('deletions_{}.bed'.format(acc)) is True:
                 print "Processing "+acc
-
-                conc = acc+"_filtered.bam"
+                conc = acc+"_filtered.bam"  # remove _filtered in final version.
                 split = acc+".split.bam"
+                cov = calc_cov(conc, 100000, 120000)
+                read_count = cov/10
                 check_bam(conc, options.proc)
                 check_bam(split, options.proc, make_new_index=True)
                 concordant = pysam.AlignmentFile(conc, 'rb')
                 split_alignments = pysam.AlignmentFile(split, 'rb')
                 name_indexed = pysam.IndexedReads(split_alignments)
                 name_indexed.build()
-
-                print "  deletions"
+                # print "  deletions"
                 # for deletions, will need to make deletions coordinates from split read alignments and intersect that with TEs instead
                 # process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te)
                 print "  insertions"
-                process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te)
-
+                process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te, read_count)
                 os.chdir('..')
             else:
                 os.chdir('..')
