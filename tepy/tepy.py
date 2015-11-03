@@ -7,6 +7,7 @@ import pysam
 import heapq
 import pybedtools
 from glob import glob
+from time import ctime
 
 
 def readNames(names):
@@ -179,8 +180,8 @@ def refine(options):
                 name_indexed.build()
                 # print "  deletions"
                 # for deletions, will need to make deletions coordinates from split read alignments and intersect that with TEs instead
-                # process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te)
-                print "  insertions"
+                # process_missed_dels(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te, read_count)
+                # print "  insertions"
                 process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te, read_count)
                 os.chdir('..')
             else:
@@ -227,9 +228,9 @@ def reorder(insert_file, split_outf, disc_forw, disc_rev):
             read2 = {'chrom': field[3], 'start': field[4], 'stop': field[5], 'strand': field[9]}
             sd = field[10]
             te_coords = {'chrom': field[11], 'start': field[12], 'stop': field[13], 'strand': field[14], 'name': field[15]}
-            r1 = True if _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop']), 10) is True else False
-            r2 = True if _overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop']), 10) is True else False
-            if r1 is True and r2 is False:
+            r1 = _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop']), 10)
+            r2 = _overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop']), 10)
+            if r1 is True and r2 is False:  # find which read overlaps TE annotation
                 dna_read = read2
                 te_read = [read1['chrom'], read1['start'], read1['stop']]
                 mate = 2
@@ -237,8 +238,10 @@ def reorder(insert_file, split_outf, disc_forw, disc_rev):
                 dna_read = read1
                 te_read = [read2['chrom'], read2['start'], read2['stop']]
                 mate = 1
+            elif r1 is True and r2 is True:
+                continue  # don't write to file...need to check if this works (go to next item in for loop)
             else:
-                pass
+                raise Exception("Error in read cluster organization")
             # bedpe format demands chr-start-stop-chr-start-stop-strand1-strand2
             write_string = '{chr1}\t{start1}\t{stop1}\t{chr2}\t{start2}\t{stop2}\t{strand1}\t{strand2}\t{rd}\t{te}\t{sd}\t{te_read}\n'.format(
                 chr1=dna_read['chrom'],
@@ -893,6 +896,7 @@ def discover(options):
     imput split reads bam file must be name sorted
     TE annotation can be gzipped
     """
+    print "Processing "+options.name
     print 'Estimating mean insert size and coverage'
     mn, std, rd_len = calc_mean(options.conc, options.proc)
     cov = calc_cov(options.conc, 100000, 120000)
@@ -901,7 +905,12 @@ def discover(options):
     else:
         pass
     max_dist = (4*std) + mn
-    print '  insert size = {} bp, coverage = {}x'.format(mn, cov)
+    print '\tmean insert size = {ins} bp, standard deviation = {std} bp\n\tcoverage = {cov}x\n\tread length = {rd} bp'.format(
+        ins=mn, std=std, cov=cov, rd=rd_len)
+    with open("tepy_discover_log_{}.txt".format(options.name), 'w+') as logfile:
+        logfile.write('''Sample {sample}\nStart time {time}\nUsing TE annotation at {path}\nmean insert size = {ins} bp, standard deviation = {std} bp\ncoverage = {cov}x\nread length = {rd} bp\n'''.format(
+                sample=options.name, time=ctime(),
+                path=options.te, ins=mn, std=std, cov=cov, rd=rd_len))
 
     deletion_reads = int(cov/5) if (int(cov/5) > 4) else 4
     insertion_reads_low = int(cov/10) if (int(cov/10) > 2) else 2
@@ -976,6 +985,8 @@ def discover(options):
     else:
         nm = 'high.temp'
     separate_reads(nm, 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
+    with open("tepy_discover_log_{}.txt".format(options.name), 'a') as logfile:
+        logfile.write("tepy-discover finished normally at {}".format(ctime()))
 
     if options.keep is False:
         temp = glob('./*.temp')
