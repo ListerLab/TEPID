@@ -918,10 +918,12 @@ def discover(options):
 
     print 'Processing split reads'
     check_name_sorted(options.split, options.proc)
-    pybedtools.BedTool(options.split).bam_to_bed().saveas()\
-    .filter(lambda x: int(x[4]) >= 7).saveas('split.temp')
+    pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp')\
+    .filter(lambda x: int(x[4]) >= 5).saveas('split_hq.temp')
+    convert_split_pairbed('split_hq.temp', 'split_hq_bedpe.temp')
     convert_split_pairbed('split.temp', 'split_bedpe.temp')
-    split_bedpe = pybedtools.BedTool('split_bedpe.temp').each(append_origin, word='split').saveas().sort()
+    split_bedpe = pybedtools.BedTool('split_hq_bedpe.temp').each(append_origin, word='split').saveas().sort()
+    split_bedpe_dels = pybedtools.BedTool('split_bedpe.temp').each(append_origin, word='split').saveas().sort()
     split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
 
     print 'Finding discordant reads'
@@ -930,7 +932,7 @@ def discover(options):
     disc = pybedtools.BedTool('disc_sorted.bam')\
     .bam_to_bed(bedpe=True, mate1=True)\
     .each(append_origin, word='disc').saveas()
-    disc_split_dels = split_bedpe.cat(disc, postmerge=False).sort().saveas('disc_split_dels.temp')
+    disc_split_dels = split_bedpe_dels.cat(disc, postmerge=False).sort().saveas('disc_split_dels.temp')
     disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas('disc_split_ins.temp')
 
     print 'Processing TE annotation'
