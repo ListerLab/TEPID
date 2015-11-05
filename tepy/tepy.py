@@ -110,7 +110,7 @@ def check_te_overlaps(te, bamfile, te_list):
 def check_te_overlaps_dels(te, bamfile, te_list):
     pybedtools.BedTool(bamfile).bam_to_bed().saveas('split.temp')
     convert_split_pairbed('split.temp', 'split_bedpe.temp')
-    split = pybedtools.BedTool('split_bedpe.temp')
+    split = pybedtools.BedTool('split_bedpe.temp').each(append_origin, word='split').saveas()
     create_deletion_coords(split, 'second_pass_del_coords.temp')
     dels = pybedtools.BedTool('second_pass_del_coords.temp').sort()
     intersections = dels.intersect(te, wb=True, nonamecheck=True, sorted=True)
@@ -193,7 +193,6 @@ def refine(options):
                 conc = acc+"_filtered.bam"  # remove _filtered in final version.
                 split = acc+".split.bam"
                 cov = calc_cov(conc, 100000, 120000)
-                read_count = cov/10
                 check_bam(conc, options.proc)
                 check_bam(split, options.proc, make_new_index=True)
                 concordant = pysam.AlignmentFile(conc, 'rb')
@@ -201,10 +200,9 @@ def refine(options):
                 name_indexed = pysam.IndexedReads(split_alignments)
                 name_indexed.build()
                 print "  deletions"
-                # for deletions, will need to make deletions coordinates from split read alignments and intersect that with TEs instead
-                process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te, read_count)
+                process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te, cov/5)
                 print "  insertions"
-                process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te, read_count)
+                process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te, cov/10)
                 os.chdir('..')
             else:
                 os.chdir('..')
