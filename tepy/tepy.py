@@ -107,6 +107,21 @@ def check_te_overlaps(te, bamfile, te_list):
     return reads
 
 
+def check_te_overlaps_dels(te, bamfile, te_list):
+    split = pybedtools.BedTool(bamfile).bam_to_bed()
+    create_deletion_coords(split, 'second_pass_del_coords.temp')
+    dels = pybedtools.BedTool('second_pass_del_coords.temp').sort()
+    intersections = dels.intersect(te, wb=True, nonamecheck=True, sorted=True)
+    os.remove('second_pass_del_coords.temp')
+    reads = []
+    for r in intersections:
+        if r[-3] in te_list:
+            reads.append(r[3])
+        else:
+            pass
+    return reads
+
+
 def get_last_id(acc, indel):
     with open("{i}_reads_{a}.txt".format(i=indel, a=acc), 'r') as f:
         for line in f:
@@ -133,7 +148,12 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
                     split_names = find_reads(coords, split_alignments)
                     if split_names is not False:
                         extracted = extract_reads(split_alignments, name_indexed, split_names, acc)
-                        read_names = check_te_overlaps(te, extracted, te_list)
+                        if indel == 'insertion':
+                            read_names = check_te_overlaps(te, extracted, te_list)
+                        elif indel == 'deletion':
+                            read_names = check_te_overlaps_dels(te, extracted, te_list)
+                        else:
+                            raise Exception()
                         if len(read_names) > refine_read_count:
                             try:
                                 iterator
@@ -178,10 +198,10 @@ def refine(options):
                 split_alignments = pysam.AlignmentFile(split, 'rb')
                 name_indexed = pysam.IndexedReads(split_alignments)
                 name_indexed.build()
-                # print "  deletions"
+                print "  deletions"
                 # for deletions, will need to make deletions coordinates from split read alignments and intersect that with TEs instead
-                # process_missed_dels(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te, read_count)
-                # print "  insertions"
+                process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te, read_count)
+                print "  insertions"
                 process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te, read_count)
                 os.chdir('..')
             else:
