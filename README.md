@@ -6,28 +6,17 @@ Uses paired-end sequencing data to find transposable element insertion points.
 Installation
 -----
 
-Clone repository
-
 ```
 git clone git@github.com:timoast/TEpy.git
-```
-
-Install requirements
-
-```
 pip install -r requirements.txt
-```
-
-Run setup script
-
-```
 python setup.py install
 ```
 
 Usage
 -----
 
-Run the mapping script. This is added to your path during the installation.
+Step 1: Mapping
+----
 
 ```
 tepy-map -x <path/to/bowtie2/index> \
@@ -51,6 +40,9 @@ The name of these output files will come from the name of the input fastq files
 
 Next go to the directory containing your bam files
 
+Step 2: TE variant discovery
+----
+
 ```
 tepy-discover -n <sample_name> -c <mapped> -s <split_mapped> -t <te_bedfile>
 ```
@@ -70,6 +62,27 @@ Output files:
   * TE deletions bedfile (TE present in reference but not sample)
   * File containing names of reads providing evidence for insertions
   * File containing names of reads providing evidence for deletions
+
+Step 3: Refinement
+----
+
+This step is optional and for groups of related samples only, such as a population or generational study. First, a file containing all idenetified variants for the group needs to be generated, with a list of samples that contain each insertion as a column in a bedfile:
+
+```
+[chromosome name]	[start position]	[stop position]	[TE name] [comma-separated list of samples containing insertion]
+```
+
+For example:
+```
+chr1	23094	23200	AT1TE69285	Sorbo,Nok-3
+```
+
+To do this, the `merge_insertions.py` and `merge_deletions.py` scripts included in the TEpy package, in the `Scripts/` directory, can be used. A list of all sample names is also needed (one sample name on each line of a file). Then, using the merged insertions and deletions files:
+
+```
+tepy-refine -t <te_annotation> -i <insertions_file> -d <deletions_file> -a <all_sample_names>
+```
+
 
 ---
 Required Tools
