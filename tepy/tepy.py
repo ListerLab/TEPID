@@ -918,7 +918,7 @@ def discover(options):
 
     print 'Processing split reads'
     check_name_sorted(options.split, options.proc)
-    pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp')\
+    pybedtools.BedTool(options.split).bam_to_bed().saveas()\
     .filter(lambda x: int(x[4]) >= 7).saveas('split.temp')
     convert_split_pairbed('split.temp', 'split_bedpe.temp')
     split_bedpe = pybedtools.BedTool('split_bedpe.temp').each(append_origin, word='split').saveas().sort()
