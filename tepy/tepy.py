@@ -108,7 +108,9 @@ def check_te_overlaps(te, bamfile, te_list):
 
 
 def check_te_overlaps_dels(te, bamfile, te_list):
-    split = pybedtools.BedTool(bamfile).bam_to_bed()
+    pybedtools.BedTool(bamfile).bam_to_bed().saveas('split.temp')
+    convert_split_pairbed('split.temp', 'split_bedpe.temp')
+    split = pybedtools.BedTool('split_bedpe.temp')
     create_deletion_coords(split, 'second_pass_del_coords.temp')
     dels = pybedtools.BedTool('second_pass_del_coords.temp').sort()
     intersections = dels.intersect(te, wb=True, nonamecheck=True, sorted=True)
