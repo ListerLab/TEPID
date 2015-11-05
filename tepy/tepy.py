@@ -192,9 +192,9 @@ def refine(options):
                 print "Processing "+acc
                 conc = acc+"_filtered.bam"  # remove _filtered in final version.
                 split = acc+".split.bam"
-                cov = calc_cov(conc, 100000, 120000)
                 check_bam(conc, options.proc)
                 check_bam(split, options.proc, make_new_index=True)
+                cov = calc_cov(conc, 100000, 120000)
                 concordant = pysam.AlignmentFile(conc, 'rb')
                 split_alignments = pysam.AlignmentFile(split, 'rb')
                 name_indexed = pysam.IndexedReads(split_alignments)
