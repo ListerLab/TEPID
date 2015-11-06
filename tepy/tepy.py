@@ -156,7 +156,7 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
                             read_names = check_te_overlaps_dels(te, extracted, te_list)
                         else:
                             raise Exception()
-                        if len(read_names) > refine_read_count:
+                        if len(read_names) >= refine_read_count:
                             try:
                                 iterator
                             except NameError:
