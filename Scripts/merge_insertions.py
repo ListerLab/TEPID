@@ -23,7 +23,7 @@ def create_master_dict(master, accession_name):
                 pass
             else:
                 master_insertions[x] = {'ins_chrom': line[0], 'ins_start': int(line[1]), 'ins_end': int(line[2]),
-                                        'agi': line[6].split(','), 'ref_chrom': line[3], 'ident': line[7],
+                                        'agi': line[6], 'ref_chrom': line[3], 'ident': line[7],
                                         'ref_start': int(line[4]), 'ref_end': int(line[5]), 'accessions': [accession_name]}
                 x += 1
         return master_insertions
@@ -39,7 +39,7 @@ def merge_insertions(master_dict, ins_file, accession_name):
             else:
                 ins_start = int(line[1])
                 ins_end = int(line[2])
-                agi = line[6].split(',')
+                agi = line[6]
                 ident = line[7]
                 ref_chrom = line[3]
                 ref_start = int(line[4])
@@ -48,7 +48,7 @@ def merge_insertions(master_dict, ins_file, accession_name):
                 x = 0
                 while x <= i:
                     # find out if there is another insertion the same in another accession: same insertion chromosome, same TE
-                    if master_dict[x]['ins_chrom'] == ins_chrom and master_dict[x]['agi'] in agi and ref_chrom == master_dict[x]['ref_chrom'] and ref_start == master_dict[x]['ref_start']:
+                    if master_dict[x]['ins_chrom'] == ins_chrom and master_dict[x]['agi'] == agi and ref_chrom == master_dict[x]['ref_chrom'] and ref_start == master_dict[x]['ref_start']:
                         # does it overlap with the insertion coordinated for current accession
                         if overlap(master_dict[x]['ins_start'], master_dict[x]['ins_end'], ins_start, ins_end) is True:
                             # same insertion, append accession name to list for that insertion
@@ -103,7 +103,7 @@ with open('insertions.bed', 'w+') as outfile:
         outfile.write("""{ins_chrom}\t{ins_start}\t{ins_end}\t{ref_chrom}\t{ref_start}\t{ref_end}\t{agi}\t{accessions}\n""".format(ins_chrom=value['ins_chrom'],
                                                                                                                                          ins_start=value['ins_start'],
                                                                                                                                          ins_end=value['ins_end'],
-                                                                                                                                         agi=','.join(value['agi']),
+                                                                                                                                         agi=value['agi'],
                                                                                                                                          ref_chrom=value['ref_chrom'],
                                                                                                                                          ref_start=value['ref_start'],
                                                                                                                                          ref_end=value['ref_end'],
