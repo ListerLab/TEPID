@@ -74,7 +74,8 @@ def find_reads_conc(coords, bam):
     reads = bam.fetch(coords[0], coords[1], coords[2])
     intervals = []
     for read in reads:
-        intervals.append([read.pos, read.aend])
+        if read.pos is not None and read.aend is not None:
+            intervals.append([read.pos, read.aend])
     intervals = flatten_list(intervals)
     return check_no_breaks(intervals)
 
