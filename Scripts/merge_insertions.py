@@ -47,7 +47,7 @@ def merge_insertions(master_dict, ins_file, accession_name):
                 i = len(master_dict)-1
                 x = 0
                 while x <= i:
-                    if len(set(master_dict[x]['agi'].intersection(agi))) > 0:
+                    if len(set(master_dict[x]['agi']).intersection(agi)) > 0:
                         all_agi = list(set(master_dict[x]['agi'] + agi))
                         # need to adjust reference coords, taking coords of longest list of TEs
                         if len(agi) < len(master_dict[x]['agi']):
