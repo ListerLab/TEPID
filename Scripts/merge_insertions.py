@@ -64,6 +64,7 @@ def merge_insertions(master_dict, ins_file, accession_name):
                         if overlap(master_dict[x]['ins_start'], master_dict[x]['ins_end'], ins_start, ins_end) is True:
                             # same insertion, append accession name to list for that insertion
                             master_dict[x]['accessions'].append(accession_name)
+                            master_dict[x]['agi'] = all_agi
                             break
                             # refine insertion coordinates
                             if master_dict['ins_end'] > ins_start > master_dict['ins_start']:
