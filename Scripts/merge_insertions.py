@@ -121,8 +121,8 @@ def main(filename):
                                                                                                                                              ref_end=value['ref_end'],
                                                                                                                                              accessions=','.join(accessions)))
 
-    call("""awk 'BEGIN {FS=OFS="\t"} {print $1,$2,$3,$7,$8}' {}.bed > {}_poly_te.bed""".format(filename), shell=True)
-    call("""awk 'BEGIN {FS=OFS="\t"} {print $4,$5,$6,$1,$2,$3}' {}.bed > circos_all.txt""".format(filename), shell=True)
+    call("""awk 'BEGIN {FS=OFS="\t"} {print $1,$2,$3,$7,$8}' {f}.bed > {f}_poly_te.bed""".format(f=filename), shell=True)
+    call("""awk 'BEGIN {FS=OFS="\t"} {print $4,$5,$6,$1,$2,$3}' {f}.bed > circos_all.txt""".format(f=filename), shell=True)
 
 parser = ArgumentParser(description='Merge TE insertions calls')
 parser.add_argument('-r', '--refined', help='Merge refined files', action='store_true', required=False, default=False)
