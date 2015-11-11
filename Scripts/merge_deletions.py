@@ -42,20 +42,31 @@ def save_deletions(master, outf):
 
 if __name__ == "__main__":
     import os
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser(description='Merge TE deletions calls')
+    parser.add_argument('-r', '--refined', help='Merge refined files', action='store_true', required=False, default=False)
+    options = parser.parse_args()
+
+    if options.refined is True:
+        filename = "refined_dels"
+    else:
+        filename = "deletions"
+
     for dirs in os.listdir('.'):
         if os.path.isdir(dirs) is True:
             os.chdir(dirs)
-            if os.path.isfile('deletions_{d}.bed'.format(d=dirs)) is True:
+            if os.path.isfile(filename+'_{d}.bed'.format(d=dirs)) is True:
                 print "Processing {d}".format(d=dirs)
                 try:
                     master_dictionary
                 except NameError:
-                    master_dictionary = create_master_dict(dirs, 'deletions_{d}.bed'.format(d=dirs))
+                    master_dictionary = create_master_dict(dirs, filename+'_{d}.bed'.format(d=dirs))
                 else:
-                    merge_deletions(master_dictionary, 'deletions_{d}.bed'.format(d=dirs), dirs)
+                    merge_deletions(master_dictionary, filename+'_{d}.bed'.format(d=dirs), dirs)
                 os.chdir('..')
             else:
                 os.chdir('..')
         else:
             pass
-    save_deletions(master_dictionary, 'deletions.bed')
+    save_deletions(master_dictionary, filename+'.bed')

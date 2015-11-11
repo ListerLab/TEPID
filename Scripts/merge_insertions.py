@@ -2,6 +2,7 @@
 
 import os
 from subprocess import call
+from argparse import ArgumentParser
 
 
 def overlap(start1, stop1, start2, stop2):
@@ -90,36 +91,46 @@ def merge_insertions(master_dict, ins_file, accession_name):
                         x += 1
                         pass
 
-
-for dirs in os.listdir('.'):
-    if os.path.isdir(dirs) is True:
-        os.chdir(dirs)
-        if os.path.isfile('insertions_{d}.bed'.format(d=dirs)) is True:
-            print "processing {dirs}".format(dirs=dirs)
-            try:
-                master_insertions
-            except NameError:
-                master_insertions = create_master_dict('insertions_{d}.bed'.format(d=dirs), dirs)
+def main(filename):
+    for dirs in os.listdir('.'):
+        if os.path.isdir(dirs) is True:
+            os.chdir(dirs)
+            if os.path.isfile(filename+'_{d}.bed'.format(d=dirs)) is True:
+                print "processing {dirs}".format(dirs=dirs)
+                try:
+                    master_insertions
+                except NameError:
+                    master_insertions = create_master_dict(filename+'_{d}.bed'.format(d=dirs), dirs)
+                else:
+                    merge_insertions(master_insertions, filename+'_{d}.bed'.format(d=dirs), dirs)
+                os.chdir('..')
             else:
-                merge_insertions(master_insertions, 'insertions_{d}.bed'.format(d=dirs), dirs)
-            os.chdir('..')
+                os.chdir('..')
         else:
-            os.chdir('..')
-    else:
-        pass
+            pass
 
+    with open(filename+'.bed', 'w+') as outfile:
+        for key, value in master_insertions.iteritems():
+            accessions = set(value['accessions'])  # removes duplicates
+            outfile.write("""{ins_chrom}\t{ins_start}\t{ins_end}\t{ref_chrom}\t{ref_start}\t{ref_end}\t{agi}\t{accessions}\n""".format(ins_chrom=value['ins_chrom'],
+                                                                                                                                             ins_start=value['ins_start'],
+                                                                                                                                             ins_end=value['ins_end'],
+                                                                                                                                             agi=",".join(value['agi']),
+                                                                                                                                             ref_chrom=value['ref_chrom'],
+                                                                                                                                             ref_start=value['ref_start'],
+                                                                                                                                             ref_end=value['ref_end'],
+                                                                                                                                             accessions=','.join(accessions)))
 
-with open('insertions.bed', 'w+') as outfile:
-    for key, value in master_insertions.iteritems():
-        accessions = set(value['accessions'])  # removes duplicates
-        outfile.write("""{ins_chrom}\t{ins_start}\t{ins_end}\t{ref_chrom}\t{ref_start}\t{ref_end}\t{agi}\t{accessions}\n""".format(ins_chrom=value['ins_chrom'],
-                                                                                                                                         ins_start=value['ins_start'],
-                                                                                                                                         ins_end=value['ins_end'],
-                                                                                                                                         agi=",".join(value['agi']),
-                                                                                                                                         ref_chrom=value['ref_chrom'],
-                                                                                                                                         ref_start=value['ref_start'],
-                                                                                                                                         ref_end=value['ref_end'],
-                                                                                                                                         accessions=','.join(accessions)))
+    call("""awk 'BEGIN {FS=OFS="\t"} {print $1,$2,$3,$7,$8}' {}.bed > {}_poly_te.bed""".format(filename), shell=True)
+    call("""awk 'BEGIN {FS=OFS="\t"} {print $4,$5,$6,$1,$2,$3}' {}.bed > circos_all.txt""".format(filename), shell=True)
 
-call("""awk 'BEGIN {FS=OFS="\t"} {print $1,$2,$3,$7,$8}' insertions.bed > insertions_poly_te.bed""", shell=True)
-call("""awk 'BEGIN {FS=OFS="\t"} {print $4,$5,$6,$1,$2,$3}' insertions.bed > circos_all.txt""", shell=True)
+parser = ArgumentParser(description='Merge TE insertions calls')
+parser.add_argument('-r', '--refined', help='Merge refined files', action='store_true', required=False, default=False)
+options = parser.parse_args()
+
+if options.refined is True:
+    filename = 'refined_ins'
+else:
+    filename = 'insertions'
+
+main(filename)
