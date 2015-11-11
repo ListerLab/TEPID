@@ -23,7 +23,7 @@ def create_master_dict(master, accession_name):
                 pass
             else:
                 master_insertions[x] = {'ins_chrom': line[0], 'ins_start': int(line[1]), 'ins_end': int(line[2]),
-                                        'agi': line[6], 'ref_chrom': line[3], 'ident': line[7],
+                                        'agi': line[6].split(','), 'ref_chrom': line[3], 'ident': line[7],
                                         'ref_start': int(line[4]), 'ref_end': int(line[5]), 'accessions': [accession_name]}
                 x += 1
         return master_insertions
@@ -39,7 +39,7 @@ def merge_insertions(master_dict, ins_file, accession_name):
             else:
                 ins_start = int(line[1])
                 ins_end = int(line[2])
-                agi = line[6]
+                agi = line[6].split(',')
                 ident = line[7]
                 ref_chrom = line[3]
                 ref_start = int(line[4])
@@ -47,8 +47,19 @@ def merge_insertions(master_dict, ins_file, accession_name):
                 i = len(master_dict)-1
                 x = 0
                 while x <= i:
+                    if len(set(master_dict[x]['agi'].intersection(agi))) > 0:
+                        all_agi = list(set(master_dict[x]['agi'] + agi))
+                        # need to adjust reference coords, taking coords of longest list of TEs
+                        if len(agi) < len(master_dict[x]['agi']):
+                            ref_start = master_dict[x]['ref_start']
+                            ref_end = master_dict[x]['ref_end']
+                        else:
+                            pass
+                        same_te = True
+                    else:
+                        same_te = False
                     # find out if there is another insertion the same in another accession: same insertion chromosome, same TE
-                    if master_dict[x]['ins_chrom'] == ins_chrom and master_dict[x]['agi'] == agi and ref_chrom == master_dict[x]['ref_chrom'] and ref_start == master_dict[x]['ref_start']:
+                    if master_dict[x]['ins_chrom'] == ins_chrom and same_te is True and ref_chrom == master_dict[x]['ref_chrom'] and ref_start == master_dict[x]['ref_start']:
                         # does it overlap with the insertion coordinated for current accession
                         if overlap(master_dict[x]['ins_start'], master_dict[x]['ins_end'], ins_start, ins_end) is True:
                             # same insertion, append accession name to list for that insertion
@@ -63,7 +74,7 @@ def merge_insertions(master_dict, ins_file, accession_name):
                                 pass
                         elif x == i:
                             master_dict[x+1] = {'ins_chrom': ins_chrom, 'ins_start': ins_start, 'ins_end': ins_end,
-                                        'agi': agi, 'ref_chrom': ref_chrom, 'ident': ident,
+                                        'agi': all_agi, 'ref_chrom': ref_chrom, 'ident': ident,
                                         'ref_start': ref_start, 'ref_end': ref_end, 'accessions': [accession_name]}
                             break
                         else:
@@ -103,7 +114,7 @@ with open('insertions.bed', 'w+') as outfile:
         outfile.write("""{ins_chrom}\t{ins_start}\t{ins_end}\t{ref_chrom}\t{ref_start}\t{ref_end}\t{agi}\t{accessions}\n""".format(ins_chrom=value['ins_chrom'],
                                                                                                                                          ins_start=value['ins_start'],
                                                                                                                                          ins_end=value['ins_end'],
-                                                                                                                                         agi=value['agi'],
+                                                                                                                                         agi=",".join(value['agi']),
                                                                                                                                          ref_chrom=value['ref_chrom'],
                                                                                                                                          ref_start=value['ref_start'],
                                                                                                                                          ref_end=value['ref_end'],
