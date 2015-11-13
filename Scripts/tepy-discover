@@ -9,8 +9,8 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description='discover polymorphic TE insertion sites from sequence data')
     parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
-    parser.add_argument('-d', '--deletions', help='find deletions only', action='store_false', required=False, default=True)
-    parser.add_argument('-i', '--insertions', help='find insertions only', action='store_false', required=False, default=True)
+    parser.add_argument('-d', '--deletions', help='find deletions only', action='store_true', required=False, default=False)
+    parser.add_argument('-i', '--insertions', help='find insertions only', action='store_true', required=False, default=False)
     parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
     parser.add_argument('--version', action='version', version='%(prog)s '+str(version))
     parser.add_argument('-n', '--name', help='sample name', required=True)
