@@ -767,7 +767,7 @@ def merge_intervals(coords):
     return copy
 
 
-def determine_overlaps(coords, te_file, te_length, overlap, gapsize, target_te_overlap, target_gap_span):
+def determine_overlaps(coords, te_file, te_length, overlap, gapsize, target_te_overlap, target_gap_span, del_counts):
     """
     check if read spans enough of TE to call a deletion
     check that enough of TE spans gapsize
@@ -778,15 +778,17 @@ def determine_overlaps(coords, te_file, te_length, overlap, gapsize, target_te_o
         return False
     if read_overlap > target_gap_span:
         return True
-    else:
+    elif del_counts[coords] > 1:
         multi_len = check_multi_te_deletion(coords, te_file)
         if (multi_len / gapsize) > target_gap_span:
             return True
         else:
             return False
+    else:
+        return False
 
 
-def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
+def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file, del_counts):
     """
     Calls deletions where the gap between paired reads is at
     least 80 percent the length of the TE
@@ -815,7 +817,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
             if (gapsize <= 0) or (name in written_tes) or ((length-mn) > gapsize):
                 pass
             else:
-                if determine_overlaps(coords, te_file, length, overlap, gapsize, 0.8, 0.8) is True:
+                if determine_overlaps(coords, te_file, length, overlap, gapsize, 0.8, 0.8, del_counts) is True:
                     if name not in tes.keys():
                         cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
                         tes[name] = [cov, 0, 0, [read_name]]  # coverage, split, disc, read_name (list)
@@ -973,7 +975,15 @@ def discover(options):
         create_deletion_coords(disc_split_dels, 'del_coords.temp')
         dels = pybedtools.BedTool('del_coords.temp').sort()
         dels.intersect(te, wo=True, sorted=True, nonamecheck=True).sort().saveas('deletions.temp')
-        annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te)
+        # need to intersect with TEs and record number of intersections for each coord to speed up processing later
+        dels.intersect(te, c=True, sorted=True, nonamecheck=True).saveas('del_counts.temp')
+        del_counts = {}
+        with open('del_counts.temp', 'r') as infile:
+            for line in infile:
+                line = line.rsplit()
+                crds = ",".join(line[:3])
+                del_counts[crds] = int(line[-1])
+        annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te, del_counts)
 
     if options.deletions is True:  # finding deletions only, so skip insertions
         pass
