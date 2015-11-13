@@ -778,7 +778,7 @@ def determine_overlaps(coords, te_file, te_length, overlap, gapsize, target_te_o
         return False
     if read_overlap > target_gap_span:
         return True
-    elif del_counts[",".join(coords)] > 1:
+    elif del_counts[",".join(map(str, coords))] > 1:
         multi_len = check_multi_te_deletion(coords, te_file)
         if (multi_len / gapsize) > target_gap_span:
             return True
