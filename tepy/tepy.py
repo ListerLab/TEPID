@@ -184,8 +184,10 @@ def refine(options):
     """
     te = pybedtools.BedTool(options.te).sort()
     names = readNames(options.all_samples)
-    insertions = getOtherLines(names, options.insertions)
-    deletions = getOtherLines(names, options.deletions)  # format ([data], [inverse_accessions])
+    if options.insertions is not False:
+        insertions = getOtherLines(names, options.insertions)
+    if options.deletions is not False:
+        deletions = getOtherLines(names, options.deletions)  # format ([data], [inverse_accessions])
     for acc in os.listdir('.'):
         if os.path.isdir(acc) is True:
             os.chdir(acc)
