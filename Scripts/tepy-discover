@@ -15,6 +15,7 @@ if __name__ == "__main__":
     group.add_argument('-i', '--insertions', help='find insertions only', action='store_true', required=False, default=False)
     parser.add_argument('--strict', help='Report high-confidence variants only', required=False, default=False, action='store_true')
     parser.add_argument('--mask', help='Mask chromosomes, comma separated list', required=False, type=str, default='')
+    parser.add_argument('-D', '--discordant', help='Supply discordant reads bam file', required=False, default=False)
     parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
     parser.add_argument('-n', '--name', help='sample name', required=True)
     parser.add_argument('-c', '--conc', help='bam file from bowtie2', required=True)

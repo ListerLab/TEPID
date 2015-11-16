@@ -969,13 +969,20 @@ def discover(options):
     split_bedpe_dels = pybedtools.BedTool('split_bedpe.temp').each(append_origin, word='split').saveas().sort()
     split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
 
-    print 'Finding discordant reads'
-    filter_discordant(options.conc, max_dist, 'disc_bam.temp')
-    pysam.sort('-@', str(options.proc), '-n', 'disc_bam.temp', 'disc_sorted')
-    disc = pybedtools.BedTool('disc_sorted.bam')\
-    .bam_to_bed(bedpe=True, mate1=True)\
-    .filter(lambda x: x[0] not in mask_chroms).saveas()\
-    .each(append_origin, word='disc').saveas()
+    if options.discordant is False:
+        print 'Finding discordant reads'
+        filter_discordant(options.conc, max_dist, 'disc_bam.temp')
+        pysam.sort('-@', str(options.proc), '-n', 'disc_bam.temp', 'disc_sorted')
+        disc = pybedtools.BedTool('disc_sorted.bam')\
+        .bam_to_bed(bedpe=True, mate1=True)\
+        .filter(lambda x: x[0] not in mask_chroms).saveas()\
+        .each(append_origin, word='disc').saveas()
+    else:
+        check_bam(options.discordant)
+        disc = pybedtools.BedTool(options.discordant)\
+        .bam_to_bed(bedpe=True, mate1=True)\
+        .filter(lambda x: x[0] not in mask_chroms).saveas()\
+        .each(append_origin, word='disc').saveas()
     disc_split_dels = split_bedpe_dels.cat(disc, postmerge=False).sort().saveas('disc_split_dels.temp')
     disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas('disc_split_ins.temp')
 
