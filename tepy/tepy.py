@@ -943,6 +943,8 @@ def discover(options):
                 sample=options.name, time=ctime(),
                 path=options.te, ins=mn, std=std, cov=cov, rd=rd_len))
 
+    mask_chroms = options.mask.split(',')
+
     if options.strict is True:
         deletion_reads = int(cov/5) if (int(cov/5) > 10) else 10
         insertion_reads_low = int(cov/5) if (int(cov/5) > 10) else 10
@@ -958,7 +960,7 @@ def discover(options):
 
     print 'Processing split reads'
     check_name_sorted(options.split, options.proc)
-    split_unfiltered = pybedtools.BedTool(options.split).bam_to_bed().saveas()
+    split_unfiltered = pybedtools.BedTool(options.split).bam_to_bed().saveas().filter(lambda x: x[0] not in mask_chroms).saveas()
     split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_ins).saveas('split_hq.temp')
     split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_dels).saveas('split.temp')
     convert_split_pairbed('split_hq.temp', 'split_hq_bedpe.temp')
@@ -972,6 +974,7 @@ def discover(options):
     pysam.sort('-@', str(options.proc), '-n', 'disc_bam.temp', 'disc_sorted')
     disc = pybedtools.BedTool('disc_sorted.bam')\
     .bam_to_bed(bedpe=True, mate1=True)\
+    .filter(lambda x: x[0] not in mask_chroms).saveas()\
     .each(append_origin, word='disc').saveas()
     disc_split_dels = split_bedpe_dels.cat(disc, postmerge=False).sort().saveas('disc_split_dels.temp')
     disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas('disc_split_ins.temp')
