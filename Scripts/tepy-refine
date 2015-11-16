@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
     version = pkg_resources.require("TEpy")[0].version
 
-    parser = ArgumentParser(description='Perform second pass over group samples to reduce false negatives')
+    parser = ArgumentParser(description='TEpy -- refine TE insertion and deletion calls')
     parser.add_argument('--version', action='version', version='%(prog)s '+str(version))
     parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
     parser.add_argument('-i', '--insertions', help='File containing collapsed TE insertions for all samples in population', required=False, default=False)
