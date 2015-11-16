@@ -943,14 +943,24 @@ def discover(options):
                 sample=options.name, time=ctime(),
                 path=options.te, ins=mn, std=std, cov=cov, rd=rd_len))
 
-    deletion_reads = int(cov/5) if (int(cov/5) > 4) else 4
-    insertion_reads_low = int(cov/10) if (int(cov/10) > 2) else 2
-    insertion_reads_high = int(cov/5) if (int(cov/5) > 2) else 2
+    if options.strict is True:
+        deletion_reads = int(cov/5) if (int(cov/5) > 10) else 10
+        insertion_reads_low = int(cov/5) if (int(cov/5) > 10) else 10
+        insertion_reads_high = int(cov/2) if (int(cov/2) > 10) else 10
+        quality_filter_ins = 10
+        quality_filter_dels = 10
+    else:
+        deletion_reads = int(cov/5) if (int(cov/5) > 4) else 4
+        insertion_reads_low = int(cov/10) if (int(cov/10) > 2) else 2
+        insertion_reads_high = int(cov/5) if (int(cov/5) > 2) else 2
+        quality_filter_ins = 5
+        quality_filter_dels = 0
 
     print 'Processing split reads'
     check_name_sorted(options.split, options.proc)
-    pybedtools.BedTool(options.split).bam_to_bed().saveas('split.temp')\
-    .filter(lambda x: int(x[4]) >= 5).saveas('split_hq.temp')
+    split_unfiltered = pybedtools.BedTool(options.split).bam_to_bed().saveas()
+    split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_ins).saveas('split_hq.temp')
+    split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_dels).saveas('split.temp')
     convert_split_pairbed('split_hq.temp', 'split_hq_bedpe.temp')
     convert_split_pairbed('split.temp', 'split_bedpe.temp')
     split_bedpe = pybedtools.BedTool('split_hq_bedpe.temp').each(append_origin, word='split').saveas().sort()

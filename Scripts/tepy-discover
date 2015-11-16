@@ -17,5 +17,6 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--conc', help='bam file from bowtie2', required=True)
     parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
     parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
+    parser.add_argument('--strict', help='Report high-confidence variants only', required=False, default=False, action='store_true')
     options = parser.parse_args()
     tepy.discover(options)
