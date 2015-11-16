@@ -7,16 +7,21 @@ if __name__ == "__main__":
 
     version = pkg_resources.require("TEpy")[0].version
 
-    parser = ArgumentParser(description='discover polymorphic TE insertion sites from sequence data')
+    parser = ArgumentParser(description='TEpy -- discover polymorphic TE insertion and deletion sites')
+    parser.add_argument('--version', action='version', version='%(prog)s '+str(version))
     parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
     parser.add_argument('-d', '--deletions', help='find deletions only', action='store_true', required=False, default=False)
     parser.add_argument('-i', '--insertions', help='find insertions only', action='store_true', required=False, default=False)
+    parser.add_argument('--strict', help='Report high-confidence variants only', required=False, default=False, action='store_true')
     parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
-    parser.add_argument('--version', action='version', version='%(prog)s '+str(version))
     parser.add_argument('-n', '--name', help='sample name', required=True)
     parser.add_argument('-c', '--conc', help='bam file from bowtie2', required=True)
     parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
     parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
-    parser.add_argument('--strict', help='Report high-confidence variants only', required=False, default=False, action='store_true')
     options = parser.parse_args()
-    tepy.discover(options)
+
+    if options.insertions is True and options.deletions is True:
+        import sys
+        sys.exit("""Option conflict -- Select either -d or -i option, not both.\nTo find both insertions and deletions, do not use either -i or -d options""")
+    else:
+        tepy.discover(options)

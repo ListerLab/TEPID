@@ -7,13 +7,17 @@ if __name__ == "__main__":
 
     version = pkg_resources.require("TEpy")[0].version
 
-    parser = ArgumentParser(description='Perform second pass over population data to catch false negatives')
-    parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
-    parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
-    parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
+    parser = ArgumentParser(description='Perform second pass over group samples to reduce false negatives')
     parser.add_argument('--version', action='version', version='%(prog)s '+str(version))
+    parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
     parser.add_argument('-i', '--insertions', help='File containing collapsed TE insertions for all samples in population', required=False, default=False)
     parser.add_argument('-d', '--deletions', help='File containing collapsed TE deletions for all samples in population', required=False, default=False)
+    parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
+    parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
     parser.add_argument('-a', '--all_samples', help='List of all sample names', required=True)
     options = parser.parse_args()
-    tepy.refine(options)
+    if options.insertions is False and options.deletions is False:
+        import sys
+        sys.exit("Error -- you have not supplied an insertions or deletions file")
+    else:
+        tepy.refine(options)
