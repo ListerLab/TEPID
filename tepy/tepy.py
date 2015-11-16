@@ -193,7 +193,7 @@ def refine(options):
             os.chdir(acc)
             if os.path.isfile('deletions_{}.bed'.format(acc)) is True:
                 print "Processing "+acc
-                conc = acc+"_filtered.bam"  # remove _filtered in final version.
+                conc = acc+".bam"
                 split = acc+".split.bam"
                 check_bam(conc, options.proc)
                 check_bam(split, options.proc, make_new_index=True)
