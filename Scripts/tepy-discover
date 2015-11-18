@@ -3,6 +3,7 @@
 if __name__ == "__main__":
     from argparse import ArgumentParser
     import pkg_resources
+    import os
     from tepy import tepy
 
     version = pkg_resources.require("TEpy")[0].version
@@ -14,7 +15,7 @@ if __name__ == "__main__":
     group.add_argument('-d', '--deletions', help='find deletions only', action='store_true', required=False, default=False)
     group.add_argument('-i', '--insertions', help='find insertions only', action='store_true', required=False, default=False)
     parser.add_argument('--strict', help='Report high-confidence variants only', required=False, default=False, action='store_true')
-    parser.add_argument('--mask', help='Mask chromosomes, comma separated list', required=False, type=str, default='')
+    parser.add_argument('--mask', help='Mask chromosomes in comma separated list or file', required=False, type=str, default='')
     parser.add_argument('-D', '--discordant', help='Supply discordant reads bam file', required=False, default=False)
     parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
     parser.add_argument('-n', '--name', help='sample name', required=True)
@@ -22,5 +23,15 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
     parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
     options = parser.parse_args()
+
+    if options.mask in os.listdir('.'):
+        m = []
+        with open(options.mask, 'r') as infile:
+            for line in infile:
+                line = line.strip("\n").split(',')
+                m += line
+        options.mask = ",".join(m)
+    else:
+        pass
 
     tepy.discover(options)
