@@ -24,7 +24,7 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
     options = parser.parse_args()
 
-    if options.mask in os.listdir('.'):
+    if os.path.isfile(options.mask):
         m = []
         with open(options.mask, 'r') as infile:
             for line in infile:
