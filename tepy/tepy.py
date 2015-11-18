@@ -978,7 +978,7 @@ def discover(options):
         .filter(lambda x: x[0] not in mask_chroms).saveas()\
         .each(append_origin, word='disc').saveas()
     else:
-        check_bam(options.discordant)
+        check_bam(options.discordant, options.proc)
         disc = pybedtools.BedTool(options.discordant)\
         .bam_to_bed(bedpe=True, mate1=True)\
         .filter(lambda x: x[0] not in mask_chroms).saveas()\
