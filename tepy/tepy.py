@@ -139,7 +139,7 @@ def write_te(te_file, read_file, data, read_names, iterator):
     read_file.write(">"+str(iterator)+"\t"+",".join(read_names)+"\n")
 
 
-def ambiguous(coords, concordant):
+def ambiguous(coords, bam):
     """
     check if there is not enough evidence to give confident call
     return True if call is ambiguous
@@ -162,7 +162,7 @@ def ambiguous(coords, concordant):
 
 def write_ambiguous(fname, data):
     coords = [str(x) for x in data[:-2]]
-    te_file.write("\t".join(coords)+"\t"+data[-2]+"\n")
+    fname.write("\t".join(coords)+"\t"+data[-2]+"\n")
 
 
 def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te, refine_read_count):
