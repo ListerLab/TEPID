@@ -139,15 +139,42 @@ def write_te(te_file, read_file, data, read_names, iterator):
     read_file.write(">"+str(iterator)+"\t"+",".join(read_names)+"\n")
 
 
+def ambiguous(coords, concordant):
+    """
+    check if there is not enough evidence to give confident call
+    return True if call is ambiguous
+    """
+    # calculate coverage over region
+    read_count = 0
+    chrom = coords[0]
+    start = coords[1]-200
+    stop = coords[2]+200
+    length = stop-start
+    for read in bam.pileup(chrom, start, stop):
+        read_count += read.n
+    av = read_count / length
+    # if lower than threshold, add to ambiguous calls
+    if av < 8:
+        return True
+    else:
+        return False
+
+
+def write_ambiguous(fname, data):
+    coords = [str(x) for x in data[:-2]]
+    te_file.write("\t".join(coords)+"\t"+data[-2]+"\n")
+
+
 def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te, refine_read_count):
     read_file_name = "second_pass_reads_{t}_{a}.txt".format(t=indel, a=acc)
     te_file_name = "second_pass_{t}_{a}.bed".format(t=indel, a=acc)
-    with open(read_file_name, 'w+') as read_file, open(te_file_name, 'w+') as te_file:
+    ambiguous_file_name = 'ambiguous_calls_{a}.bed'.format(a=acc)
+    with open(read_file_name, 'w+') as read_file, open(te_file_name, 'w+') as te_file, open(ambiguous_file_name, 'w+') as no_call:
         for i in data:
             coords = (i[0][0], int(i[0][1]), int(i[0][2]))
             te_list = i[0][-2].split(",")
             if acc in i[1]:
-                if find_reads_conc(coords, concordant) is False:  # need to do this step, otherwise false positives
+                if find_reads_conc(coords, concordant) is False:  # returns False if there is a break in coverage within region
                     split_names = find_reads(coords, split_alignments)
                     if split_names is not False:
                         extracted = extract_reads(split_alignments, name_indexed, split_names, acc)
@@ -157,7 +184,7 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
                             read_names = check_te_overlaps_dels(te, extracted, te_list)
                         else:
                             raise Exception()
-                        if len(read_names) >= refine_read_count:
+                        if len(read_names) >= refine_read_count:  # enough evidence to call indel
                             try:
                                 iterator
                             except NameError:
@@ -165,8 +192,14 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
                             else:
                                 iterator += 1
                             write_te(te_file, read_file, i[0], read_names, iterator)
+                        # not enough split read to call indel, check for ambiguous call
+                        elif ambiguous(coords, concordant) is True:
+                            write_ambiguous(no_call, i[0])
                         else:
                             pass
+                    # no split reads
+                    elif ambiguous(coords, concordant) is True:
+                        write_ambiguous(no_call, i[0])
                     else:
                         pass
                 else:
