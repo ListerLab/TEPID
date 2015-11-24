@@ -231,12 +231,12 @@ def refine(options):
     name_indexed.build()
     if options.deletions is not False:
         print "  checking deletions"
-        process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te, cov/5)
+        process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, options.name, te, cov/5)
     else:
         pass
     if options.insertions is not False:
         print "  checking insertions"
-        process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te, cov/10)
+        process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, options.name, te, cov/10)
     else:
         pass
 
