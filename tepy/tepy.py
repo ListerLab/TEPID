@@ -141,7 +141,7 @@ def write_te(te_file, read_file, data, read_names, iterator):
 
 def ambiguous(coords, bam):
     """
-    check if there is not enough evidence to give confident call
+    check if there is low coverage around region
     return True if call is ambiguous
     """
     # calculate coverage over region
@@ -168,7 +168,7 @@ def write_ambiguous(fname, data):
 def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te, refine_read_count):
     read_file_name = "second_pass_reads_{t}_{a}.txt".format(t=indel, a=acc)
     te_file_name = "second_pass_{t}_{a}.bed".format(t=indel, a=acc)
-    ambiguous_file_name = 'ambiguous_calls_{a}.bed'.format(a=acc)
+    ambiguous_file_name = 'ambiguous_{t}_{a}.bed'.format(t=indel, a=acc)
     with open(read_file_name, 'w+') as read_file, open(te_file_name, 'w+') as te_file, open(ambiguous_file_name, 'w+') as no_call:
         for i in data:
             coords = (i[0][0], int(i[0][1]), int(i[0][2]))
@@ -192,7 +192,7 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
                             else:
                                 iterator += 1
                             write_te(te_file, read_file, i[0], read_names, iterator)
-                        # not enough split read to call indel, check for ambiguous call
+                        # not enough split reads to call indel, check for ambiguous call
                         elif ambiguous(coords, concordant) is True:
                             write_ambiguous(no_call, i[0])
                         else:
@@ -221,35 +221,24 @@ def refine(options):
         insertions = getOtherLines(names, options.insertions)
     if options.deletions is not False:
         deletions = getOtherLines(names, options.deletions)  # format ([data], [inverse_accessions])
-    for acc in os.listdir('.'):
-        if os.path.isdir(acc) is True:
-            os.chdir(acc)
-            if os.path.isfile('deletions_{}.bed'.format(acc)) is True:
-                print "Processing "+acc
-                conc = acc+".bam"
-                split = acc+".split.bam"
-                check_bam(conc, options.proc)
-                check_bam(split, options.proc, make_new_index=True)
-                cov = calc_cov(conc, 100000, 120000)
-                concordant = pysam.AlignmentFile(conc, 'rb')
-                split_alignments = pysam.AlignmentFile(split, 'rb')
-                name_indexed = pysam.IndexedReads(split_alignments)
-                name_indexed.build()
-                if options.deletions is not False:
-                    print "  deletions"
-                    process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te, cov/5)
-                else:
-                    pass
-                if options.insertions is not False:
-                    print "  insertions"
-                    process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te, cov/10)
-                else:
-                    pass
-                os.chdir('..')
-            else:
-                os.chdir('..')
-        else:
-            pass
+    print "Processing "+options.name
+    check_bam(options.conc, options.proc)
+    check_bam(options.split, options.proc, make_new_index=True)
+    cov = calc_cov(options.conc, 100000, 120000)
+    concordant = pysam.AlignmentFile(options.conc, 'rb')
+    split_alignments = pysam.AlignmentFile(options.split, 'rb')
+    name_indexed = pysam.IndexedReads(split_alignments)
+    name_indexed.build()
+    if options.deletions is not False:
+        print "  checking deletions"
+        process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, acc, te, cov/5)
+    else:
+        pass
+    if options.insertions is not False:
+        print "  checking insertions"
+        process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, acc, te, cov/10)
+    else:
+        pass
 
 
 def _overlap(start1, stop1, start2, stop2, d=0):

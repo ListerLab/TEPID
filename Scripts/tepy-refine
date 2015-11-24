@@ -14,6 +14,9 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--deletions', help='File containing collapsed TE deletions for all samples in population', required=False, default=False)
     parser.add_argument('-p', '--proc', help='number of processors', required=False, default=1, type=int)
     parser.add_argument('-t', '--te', help='TE annotation bedfile', required=True)
+    parser.add_argument('-n', '--name', help='sample name', required=True)
+    parser.add_argument('-c', '--conc', help='bam file from bowtie2', required=True)
+    parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
     parser.add_argument('-a', '--all_samples', help='List of all sample names', required=True)
     options = parser.parse_args()
     if options.insertions is False and options.deletions is False:
