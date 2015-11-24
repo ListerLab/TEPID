@@ -139,7 +139,7 @@ def write_te(te_file, read_file, data, read_names, iterator):
     read_file.write(">"+str(iterator)+"\t"+",".join(read_names)+"\n")
 
 
-def ambiguous(coords, bam):
+def ambiguous(coords, bam, chrom_sizes):
     """
     check if there is low coverage around region
     return True if call is ambiguous
@@ -147,8 +147,18 @@ def ambiguous(coords, bam):
     # calculate coverage over region
     read_count = 0
     chrom = coords[0]
-    start = coords[1]-200
-    stop = coords[2]+200
+    if chrom not in chrom_sizes.keys():
+        raise Exception('Chromosome names do not match TE annotation')
+    else:
+        pass
+    if (coords[1] - 200 )> 0:
+        start = coords[1]-200
+    else:
+        start = 0
+    if (coords[2] + 200) < chrom_sizes[chrom]:
+        stop = coords[2]+200
+    else:
+        stop = chrom_sizes[chrom]
     length = stop-start
     for read in bam.pileup(chrom, start, stop):
         read_count += read.n
@@ -165,7 +175,7 @@ def write_ambiguous(fname, data):
     fname.write("\t".join(coords)+"\t"+data[-2]+"\n")
 
 
-def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te, refine_read_count):
+def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te, refine_read_count, chrom_sizes):
     read_file_name = "second_pass_reads_{t}_{a}.txt".format(t=indel, a=acc)
     te_file_name = "second_pass_{t}_{a}.bed".format(t=indel, a=acc)
     ambiguous_file_name = 'ambiguous_{t}_{a}.bed'.format(t=indel, a=acc)
@@ -193,12 +203,12 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
                                 iterator += 1
                             write_te(te_file, read_file, i[0], read_names, iterator)
                         # not enough split reads to call indel, check for ambiguous call
-                        elif ambiguous(coords, concordant) is True:
+                        elif ambiguous(coords, concordant, chrom_sizes) is True:
                             write_ambiguous(no_call, i[0])
                         else:
                             pass
                     # no split reads
-                    elif ambiguous(coords, concordant) is True:
+                    elif ambiguous(coords, concordant, chrom_sizes) is True:
                         write_ambiguous(no_call, i[0])
                     else:
                         pass
@@ -222,7 +232,7 @@ def refine(options):
     if options.deletions is not False:
         deletions = getOtherLines(names, options.deletions)  # format ([data], [inverse_accessions])
     print "Processing "+options.name
-    check_bam(options.conc, options.proc)
+    chrom_sizes = check_bam(options.conc, options.proc)
     check_bam(options.split, options.proc, make_new_index=True)
     cov = calc_cov(options.conc, 100000, 120000)
     concordant = pysam.AlignmentFile(options.conc, 'rb')
@@ -231,12 +241,12 @@ def refine(options):
     name_indexed.build()
     if options.deletions is not False:
         print "  checking deletions"
-        process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, options.name, te, cov/5)
+        process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, options.name, te, cov/5, chrom_sizes)
     else:
         pass
     if options.insertions is not False:
         print "  checking insertions"
-        process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, options.name, te, cov/10)
+        process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, options.name, te, cov/10, chrom_sizes)
     else:
         pass
 
