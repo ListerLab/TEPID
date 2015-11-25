@@ -24,7 +24,7 @@ def create_master_dict(master, accession_name):
                 pass
             else:
                 master_insertions[x] = {'ins_chrom': line[0], 'ins_start': int(line[1]), 'ins_end': int(line[2]),
-                                        'agi': line[6].split(','), 'ref_chrom': line[3], 'ident': line[7],
+                                        'agi': line[6].split(','), 'ref_chrom': line[3],
                                         'ref_start': int(line[4]), 'ref_end': int(line[5]), 'accessions': [accession_name]}
                 x += 1
         return master_insertions
@@ -41,7 +41,6 @@ def merge_insertions(master_dict, ins_file, accession_name):
                 ins_start = int(line[1])
                 ins_end = int(line[2])
                 agi = line[6].split(',')
-                ident = line[7]
                 ref_chrom = line[3]
                 ref_start = int(line[4])
                 ref_end = int(line[5])
@@ -76,7 +75,7 @@ def merge_insertions(master_dict, ins_file, accession_name):
                                 pass
                         elif x == i:
                             master_dict[x+1] = {'ins_chrom': ins_chrom, 'ins_start': ins_start, 'ins_end': ins_end,
-                                        'agi': all_agi, 'ref_chrom': ref_chrom, 'ident': ident,
+                                        'agi': all_agi, 'ref_chrom': ref_chrom,
                                         'ref_start': ref_start, 'ref_end': ref_end, 'accessions': [accession_name]}
                             break
                         else:
@@ -84,7 +83,7 @@ def merge_insertions(master_dict, ins_file, accession_name):
                             pass
                     elif x == i:  # end of dictionary and still not found
                         master_dict[x+1] = {'ins_chrom': ins_chrom, 'ins_start': ins_start, 'ins_end': ins_end,
-                                        'agi': agi, 'ref_chrom': ref_chrom, 'ident': ident,
+                                        'agi': agi, 'ref_chrom': ref_chrom,
                                         'ref_start': ref_start, 'ref_end': ref_end, 'accessions': [accession_name]}
                         break
                     else:
