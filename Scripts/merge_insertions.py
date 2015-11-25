@@ -124,12 +124,7 @@ def main(filename):
     call("""awk 'BEGIN {FS=OFS="\t"} {print $1,$2,$3,$7,$8}' """+filename+".bed > "+filename+"_poly_te.bed", shell=True)
 
 parser = ArgumentParser(description='Merge TE insertions calls')
-parser.add_argument('-r', '--refined', help='Merge refined files', action='store_true', required=False, default=False)
+parser.add_argument('-f', '--filename', help='filename prefix for merge files', required=True)
 options = parser.parse_args()
 
-if options.refined is True:
-    filename = 'refined_ins'
-else:
-    filename = 'insertions'
-
-main(filename)
+main(options.filename)
