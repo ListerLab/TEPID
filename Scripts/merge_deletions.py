@@ -11,7 +11,7 @@ def create_master_dict(sample, fname):
                 pass
             else:
                 coords = '\t'.join(field[:5])
-                master_dict[x] = {'coords': coords, 'ident': field[5], 'accessions': [sample]}
+                master_dict[x] = {'coords': coords, 'accessions': [sample]}
                 x += 1
         return master_dict
 
@@ -28,7 +28,7 @@ def merge_deletions(master, fname, sample):
                     master[x]['accessions'].append(sample)
                     break
                 elif x == i:
-                    master[x+1] = {'coords': coords, 'ident': field[5], 'accessions': [sample]}
+                    master[x+1] = {'coords': coords, 'accessions': [sample]}
                     break
                 else:
                     x += 1
@@ -45,28 +45,23 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
 
     parser = ArgumentParser(description='Merge TE deletions calls')
-    parser.add_argument('-r', '--refined', help='Merge refined files', action='store_true', required=False, default=False)
+    parser.add_argument('-f', '--filename', help='filename prefix for merge files', required=True)
     options = parser.parse_args()
-
-    if options.refined is True:
-        filename = "refined_dels"
-    else:
-        filename = "deletions"
 
     for dirs in os.listdir('.'):
         if os.path.isdir(dirs) is True:
             os.chdir(dirs)
-            if os.path.isfile(filename+'_{d}.bed'.format(d=dirs)) is True:
+            if os.path.isfile(options.filename+'_{d}.bed'.format(d=dirs)) is True:
                 print "Processing {d}".format(d=dirs)
                 try:
                     master_dictionary
                 except NameError:
-                    master_dictionary = create_master_dict(dirs, filename+'_{d}.bed'.format(d=dirs))
+                    master_dictionary = create_master_dict(dirs, options.filename+'_{d}.bed'.format(d=dirs))
                 else:
-                    merge_deletions(master_dictionary, filename+'_{d}.bed'.format(d=dirs), dirs)
+                    merge_deletions(master_dictionary, options.filename+'_{d}.bed'.format(d=dirs), dirs)
                 os.chdir('..')
             else:
                 os.chdir('..')
         else:
             pass
-    save_deletions(master_dictionary, filename+'.bed')
+    save_deletions(master_dictionary, options.filename+'.bed')
