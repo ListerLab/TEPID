@@ -765,7 +765,7 @@ def check_bam(bam, p, make_new_index=False):
     return chrom_sizes
 
 
-def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file, del_counts):
+def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
     """
     Calls deletions where the gap between paired reads is at
     least 80 percent the length of the TE
