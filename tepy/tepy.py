@@ -765,63 +765,6 @@ def check_bam(bam, p, make_new_index=False):
     return chrom_sizes
 
 
-def check_multi_te_deletion(coords, te_file):
-    """
-    If region spanned by split or disc reads is much larger than te,
-    check if there are multiple TEs in the region that could all be deleted
-    """
-    coords = [str(x) for x in coords]
-    tes = te_file.intersect(pybedtools.BedTool(" ".join(coords), from_string=True), nonamecheck=True)
-    te_start_stop = []
-    for i in tes:
-        start = int(i[1])
-        stop = int(i[2])
-        te_start_stop.append([start, stop])
-    merged = merge_intervals(te_start_stop)
-    length = 0
-    for i in merged:
-        length += i[1]-i[0]
-    return length
-
-
-def merge_intervals(coords):
-    """[[start,stop]...[start,stop]]"""
-    copy = sorted(list(coords))
-    for x in range(len(copy)-1):
-        if len(copy) <= x+1:  # list shortened in recursion
-            break
-        if _overlap(copy[x][0], copy[x][1], copy[x+1][0], copy[x+1][1], 0) is True:
-            start = min(copy[x][0], copy[x+1][0])
-            stop = max(copy[x][1], copy[x+1][1])
-            copy[x] = [start, stop]  # update copy
-            del copy[x+1]  #remove merged
-            copy = merge_intervals(copy)
-        else:
-            pass
-    return copy
-
-
-def determine_overlaps(coords, te_file, te_length, overlap, gapsize, target_te_overlap, target_gap_span, del_counts):
-    """
-    check if read spans enough of TE to call a deletion
-    check that enough of TE spans gapsize
-    """
-    te_overlap = overlap / te_length
-    read_overlap = te_length / gapsize
-    if te_overlap < target_te_overlap:  # not enough TE covered to call deletion
-        return False
-    if read_overlap > target_gap_span:
-        return True
-    elif del_counts[",".join(map(str, coords))] > 1:
-        multi_len = check_multi_te_deletion(coords, te_file)
-        if (multi_len / gapsize) > target_gap_span:
-            return True
-        else:
-            return False
-    else:
-        return False
-
-
 def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file, del_counts):
     """
     Calls deletions where the gap between paired reads is at
@@ -844,38 +787,34 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file, del_counts):
             te = [line[5], line[6], line[7], line[8], line[9]]  # chr, start, stop, strand, name
             name = te[4]
             length = int(te[2]) - int(te[1])
-            overlap = int(line[12])
             gapsize = coords[2] - coords[1]
             read_type = line[4]
             read_name = line[3]
             if (gapsize <= 0) or (name in written_tes) or ((length-mn) > gapsize):
                 pass
             else:
-                if determine_overlaps(coords, te_file, length, overlap, gapsize, 0.8, 0.8, del_counts) is True:
-                    if name not in tes.keys():
-                        cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
-                        tes[name] = [cov, 0, 0, [read_name]]  # coverage, split, disc, read_name (list)
-                    else:
-                        pass
-                    if read_type == 'split':
-                        tes[name][1] += 1
-                        tes[name][3].append(read_name)
-                    elif read_type == 'disc':
-                        tes[name][2] += 1
-                        tes[name][3].append(read_name)
-                    else:
-                        raise Exception('Incorrect read type information')
-                    split = tes[name][1]
-                    disc = tes[name][2]
-                    total_reads = split + disc
-                    if (tes[name][0] <= 0.1 and total_reads >= num_reads/2) or (total_reads >= num_reads):
-                        data = (str(a) for a in te)
-                        outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=str(x)))
-                        deletions_reads.write(">" + str(x) + "\t" + ",".join(tes[name][3]) + "\n")
-                        x += 1
-                        written_tes.append(name)
-                    else:
-                        pass
+                if name not in tes.keys():  # first time seeing this TE, add to dict
+                    cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
+                    tes[name] = [cov, 0, 0, [read_name]]  # coverage, split, disc, read_name (list)
+                else:
+                    pass
+                if read_type == 'split':
+                    tes[name][1] += 1
+                    tes[name][3].append(read_name)
+                elif read_type == 'disc':
+                    tes[name][2] += 1
+                    tes[name][3].append(read_name)
+                else:
+                    raise Exception('Incorrect read type information')
+                split = tes[name][1]
+                disc = tes[name][2]
+                total_reads = split + disc
+                if (tes[name][0] <= 0.1 and total_reads >= num_reads/2) or (total_reads >= num_reads):
+                    data = (str(a) for a in te)
+                    outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=str(x)))
+                    deletions_reads.write(">" + str(x) + "\t" + ",".join(tes[name][3]) + "\n")
+                    x += 1
+                    written_tes.append(name)
                 else:
                     pass
     allreads.close()
@@ -1028,16 +967,15 @@ def discover(options):
         print 'Finding deletions'
         create_deletion_coords(disc_split_dels, 'del_coords.temp')
         dels = pybedtools.BedTool('del_coords.temp').sort()
-        dels.intersect(te, wo=True, sorted=True, nonamecheck=True).sort().saveas('deletions.temp')
-        # need to intersect with TEs and record number of intersections for each coord to speed up processing later
-        dels.intersect(te, c=True, sorted=True, nonamecheck=True).saveas('del_counts.temp')
-        del_counts = {}
-        with open('del_counts.temp', 'r') as infile:
-            for line in infile:
-                line = line.rsplit()
-                crds = ",".join(line[:3])
-                del_counts[crds] = int(line[-1])
-        annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te, del_counts)
+        # Filter putative deletion sites that have at least 80% gap spanned by TE sequence
+        # this removes cases where very large deletion spans many TEs, as this would be part of a larger deletion event to related to transposition
+        # first merge TE annoation and intersect with deletion coordinates, requiring 80% overlap
+        merged_te = te.merge()
+        dels = dels.intersect(merged_te, f=0.8, wa=True)
+        # now intersect filtered deletion coords with TE annotation, requiring 80% TE sequence covered
+        # can now assume each read covers mostly TE sequence, so if TE is spanned by read, call as deleted
+        dels.intersect(te, F=0.8, sorted=True, nonamecheck=True).sort().saveas('deletions.temp')
+        annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te)
 
     if options.deletions is True:  # finding deletions only, so skip insertions
         pass
@@ -1083,7 +1021,7 @@ def discover(options):
             nm = 'high.temp'
         separate_reads(nm, 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
     with open("tepy_discover_log_{}.txt".format(options.name), 'a') as logfile:
-        logfile.write("tepy-discover finished normally at {}".format(ctime()))
+        logfile.write("tepy-discover finished normally at {}\n".format(ctime()))
 
     if options.keep is False:
         temp = glob('./*.temp')
