@@ -967,14 +967,9 @@ def discover(options):
         print 'Finding deletions'
         create_deletion_coords(disc_split_dels, 'del_coords.temp')
         dels = pybedtools.BedTool('del_coords.temp').sort()
-        # Filter putative deletion sites that have at least 80% gap spanned by TE sequence
-        # this removes cases where very large deletion spans many TEs, as this would be part of a larger deletion event to related to transposition
-        # first merge TE annoation and intersect with deletion coordinates, requiring 80% overlap
         merged_te = te.merge()
         dels = dels.intersect(merged_te, f=0.8, wa=True)
-        # now intersect filtered deletion coords with TE annotation, requiring 80% TE sequence covered
-        # can now assume each read covers mostly TE sequence, so if TE is spanned by read, call as deleted
-        dels.intersect(te, F=0.8, sorted=True, nonamecheck=True).sort().saveas('deletions.temp')
+        dels.intersect(te, F=0.8, sorted=True, wb=True, nonamecheck=True).sort().saveas('deletions.temp')
         annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te)
 
     if options.deletions is True:  # finding deletions only, so skip insertions
