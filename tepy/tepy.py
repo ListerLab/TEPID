@@ -198,7 +198,7 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
                             try:
                                 iterator
                             except NameError:
-                                iterator = get_last_id(acc, indel)
+                                iterator = get_last_id(acc, indel) + 1
                             else:
                                 iterator += 1
                             write_te(te_file, read_file, i[0], read_names, iterator)
