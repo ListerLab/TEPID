@@ -1,4 +1,4 @@
-*TEpy*
+*TEPID*
 ======
 
 Uses paired-end sequencing data to find transposable element insertion points.
@@ -7,7 +7,7 @@ Installation
 -----
 
 ```
-git clone git@github.com:timoast/TEpy.git
+git clone git@github.com:ListerLab/TEPID.git
 pip install -r requirements.txt
 python setup.py install
 ```
@@ -19,7 +19,7 @@ Step 1: Mapping
 ----
 
 ```
-tepy-map -x <path/to/bowtie2/index> \
+tepid-map -x <path/to/bowtie2/index> \
          -p <number_processors> \
          -y <path/to/yaha/index> \
          -s <approximate_fragment_size> \
@@ -44,7 +44,7 @@ Step 2: TE variant discovery
 ----
 
 ```
-tepy-discover -n <sample_name> -c <mapped> -s <split_mapped> -t <te_bedfile>
+tepid-discover -n <sample_name> -c <mapped> -s <split_mapped> -t <te_bedfile>
 ```
 
 Where:
@@ -63,7 +63,7 @@ Output files:
   * File containing names of reads providing evidence for insertions
   * File containing names of reads providing evidence for deletions
 
-Step 3: Refinement
+Step 3: Refinement and genotyping
 ----
 
 This step is optional and for groups of related samples only, such as a population or generational study. First, a file containing all idenetified variants for the group needs to be generated, with a list of samples that contain each insertion as a column in a bedfile:
@@ -80,7 +80,7 @@ chr1	23094	23200	AT1TE69285	Sorbo,Nok-3
 To do this, the `merge_insertions.py` and `merge_deletions.py` scripts included in the TEpy package, in the `Scripts/` directory, can be used. A list of all sample names is also needed (one sample name on each line of a file). Then, using the merged insertions and deletions files:
 
 ```
-tepy-refine -t <te_annotation> -i <insertions_file> -d <deletions_file> -a <all_sample_names>
+tepid-refine -t <te_annotation> -i <insertions_file> -d <deletions_file> -a <all_sample_names>
 ```
 
 
@@ -92,7 +92,7 @@ Required Tools
 * [yaha](https://github.com/GregoryFaust/yaha) >= v0.1.82
 * [samtools](http://www.htslib.org/download/) >= v1.1
 * [samblaster](https://github.com/GregoryFaust/samblaster) >= v0.1.19
-* [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.24.0
+* [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.25.0
 
 
 **Python requirements**
