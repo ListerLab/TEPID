@@ -4,7 +4,7 @@
 ._*
 build/
 dist/
-TEpy.egg-info/
+TEPID.egg-info/
 .gitattributes
 .eggs/
 .gitattributes

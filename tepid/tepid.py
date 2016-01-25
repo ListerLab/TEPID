@@ -909,7 +909,7 @@ def discover(options):
     max_dist = (4*std) + mn
     print '\tmean insert size = {ins} bp, standard deviation = {std} bp\n\tcoverage = {cov}x\n\tread length = {rd} bp'.format(
         ins=mn, std=std, cov=cov, rd=rd_len)
-    with open("tepy_discover_log_{}.txt".format(options.name), 'w+') as logfile:
+    with open("tepid_discover_log_{}.txt".format(options.name), 'w+') as logfile:
         logfile.write('''Sample {sample}\nStart time {time}\nUsing TE annotation at {path}\nmean insert size = {ins} bp, standard deviation = {std} bp\ncoverage = {cov}x\nread length = {rd} bp\n'''.format(
                 sample=options.name, time=ctime(),
                 path=options.te, ins=mn, std=std, cov=cov, rd=rd_len))
@@ -1015,8 +1015,8 @@ def discover(options):
         else:
             nm = 'high.temp'
         separate_reads(nm, 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
-    with open("tepy_discover_log_{}.txt".format(options.name), 'a') as logfile:
-        logfile.write("tepy-discover finished normally at {}\n".format(ctime()))
+    with open("tepid_discover_log_{}.txt".format(options.name), 'a') as logfile:
+        logfile.write("tepid-discover finished normally at {}\n".format(ctime()))
 
     if options.keep is False:
         temp = glob('./*.temp')

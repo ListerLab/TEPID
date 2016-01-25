@@ -3,11 +3,11 @@
 if __name__ == "__main__":
     from argparse import ArgumentParser
     import pkg_resources
-    from tepy import tepy
+    from tepid import tepid
 
-    version = pkg_resources.require("TEpy")[0].version
+    version = pkg_resources.require("TEPID")[0].version
 
-    parser = ArgumentParser(description='TEpy -- refine TE insertion and deletion calls')
+    parser = ArgumentParser(description='TEPID -- refine TE insertion and deletion calls')
     parser.add_argument('--version', action='version', version='%(prog)s '+str(version))
     parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
     parser.add_argument('-i', '--insertions', help='File containing collapsed TE insertions for all samples in population', required=False, default=False)
@@ -23,4 +23,4 @@ if __name__ == "__main__":
         import sys
         sys.exit("Error -- you have not supplied an insertions or deletions file")
     else:
-        tepy.refine(options)
+        tepid.refine(options)

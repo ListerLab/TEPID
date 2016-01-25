@@ -37,8 +37,8 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = ""
-    cfg.parentdir_prefix = "TEpy-"
-    cfg.versionfile_source = "tepy/_version.py"
+    cfg.parentdir_prefix = "TEPID-"
+    cfg.versionfile_source = "tepid/_version.py"
     cfg.verbose = False
     return cfg
 

@@ -23,16 +23,16 @@ def bedtools():
 
 if __name__ == "__main__":
     if not samtools():
-        raise Exception("TEpy requires samtools v1.1 or greater")
+        raise Exception("TEPID requires samtools v1.1 or greater")
     if not bedtools():
-        raise Exception("TEpy requires bedtools v2.24.0 or greater")
+        raise Exception("TEPID requires bedtools v2.25.0 or greater")
 
 
 setup(
-    name = 'TEpy',
+    name = 'TEPID',
     version = versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    description="TEpy: Discover transposable element insertion sites",
+    description="TEPID: transposable element polymorphism identification",
     author = 'Tim Stuart',
     install_requires = [
         'pysam>=0.8.2.1',
@@ -40,7 +40,7 @@ setup(
         'pybedtools>=0.6.9',
     ],
     author_email = 'timstuart90@gmail.com',
-    url = 'https://github.com/timoast/TEpy',
-    scripts = ["Scripts/tepy-map", "Scripts/tepy-discover", "Scripts/tepy-refine"],
-    packages = ['tepy'],
+    url = 'https://github.com/ListerLab/TEPID',
+    scripts = ["Scripts/tepid-map", "Scripts/tepid-discover", "Scripts/tepid-refine"],
+    packages = ['tepid'],
 )

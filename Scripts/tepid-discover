@@ -4,11 +4,11 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     import pkg_resources
     import os
-    from tepy import tepy
+    from tepid import tepid
 
-    version = pkg_resources.require("TEpy")[0].version
+    version = pkg_resources.require("TEPID")[0].version
 
-    parser = ArgumentParser(description='TEpy -- discover polymorphic TE insertion and deletion sites')
+    parser = ArgumentParser(description='TEPID -- transposable element polymorphism identification')
     group = parser.add_mutually_exclusive_group()
     parser.add_argument('--version', action='version', version='%(prog)s '+str(version))
     parser.add_argument('-k', '--keep', help='keep all intermediate files', action='store_true', required=False, default=False)
@@ -34,4 +34,4 @@ if __name__ == "__main__":
     else:
         pass
 
-    tepy.discover(options)
+    tepid.discover(options)
