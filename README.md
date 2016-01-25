@@ -1,7 +1,7 @@
 *TEPID*
 ======
 
-Uses paired-end sequencing data to find transposable element insertion points.
+Transposable element polymorphism identification
 
 Installation
 -----
