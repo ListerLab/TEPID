@@ -8,6 +8,7 @@ Installation
 
 ```
 git clone git@github.com:ListerLab/TEPID.git
+cd ./TEPID
 pip install -r requirements.txt
 python setup.py install
 ```
@@ -51,7 +52,7 @@ Where:
 
   * `<mapped>` is the name of your bam file from bowtie2
   * `<split_mapped` is the name of your split mapped bam file from yaha
-  * `<te_bedfile>` is path to the TE bedfile included in the repository. Currently supports:  
+  * `<te_bedfile>` is path to the TE annotation bedfile. Annotations included in the repository:  
       - *Arabidopsis thaliana* (TAIR9 and TAIR10)
       - *Brachypodium distachyon*
       - *Homo sapiens* (hg19)
@@ -82,7 +83,6 @@ To do this, the `merge_insertions.py` and `merge_deletions.py` scripts included 
 ```
 tepid-refine -t <te_annotation> -i <insertions_file> -d <deletions_file> -a <all_sample_names>
 ```
-
 
 ---
 Required Tools
