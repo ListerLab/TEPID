@@ -35,9 +35,10 @@ setup(
     description="TEPID: transposable element polymorphism identification",
     author = 'Tim Stuart',
     install_requires = [
-        'pysam>=0.8.2.1',
+        'pysam<0.9, >0.8',
         'numpy>=1.9.2',
         'pybedtools>=0.6.9',
+        'pandas'
     ],
     author_email = 'timstuart90@gmail.com',
     url = 'https://github.com/ListerLab/TEPID',
