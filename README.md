@@ -83,19 +83,6 @@ Output files:
 Step 3: Refinement and genotyping
 ----
 
-This step is optional and for groups of related samples only, such as a population or generational study. First, a file containing all idenetified variants for the group needs to be generated, with a list of samples that contain each insertion as a column in a bedfile:
-
-```
-[chromosome name]	[start position]	[stop position]	[TE name] [comma-separated list of samples containing insertion]
-```
-
-For example:
-```
-chr1	23094	23200	AT1TE69285	Sorbo,Nok-3
-```
-
-To do this, the `merge_insertions.py` and `merge_deletions.py` scripts included in the TEpy package, in the `Scripts/` directory, can be used. A list of all sample names is also needed (one sample name on each line of a file). Then, using the merged insertions and deletions files:
-
 ```
 usage: tepid-refine [-h] [--version] [-k] [-i INSERTIONS] [-d DELETIONS]
                     [-p PROC] -t TE -n NAME -c CONC -s SPLIT -a ALL_SAMPLES
@@ -121,6 +108,19 @@ optional arguments:
   -a ALL_SAMPLES, --all_samples ALL_SAMPLES
                         List of all sample names
 ```
+
+This step is optional and for groups of related samples only, such as a population or generational study. First, a file containing all idenetified variants for the group needs to be generated, with a list of samples that contain each insertion as a column in a bedfile:
+
+```
+[chromosome name]	[start position]	[stop position]	[TE name] [comma-separated list of samples containing insertion]
+```
+
+For example:
+```
+chr1	23094	23200	AT1TE69285	Sorbo,Nok-3
+```
+
+To do this, the `merge_insertions.py` and `merge_deletions.py` scripts included in the TEpy package, in the `Scripts/` directory, can be used. A list of all sample names is also needed (one sample name on each line of a file).
 
 ---
 Required Tools
