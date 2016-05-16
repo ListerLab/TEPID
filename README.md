@@ -69,9 +69,9 @@ optional arguments:
 ```
 
 The following TE annotations for use with TEPID are included in the repository:  
-      - *Arabidopsis thaliana* (TAIR9 and TAIR10)
-      - *Brachypodium distachyon*
-      - *Homo sapiens* (hg19)
+  - *Arabidopsis thaliana* (TAIR9 and TAIR10)
+  - *Brachypodium distachyon*
+  - *Homo sapiens* (hg19)
 
 Output files:
 
