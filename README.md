@@ -45,14 +45,30 @@ Step 2: TE variant discovery
 ----
 
 ```
-tepid-discover -n <sample_name> -c <mapped> -s <split_mapped> -t <te_bedfile>
+usage: tepid-discover [-h] [--version] [-k] [-d | -i] [--strict] [--mask MASK]
+                      [-D DISCORDANT] [-p PROC] -n NAME -c CONC -s SPLIT -t TE
+
+TEPID -- transposable element polymorphism identification
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  -k, --keep            keep all intermediate files
+  -d, --deletions       find deletions only
+  -i, --insertions      find insertions only
+  --strict              Report high-confidence variants only
+  --mask MASK           Mask chromosomes in comma separated list or file
+  -D DISCORDANT, --discordant DISCORDANT
+                        Supply discordant reads bam file
+  -p PROC, --proc PROC  number of processors
+  -n NAME, --name NAME  sample name
+  -c CONC, --conc CONC  bam file from bowtie2
+  -s SPLIT, --split SPLIT
+                        split reads bam file from yaha
+  -t TE, --te TE        TE annotation bedfile
 ```
 
-Where:
-
-  * `<mapped>` is the name of your bam file from bowtie2
-  * `<split_mapped` is the name of your split mapped bam file from yaha
-  * `<te_bedfile>` is path to the TE annotation bedfile. Annotations included in the repository:  
+The following TE annotations for use with TEPID are included in the repository:  
       - *Arabidopsis thaliana* (TAIR9 and TAIR10)
       - *Brachypodium distachyon*
       - *Homo sapiens* (hg19)
@@ -81,7 +97,29 @@ chr1	23094	23200	AT1TE69285	Sorbo,Nok-3
 To do this, the `merge_insertions.py` and `merge_deletions.py` scripts included in the TEpy package, in the `Scripts/` directory, can be used. A list of all sample names is also needed (one sample name on each line of a file). Then, using the merged insertions and deletions files:
 
 ```
-tepid-refine -t <te_annotation> -i <insertions_file> -d <deletions_file> -a <all_sample_names>
+usage: tepid-refine [-h] [--version] [-k] [-i INSERTIONS] [-d DELETIONS]
+                    [-p PROC] -t TE -n NAME -c CONC -s SPLIT -a ALL_SAMPLES
+
+TEPID -- refine TE insertion and deletion calls
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  -k, --keep            keep all intermediate files
+  -i INSERTIONS, --insertions INSERTIONS
+                        File containing collapsed TE insertions for all
+                        samples in population
+  -d DELETIONS, --deletions DELETIONS
+                        File containing collapsed TE deletions for all samples
+                        in population
+  -p PROC, --proc PROC  number of processors
+  -t TE, --te TE        TE annotation bedfile
+  -n NAME, --name NAME  sample name
+  -c CONC, --conc CONC  bam file from bowtie2
+  -s SPLIT, --split SPLIT
+                        split reads bam file from yaha
+  -a ALL_SAMPLES, --all_samples ALL_SAMPLES
+                        List of all sample names
 ```
 
 ---
