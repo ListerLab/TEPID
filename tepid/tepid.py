@@ -878,7 +878,6 @@ def check_name_sorted(bam, p):
         pysam.sort('-@', p, '-n', bam, 'sorted.temp')
         os.remove(bam)
         os.rename('sorted.temp.bam', bam)
-        pysam.index(bam)
     else:
         if test_head.header['HD']['SO'] == 'queryname':
             pass
@@ -887,7 +886,6 @@ def check_name_sorted(bam, p):
             pysam.sort('-@', p, '-n', bam, 'sorted.temp')
             os.remove(bam)
             os.rename('sorted.temp.bam', bam)
-            pysam.index(bam)
     test_head.close()
 
 
@@ -985,7 +983,7 @@ def discover(options):
 
         file_pairs = [['reorder_split.temp','split_merged.temp'],
                       ['forward_disc.temp', 'forward_merged.temp'],
-                      ['reverse_disc.temp', 'reverse_merged.temp']]
+                      ['reverse_disc.temp', 'reverse_merged.temp']]  # probem when these files are empty
 
         for x in xrange(3):
             merge_bed(file_pairs[x][0], file_pairs[x][1])
