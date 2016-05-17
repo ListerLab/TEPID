@@ -13,6 +13,15 @@ pip install -r requirements.txt
 python setup.py install
 ```
 
+Testing
+-----
+
+This will check that the code runs correctly and is able to identify a known, experimentally verified, TE insertion and TE deletion.
+
+```
+python setup.py test
+```
+
 Usage
 -----
 
@@ -20,12 +29,14 @@ Step 1: Mapping
 ----
 
 ```
-tepid-map -x <path/to/bowtie2/index> \
-         -p <number_processors> \
-         -y <path/to/yaha/index> \
-         -s <approximate_fragment_size> \
-         -r <recursive> (optional) \
-         -z <gzip_fastq_files> (optional)
+tepid-map -- map paired-end data using bowtie2 and yaha
+  -h  show help and exit
+  -x  path to bowtie2 index
+  -y  path to yaha index
+  -p  number of cores to use
+  -s  average insert size
+  -r  recursive (optional)
+  -z  gzip fastq files (optional)
 ```
 
 This will look for two files named `[name]_1.fastq` and `[name]_2.fastq`, and map these using the number of processors specified in `-p`. These files must be present in the current directory, or in direcories immediately below the current directory if the `-r` option is used.
@@ -37,9 +48,9 @@ This will give you the following files:
 * [name].split.bam
 * [name].umap.fastq (this will be compressed if you selected the `-z` option)
 
-The name of these output files will come from the name of the input fastq files
+The name of these output files will come from the name of the input fastq files.
 
-Next go to the directory containing your bam files
+Next, go to the directory containing your bam files and run the tepid-discover script to identify TE variants.
 
 Step 2: TE variant discovery
 ----
@@ -72,6 +83,10 @@ The following TE annotations for use with TEPID are included in the repository:
   - *Arabidopsis thaliana* (TAIR9 and TAIR10)
   - *Brachypodium distachyon*
   - *Homo sapiens* (hg19)
+
+If using a different TE annotation, the file _must_ have tab-separated columns in the format:
+
+`chromosome start stop strand TE_name TE_family TE_superfamily`
 
 Output files:
 
