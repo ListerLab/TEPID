@@ -38,10 +38,12 @@ setup(
         'pysam<0.9, >0.8',
         'numpy>=1.9.2',
         'pybedtools>=0.6.9',
-        'pandas'
+        'pandas',
+        'nose'
     ],
     author_email = 'timstuart90@gmail.com',
     url = 'https://github.com/ListerLab/TEPID',
     scripts = ["Scripts/tepid-map", "Scripts/tepid-discover", "Scripts/tepid-refine"],
     packages = ['tepid'],
+    test_suite="nose.collector"
 )

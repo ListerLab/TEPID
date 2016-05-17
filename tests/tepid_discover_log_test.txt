@@ -1,0 +1,7 @@
+Sample test
+Start time Tue May 17 11:14:51 2016
+Using TE annotation at ../Annotation/Arabidopsis/TAIR9_TE.bed.gz
+mean insert size = 194 bp, standard deviation = 44 bp
+coverage = 0x
+read length = 97 bp
+tepid-discover finished normally at Tue May 17 11:14:52 2016
