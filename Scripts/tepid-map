@@ -1,6 +1,6 @@
 #! /bin/bash
 
-index=  proc=  yhindex=  size=  recursive=  zip=  
+index=  proc=  yhindex=  size=  fname=  fastq1=  fastq2=  recursive=  zip=  
 
 usage="$(basename "$0") -- map paired-end data using bowtie2 and yaha
   -h  show help and exit
@@ -8,6 +8,9 @@ usage="$(basename "$0") -- map paired-end data using bowtie2 and yaha
   -y  path to yaha index
   -p  number of cores to use
   -s  average insert size
+  -n  sample name
+  -1  fastq file with #1 mates
+  -2  fastq file with #2 mates
   -r  recursive (optional)
   -z  gzip fastq files (optional)"
 
@@ -16,7 +19,7 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-while getopts :x:p:y:s:rzh opt; do
+while getopts :x:p:y:s:n:1:2:rzh opt; do
   case $opt in
     h)  echo "$usage"
         exit
@@ -28,6 +31,12 @@ while getopts :x:p:y:s:rzh opt; do
     y)  yhindex=$OPTARG
         ;;
     s)  size=$OPTARG
+        ;;
+    n)  fname=$OPTARG
+        ;;
+    1)  fastq1=$OPTARG
+        ;;
+    2)  fastq2=$OPTARG
         ;;
     r)  recursive=true
         ;;
@@ -53,7 +62,7 @@ map () {
 
     echo "Mapping ${fname}"
     bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X $size\
-     -1 "${fname}_1.fastq" -2 "${fname}_2.fastq" \
+     -1 $fastq1 -2 $fastq2 \
     | samblaster -e -u "${fname}.umap.fastq" \
     | samtools view -b - > "${fname}_unsort.bam"
 
