@@ -35,11 +35,14 @@ tepid-map -- map paired-end data using bowtie2 and yaha
   -y  path to yaha index
   -p  number of cores to use
   -s  average insert size
+  -n  sample name
+  -1  fastq file with #1 mates
+  -2  fastq file with #2 mates
   -r  recursive (optional)
   -z  gzip fastq files (optional)
 ```
 
-This will look for two files named `[name]_1.fastq` and `[name]_2.fastq`, and map these using the number of processors specified in `-p`. These files must be present in the current directory, or in direcories immediately below the current directory if the `-r` option is used.
+This will look for the two fastq file specified using the `-1` and `-2` options, and map these using the number of processors specified in `-p`. These files must be present in the current directory, or in direcories immediately below the current directory if the `-r` option is used.
 
 This will give you the following files:
 
@@ -48,7 +51,7 @@ This will give you the following files:
 * [name].split.bam
 * [name].umap.fastq (this will be compressed if you selected the `-z` option)
 
-The name of these output files will come from the name of the input fastq files.
+The name of these output files will come from the option given with the `-n` flag.
 
 Next, go to the directory containing your bam files and run the tepid-discover script to identify TE variants.
 
