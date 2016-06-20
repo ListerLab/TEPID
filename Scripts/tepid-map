@@ -55,44 +55,41 @@ done
 shift $((OPTIND - 1))
 
 map () {
+  echo "Mapping ${fname}"
+  bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X $size\
+   -1 $fastq1 -2 $fastq2 \
+  | samblaster -e -u "${fname}.umap.fastq" \
+  | samtools view -b - > "${fname}_unsort.bam"
 
-  for myfile in $(ls -d *_1.fastq);do
+  yaha -t $proc -x $yhindex -q "${fname}.umap.fastq" -L 11 -H 2000 -M 15 -osh stdout \
+  | samblaster -s "${fname}.split.sam" > /dev/null
 
-    fname=(${myfile//_1.fastq/ })
+  echo "Converting to bam"
+  samtools view -Sb@ $proc "${fname}.split.sam" > "${fname}.split.bam"
+  rm "${fname}.split.sam"
 
-    echo "Mapping ${fname}"
-    bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -X $size\
-     -1 $fastq1 -2 $fastq2 \
-    | samblaster -e -u "${fname}.umap.fastq" \
-    | samtools view -b - > "${fname}_unsort.bam"
+  echo "Sorting alignment"
+  samtools sort -@ $proc "${fname}_unsort.bam" "${fname}"
+  rm "${fname}_unsort.bam"
 
-    yaha -t $proc -x $yhindex -q "${fname}.umap.fastq" -L 11 -H 2000 -M 15 -osh stdout \
-    | samblaster -s "${fname}.split.sam" > /dev/null
+  echo "Indexing alignment"
+  samtools index "${fname}.bam"
 
-    echo "Converting to bam"
-    samtools view -Sb@ $proc "${fname}.split.sam" > "${fname}.split.bam"
-    rm "${fname}.split.sam"
-
-    echo "Sorting alignment"
-    samtools sort -@ $proc "${fname}_unsort.bam" "${fname}"
-    rm "${fname}_unsort.bam"
-
-    echo "Indexing alignment"
-    samtools index "${fname}.bam"
-
-    if [ "$zip" == true ]; then
-      echo "Zipping fastq files"
-      gzip *.fastq
-    fi
-
-done
+  if [ "$zip" == true ]; then
+    echo "Zipping fastq files"
+    gzip *.fastq
+  fi
 }
 
 if [ "$recursive" == true ]; then
   for directory in ./*; do
       if [ -d "$directory" ]; then
           cd $directory
-          map
+          for fastq1 in $(ls -d *_1.fastq*);do
+            fname=(${myfile//_1.fastq*/ })
+            fastq2="${fname}_2.fastq*"
+            map
+          done
           cd ..
       fi
   done
