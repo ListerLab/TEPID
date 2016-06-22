@@ -159,6 +159,14 @@ Required Tools
 * [pysam](http://pysam.readthedocs.org/en/latest/)
 
 ---
+Citation
+-------
+
+If you use this software if your work, please cite:
+
+Stuart T, Eichten SR, Cahn J, Borevitz JO, Lister R. Population scale mapping of novel transposable element diversity reveals links to gene regulation and epigenomic variation. bioRxiv. 2016. [doi:10.1101/039511](http://dx.doi.org/10.1101/039511)
+
+---
 License
 -------
 
