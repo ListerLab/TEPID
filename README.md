@@ -1,7 +1,7 @@
 *TEPID*
 ======
 
-TEPID uses paired-end illumina sequencing reads to identify novel TE variants. First, reads are mapped to a reference genome using bowtie2 and yaha. This produces two bam files, one containing mapped paired reads, and one containg mapped split reads. Python scripts are then used to identify the absence of reference TE insertions and the presence of non-reference insertions. Having a high-quality TE annotation and reference genome assembly, as well as deep sequencing coverage (>20x) and long paired-end reads (100 bp or more) will greatly improve the quality of TE presence/absence calls made.
+TEPID uses paired-end illumina sequencing reads to identify novel TE variants. First, reads are mapped to a reference genome using bowtie2 and yaha. This produces two bam files, one containing mapped paired reads, and one containing mapped split reads. Python scripts are then used to identify the absence of reference TE insertions and the presence of non-reference insertions. Having a high-quality TE annotation and reference genome assembly, as well as deep sequencing coverage (>20x) and long paired-end reads (100 bp or more) will greatly improve the quality of TE presence/absence calls made.
 
 Installation
 -----
