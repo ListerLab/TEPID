@@ -12,7 +12,7 @@ options = parser.parse_args()
 
 
 def filter_del(options):
-    with open(options.deletions, 'r') as dels, open(options.outfile, 'w+') as outfile:
+    with open(options.deletions, 'r') as dels, open(options.output, 'w+') as outfile:
         master = [line.strip("\n") for line in open(options.samples, "r")]
         for line in dels:
             line = line.rsplit()
