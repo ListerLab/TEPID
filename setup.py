@@ -24,7 +24,7 @@ def bedtools():
 
 if __name__ == "__main__":
     if not samtools():
-        raise Exception("TEPID requires samtools v1.1 or greater")
+        raise Exception("TEPID requires samtools >= v1.1 and < v1.3")
     if not bedtools():
         raise Exception("TEPID requires bedtools v2.25.0 or greater")
 
