@@ -721,9 +721,11 @@ def get_coverages(chrom, start, stop, bam, chrom_sizes):
         surround = (ustream + dstream) / (ul + dl)
     else:
         ratio = 0
-    if te > 0:
+    if te > 0 and surround > 0:
         tot_te = te / l
         ratio =  tot_te / surround
+    elif te > 0 and surround == 0:
+        ratio = 1
     else:
         ratio = 0
     return ratio
