@@ -86,7 +86,7 @@ if [ "$recursive" == true ]; then
       if [ -d "$directory" ]; then
           cd $directory
           for fastq1 in $(ls -d *_1.fastq*);do
-            fname=(${myfile//_1.fastq*/ })
+            fname=(${fastq1//_1.fastq*/ })
             fastq2="${fname}_2.fastq*"
             map
           done
