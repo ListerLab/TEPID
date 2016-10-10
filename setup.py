@@ -44,7 +44,7 @@ setup(
     ],
     author_email = 'timstuart90@gmail.com',
     url = 'https://github.com/ListerLab/TEPID',
-    scripts = ["Scripts/tepid-map", "Scripts/tepid-discover", "Scripts/tepid-refine"],
+    scripts = ["Scripts/tepid-map", "Scripts/tepid-map-se", "Scripts/tepid-discover", "Scripts/tepid-refine"],
     packages = ['tepid'],
     test_suite="nose.collector"
 )
