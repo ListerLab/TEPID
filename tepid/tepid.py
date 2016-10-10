@@ -326,6 +326,49 @@ def reorder(insert_file, split_outf, disc_forw, disc_rev):
                 split_out.write(write_string)
 
 
+def reorder_se(insert_file, split_outf):
+    """
+    For use in single-end mode
+    Reorder columns so that TE read is in second position.
+    """
+    with open(insert_file, 'r') as infile, open(split_outf, 'w+') as split_out:
+        for line in infile:
+            field = line.rsplit()
+            read1 = {'chrom': field[0], 'start': field[1], 'stop': field[2], 'strand': field[8]}
+            read2 = {'chrom': field[3], 'start': field[4], 'stop': field[5], 'strand': field[9]}
+            sd = field[10]
+            te_coords = {'chrom': field[11], 'start': field[12], 'stop': field[13], 'strand': field[14], 'name': field[15]}
+            r1 = _overlap(int(read1['start']), int(read1['stop']), int(te_coords['start']), int(te_coords['stop']), 10)
+            r2 = _overlap(int(read2['start']), int(read2['stop']), int(te_coords['start']), int(te_coords['stop']), 10)
+            if r1 is True and r2 is False:  # find which read overlaps TE annotation
+                dna_read = read2
+                te_read = [read1['chrom'], read1['start'], read1['stop']]
+                mate = 2
+            elif r1 is False and r2 is True:
+                dna_read = read1
+                te_read = [read2['chrom'], read2['start'], read2['stop']]
+                mate = 1
+            elif r1 is True and r2 is True:
+                continue  # don't write to file...need to check if this works (go to next item in for loop)
+            else:
+                raise Exception("Error in read cluster organization")
+            # bedpe format demands chr-start-stop-chr-start-stop-strand1-strand2
+            write_string = '{chr1}\t{start1}\t{stop1}\t{chr2}\t{start2}\t{stop2}\t{strand1}\t{strand2}\t{rd}\t{te}\t{sd}\t{te_read}\n'.format(
+                chr1=dna_read['chrom'],
+                start1=dna_read['start'],
+                stop1=dna_read['stop'],
+                chr2=te_coords['chrom'],
+                start2=te_coords['start'],
+                stop2=te_coords['stop'],
+                strand1=dna_read['strand'],
+                strand2=te_coords['strand'],
+                rd=field[6],
+                te=field[15],
+                sd=sd,
+                te_read='\t'.join(te_read))
+            split_out.write(write_string)
+
+
 def _condense_coords(coords, d):
     """
     Merge sets of coordinates and return list of clusters with read counts for each cluster
@@ -894,6 +937,7 @@ def check_name_sorted(bam, p):
 
 def discover_pe(options):
     """
+    Paired-end mode
     Discover TE insertions and deletions using read mapping information and TE annotation
     input concordant reads bam file must be position sorted
     imput split reads bam file must be name sorted
@@ -1028,10 +1072,7 @@ def discover_pe(options):
 
 def discover_se(options):
     """
-    Discover TE insertions and deletions using read mapping information and TE annotation
-    input concordant reads bam file must be position sorted
-    imput split reads bam file must be name sorted
-    TE annotation can be gzipped
+    Single-end mode
     """
     print "Processing "+options.name
     print "Running single-end mode"
@@ -1075,58 +1116,41 @@ def discover_se(options):
 
     print 'Processing TE annotation'
     te = pybedtools.BedTool(options.te).sort()
-    disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
+    split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
 
     if options.insertions is True:  # finding insertions only, so skip deletions
         pass
     else:
         print 'Finding deletions'
-        create_deletion_coords(disc_split_dels, 'del_coords.temp')
+        create_deletion_coords(split_bedpe_dels, 'del_coords.temp')
         dels = pybedtools.BedTool('del_coords.temp').sort()
         merged_te = te.merge()
         dels = dels.intersect(merged_te, f=0.8, wa=True)
         dels.intersect(te, F=0.8, sorted=True, wb=True, nonamecheck=True).sort().saveas('deletions.temp')
+        # works without the discordant reads
         annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te)
 
     if options.deletions is True:  # finding deletions only, so skip insertions
         pass
     else:
         print 'Finding insertions'
-        reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
+        reorder_se('intersect_ins.temp', 'reorder_split.temp')
 
         def merge_bed(infile, outfile):
             pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11,12,13,14',
                                                   o='collapse,collapse,collapse,distinct,collapse,count,collapse,collapse,collapse')\
             .saveas(outfile)
 
-        file_pairs = [['reorder_split.temp','split_merged.temp'],
-                      ['forward_disc.temp', 'forward_merged.temp'],
-                      ['reverse_disc.temp', 'reverse_merged.temp']]  # probem when these files are empty
+        merge_bed('reorder_split.temp','split_merged.temp')
+        process_merged ('split_merged.temp', 'split_processed.temp', 'split')
 
-        for x in xrange(3):
-            merge_bed(file_pairs[x][0], file_pairs[x][1])
-
-        info = [['split_merged.temp', 'split_processed.temp', 'split'],
-                ['forward_merged.temp', 'forward_processed.temp', 'disc_forward'],
-                ['reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse']]
-
-        for x in xrange(3):
-            process_merged(info[x][0], info[x][1], info[x][2])
-
-        pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postmerge=True,
-            c='4,5,6,7,8,9,10',
-            o='collapse,collapse,collapse,distinct,distinct,sum,distinct',
-            d='200').sort().saveas('condensed_disc.temp')
-
-        process_merged_disc('condensed_disc.temp', 'processed_disc.temp', 2, (mn+std), rd_len)
         pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_reads_high <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
-        disc_split = pybedtools.BedTool('split_processed.temp')\
+        split_reads = pybedtools.BedTool('split_processed.temp')\
         .filter(lambda x: insertion_reads_high > int(x[8]))\
         .saveas().sort()\
-        .intersect('processed_disc.temp', wo=True, nonamecheck=True)\
-        .each(reorder_intersections, read_count=insertion_reads_low).saveas().sort().saveas()
-        if len(disc_split) > 0:
-            disc_split.cat('high.temp', postmerge=False).saveas().sort().saveas().moveto('insertions.temp')
+        .each(reorder_intersections, read_count=insertion_reads_low).saveas().sort().saveas() # check if reorder_intersections works with SE
+        if len(split_reads) > 0:
+            split_reads.cat('high.temp', postmerge=False).saveas().sort().saveas().moveto('insertions.temp')
             nm = 'insertions.temp'
         else:
             nm = 'high.temp'
