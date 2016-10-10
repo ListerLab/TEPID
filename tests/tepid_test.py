@@ -29,7 +29,7 @@ def test():
     discover.split = "../split.bam"
     discover.te = "../../Annotation/Arabidopsis/TAIR9_TE.bed.gz"
 
-    tepid.discover(discover)
+    tepid.discover_pe(discover)
     test_ins = [a for a in open("./insertions_run.bed")]
     true_ins = [a for a in open("../insertions_test.bed")]
     test_del = [a for a in open("./deletions_run.bed")]
