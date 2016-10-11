@@ -1,10 +1,9 @@
 *TEPID*
 ======
 
-TEPID uses paired-end illumina sequencing reads to identify novel TE variants. First, reads are mapped to a reference genome using bowtie2 and yaha. This produces two bam files, one containing mapped paired reads, and one containing mapped split reads. Python scripts are then used to identify the absence of reference TE insertions and the presence of non-reference insertions. Having a high-quality TE annotation and reference genome assembly, as well as deep sequencing coverage (>20x) and long paired-end reads (100 bp or more) will greatly improve the quality of TE presence/absence calls made.
+TEPID uses illumina sequencing reads to identify novel TE variants. First, reads are mapped to a reference genome using bowtie2 and yaha. This produces two bam files, one containing mapped reads, and one containing mapped split reads. Python scripts are then used to identify the absence of reference TE insertions and the presence of non-reference insertions. Having a high-quality TE annotation and reference genome assembly, as well as deep sequencing coverage (>20x) and long reads (100 bp or more) will greatly improve the quality of TE presence/absence calls made.
 
-Installation
------
+## Installation
 
 ```
 git clone git@github.com:ListerLab/TEPID.git
@@ -13,8 +12,7 @@ pip install -r requirements.txt
 python setup.py install
 ```
 
-Testing
------
+## Testing
 
 This will check that the code runs correctly and is able to identify a known, experimentally verified, TE insertion and TE deletion.
 
@@ -22,11 +20,15 @@ This will check that the code runs correctly and is able to identify a known, ex
 python setup.py test
 ```
 
-Usage
------
+## Usage
 
-Step 1: Mapping
-----
+There are two modes that TEPID can be run in, single-end or paired-end mode.  
+
+### Step 1: Mapping
+
+#### Paired-end mode
+
+Use the `tepid-map` script to map paired-end reads.
 
 ```
 tepid-map -- map paired-end data using bowtie2 and yaha
@@ -44,6 +46,23 @@ tepid-map -- map paired-end data using bowtie2 and yaha
 
 This will look for the two fastq file specified using the `-1` and `-2` options, and map these using the number of processors specified in `-p`. These files must be present in the current directory, or in direcories immediately below the current directory if the `-r` option is used.
 
+#### Single-end mode
+
+Use the `tepid-map-se` script to map single-end reads.  
+
+```
+tepid-map-se -- map single-end data using bowtie2 and yaha
+  -h  show help and exit
+  -x  path to bowtie2 index
+  -y  path to yaha index
+  -p  number of cores to use
+  -n  sample name
+  -q  fastq file containing reads
+  -r  recursive (optional)
+  -z  gzip fastq files (optional)
+```
+
+
 This will give you the following files:
 
 * [name].bam
@@ -53,14 +72,14 @@ This will give you the following files:
 
 The name of these output files will come from the option given with the `-n` flag.
 
-Next, go to the directory containing your bam files and run the tepid-discover script to identify TE variants.
+Next, go to the directory containing your bam files and run the `tepid-discover` script to identify TE variants.
 
-Step 2: TE variant discovery
-----
+### Step 2: TE variant discovery
 
 ```
 usage: tepid-discover [-h] [--version] [-k] [-d | -i] [--strict] [--mask MASK]
                       [-D DISCORDANT] [-p PROC] -n NAME -c CONC -s SPLIT -t TE
+                      [--se]
 
 TEPID -- transposable element polymorphism identification
 
@@ -80,6 +99,7 @@ optional arguments:
   -s SPLIT, --split SPLIT
                         split reads bam file from yaha
   -t TE, --te TE        TE annotation bedfile
+  --se                  Run in single-end mode
 ```
 
 The following TE annotations for use with TEPID are included in the repository:  
@@ -98,8 +118,7 @@ Output files:
   * File containing names of reads providing evidence for insertions
   * File containing names of reads providing evidence for deletions
 
-Step 3: Refinement and genotyping
-----
+### Step 3: Refinement and genotyping
 
 ```
 usage: tepid-refine [-h] [--version] [-k] [-i INSERTIONS] [-d DELETIONS]
@@ -140,37 +159,27 @@ chr1	23094	23200	AT1TE69285	Sorbo,Nok-3
 
 To do this, the `merge_insertions.py` and `merge_deletions.py` scripts included in the TEpy package, in the `Scripts/` directory, can be used. A list of all sample names is also needed (one sample name on each line of a file).
 
----
-Required Tools
--------------
 
-* [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) >= v2.1.0
-* [yaha](https://github.com/GregoryFaust/yaha) >= v0.1.82
-* [samtools](http://www.htslib.org/download/) >= v1.1, < v1.3
-* [samblaster](https://github.com/GregoryFaust/samblaster) >= v0.1.19
-* [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.25.0
+## Required Tools
+
+#### Command-line tools
+
+* [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) >= v2.1.0  
+* [yaha](https://github.com/GregoryFaust/yaha) >= v0.1.82  
+* [samtools](http://www.htslib.org/download/) >= v1.1, < v1.3  
+* [samblaster](https://github.com/GregoryFaust/samblaster) >= v0.1.19 (needed for paired-end data only)  
+* [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.25.0  
+
+#### Python requirements
+
+* [python](https://www.python.org) v2.7  
+* [numpy](http://www.numpy.org/)  
+* [pybedtools](http://pythonhosted.org/pybedtools/)  
+* [pysam](http://pysam.readthedocs.org/en/latest/)  
 
 
-**Python requirements**
-
-* [python](https://www.python.org) v2.7
-* [numpy](http://www.numpy.org/)
-* [pybedtools](http://pythonhosted.org/pybedtools/)
-* [pysam](http://pysam.readthedocs.org/en/latest/)
-
----
-Citation
--------
+## Citation
 
 If you use this software if your work, please cite:
 
-Stuart T, Eichten SR, Cahn J, Borevitz JO, Lister R. Population scale mapping of novel transposable element diversity reveals links to gene regulation and epigenomic variation. bioRxiv. 2016. [doi:10.1101/039511](http://dx.doi.org/10.1101/039511)
-
----
-License
--------
-
-This software is licensed under the GNU General Public License. See ./LICENSE
-for further details. If this license is incompatible with your open source
-project, talk to us (raise an issue) and we will negotiate suitable re- or
-dual-licensing.
+Stuart T, Eichten SR, Cahn J, Karpievitch Y, Borevitz JO, Lister R. Population scale mapping of novel transposable element diversity reveals links to gene regulation and epigenomic variation. bioRxiv. 2016. [doi:10.1101/039511](http://dx.doi.org/10.1101/039511)
