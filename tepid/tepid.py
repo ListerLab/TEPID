@@ -866,6 +866,51 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
     allreads.close()
 
 
+def annotate_deletions_se(inp, acc, num_reads, bam, p, te_file):
+    """
+    Single end mode
+    """
+    x = 0
+    tes = {}
+    written_tes = []
+    chrom_sizes = check_bam(bam, p)
+    allreads = pysam.AlignmentFile(bam, 'rb')
+
+    with open(inp, 'r') as infile, open('deletions_{}.bed'.format(acc), 'w+') as outfile, open('deletion_reads_{}.txt'.format(acc), 'w+') as deletions_reads:
+        for line in infile:
+            line = line.rsplit()
+            coords = [line[0], int(line[1]), int(line[2])]  # chr, start, stop
+            te = [line[5], line[6], line[7], line[8], line[9]]  # chr, start, stop, strand, name
+            name = te[4]
+            length = int(te[2]) - int(te[1])
+            gapsize = coords[2] - coords[1]
+            read_type = line[4]
+            read_name = line[3]
+            if (gapsize <= 0) or (name in written_tes) or (length > gapsize):
+                pass
+            else:
+                if name not in tes.keys():  # first time seeing this TE, add to dict
+                    cov = get_coverages(coords[0], coords[1], coords[2], allreads, chrom_sizes)
+                    tes[name] = [cov, 0, [read_name]]  # coverage, split, disc, read_name (list)
+                else:
+                    pass
+                if read_type == 'split':
+                    tes[name][1] += 1
+                    tes[name][2].append(read_name)
+                else:
+                    raise Exception('Incorrect read type information')
+                total_reads = tes[name][1]
+                if (tes[name][0] <= 0.1 and total_reads >= num_reads/2) or (total_reads >= num_reads):
+                    data = (str(a) for a in te)
+                    outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=str(x)))
+                    deletions_reads.write(">" + str(x) + "\t" + ",".join(tes[name][3]) + "\n")
+                    x += 1
+                    written_tes.append(name)
+                else:
+                    pass
+    allreads.close()
+
+
 def append_origin(feature, word):
     """
     use with pybedtools.each()
@@ -1080,7 +1125,8 @@ def calc_read_length(bam):
     for read in bamfile.fetch('chr1', 1, 10000):
         lengths.append(read.alen)
     bamfile.close()
-    return(sum(lengths) / len(lengths))
+    av_len = int(sum(lengths) / len(lengths))
+    return(av_len)
 
 
 def discover_se(options):
@@ -1095,7 +1141,7 @@ def discover_se(options):
         print '  Warning: coverage may not be sufficiently high to reliably discover polymorphic TE insertions'
     else:
         pass
-    print 'coverage = {cov}x\n\taverage read length = {rd} bp'.format(
+    print '\tcoverage = {cov}x\n\taverage read length = {rd} bp'.format(
         cov=cov, rd=rd_len)
     with open("tepid_discover_log_{}.txt".format(options.name), 'w+') as logfile:
         logfile.write('''Sample {sample}\nStart time {time}\nUsing TE annotation at {path}\ncoverage = {cov}x\nread length = {rd} bp\n'''.format(
@@ -1142,7 +1188,7 @@ def discover_se(options):
         dels = dels.intersect(merged_te, f=0.8, wa=True)
         dels.intersect(te, F=0.8, sorted=True, wb=True, nonamecheck=True).sort().saveas('deletions.temp')
         # works without the discordant reads
-        annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te)
+        annotate_deletions_se('deletions.temp', options.name, deletion_reads, options.conc, str(options.proc), te)
 
     if options.deletions is True:  # finding deletions only, so skip insertions
         pass
