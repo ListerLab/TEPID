@@ -903,7 +903,7 @@ def annotate_deletions_se(inp, acc, num_reads, bam, p, te_file):
                 if (tes[name][0] <= 0.1 and total_reads >= num_reads/2) or (total_reads >= num_reads):
                     data = (str(a) for a in te)
                     outfile.write('{te}\t{id}\n'.format(te='\t'.join(data), id=str(x)))
-                    deletions_reads.write(">" + str(x) + "\t" + ",".join(tes[name][3]) + "\n")
+                    deletions_reads.write(">" + str(x) + "\t" + ",".join(tes[name][2]) + "\n")
                     x += 1
                     written_tes.append(name)
                 else:
