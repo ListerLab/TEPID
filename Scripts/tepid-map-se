@@ -49,7 +49,7 @@ done
 shift $((OPTIND - 1))
 
 map () {
-  echo "Mapping ${2}"
+  echo "Mapping ${fname}"
   bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -U $fastq \
   | samtools view -b - > "${fname}_unsort.bam"
 
