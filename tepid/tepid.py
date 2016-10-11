@@ -1205,16 +1205,7 @@ def discover_se(options):
         process_merged ('split_merged.temp', 'split_processed.temp', 'split')
 
         pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_reads_high <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
-        split_reads = pybedtools.BedTool('split_processed.temp')\
-        .filter(lambda x: insertion_reads_high > int(x[8]))\
-        .saveas().sort()\
-        .each(reorder_intersections, read_count=insertion_reads_low).saveas().sort().saveas() # check if reorder_intersections works with SE
-        if len(split_reads) > 0:
-            split_reads.cat('high.temp', postmerge=False).saveas().sort().saveas().moveto('insertions.temp')
-            nm = 'insertions.temp'
-        else:
-            nm = 'high.temp'
-        separate_reads(nm, 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
+        separate_reads("high.temp", 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
     with open("tepid_discover_log_{}.txt".format(options.name), 'a') as logfile:
         logfile.write("tepid-discover finished normally at {}\n".format(ctime()))
 
