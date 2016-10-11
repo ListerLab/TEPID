@@ -1070,6 +1070,19 @@ def discover_pe(options):
             os.remove(i)
         os.remove('disc_sorted.bam')
 
+
+def calc_read_length(bam):
+    """
+    Find the average read length for a bam file
+    """
+    lengths = []
+    bamfile = pysam.AlignmentFile(bam, "rb")
+    for read in bamfile.fetch('chr1', 1, 10000):
+        lengths.append(read.alen)
+    bamfile.close()
+    return(sum(lengths) / len(lengths))
+
+
 def discover_se(options):
     """
     Single-end mode
@@ -1077,11 +1090,12 @@ def discover_se(options):
     print "Processing "+options.name
     print "Running single-end mode"
     cov = calc_cov(options.conc, 100000, 120000)
+    rd_len = calc_read_length(options.conc)
     if cov <= 10:
         print '  Warning: coverage may not be sufficiently high to reliably discover polymorphic TE insertions'
     else:
         pass
-    print 'coverage = {cov}x\n\tread length = {rd} bp'.format(
+    print 'coverage = {cov}x\n\taverage read length = {rd} bp'.format(
         cov=cov, rd=rd_len)
     with open("tepid_discover_log_{}.txt".format(options.name), 'w+') as logfile:
         logfile.write('''Sample {sample}\nStart time {time}\nUsing TE annotation at {path}\ncoverage = {cov}x\nread length = {rd} bp\n'''.format(
