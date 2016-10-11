@@ -7,7 +7,6 @@ usage="$(basename "$0") -- map single-end data using bowtie2 and yaha
   -x  path to bowtie2 index
   -y  path to yaha index
   -p  number of cores to use
-  -s  average insert size
   -n  sample name
   -q  fastq file containing reads
   -r  recursive (optional)
@@ -51,24 +50,37 @@ shift $((OPTIND - 1))
 
 map () {
   echo "Mapping ${2}"
-  bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index \
-   -U $1 \
-  | samblaster -e -u "${2}.umap.fastq" \
-  | samtools view -b - > "${2}_unsort.bam"
+  bowtie2 --local --dovetail -p$proc --fr -q -R5 -N1 -x $index -U $fastq \
+  | samtools view -b - > "${fname}_unsort.bam"
 
-  yaha -t $proc -x $yhindex -q "${2}.umap.fastq" -L 11 -H 2000 -M 15 -osh stdout \
-  | samblaster -s "${2}.split.sam" > /dev/null
+  # get the header
+  samtools view -H "${fname}_unsort.bam" > header
+
+  # extract clipped reads
+  samtools view "${fname}_unsort.bam" \
+  | awk '$6 ~ /H|S/{print}' \
+  | cat header - \
+  | samtools bam2fq -n - > "${fname}.umap.fastq"
+
+  # get the unmapped reads
+  samtools view -b -f 4 "${fname}_unsort.bam" \
+  | samtools bam2fq -n - >> "${fname}.umap.fastq"
+
+  rm header
+
+  yaha -t $proc -x $yhindex -q "${fname}.umap.fastq" -L 11 -H 2000 -M 15 -osh stdout \
+  | samblaster -s "${fname}.split.sam" > /dev/null
 
   echo "Converting to bam"
-  samtools view -Sb@ $proc "${2}.split.sam" > "${2}.split.bam"
-  rm "${2}.split.sam"
+  samtools view -Sb@ $proc "${fname}.split.sam" > "${fname}.split.bam"
+  rm "${fname}.split.sam"
 
   echo "Sorting alignment"
-  samtools sort -@ $proc "${2}_unsort.bam" "${2}"
-  rm "${2}_unsort.bam"
+  samtools sort -@ $proc "${fname}_unsort.bam" "${fname}"
+  rm "${fname}_unsort.bam"
 
   echo "Indexing alignment"
-  samtools index "${2}.bam"
+  samtools index "${fname}.bam"
 
   if [ "$zip" == true ]; then
     echo "Zipping fastq files"
@@ -82,7 +94,7 @@ if [ "$recursive" == true ]; then
           cd $directory
           for fastq in $(ls -d *.fastq*);do
             fname=(${fastq//.fastq*/ })
-            map $fastq $fname
+            map
           done
           cd ..
       fi
