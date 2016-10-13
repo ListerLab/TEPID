@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 from __future__ import division
@@ -886,7 +887,7 @@ def annotate_deletions_se(inp, acc, num_reads, bam, p, te_file):
             gapsize = coords[2] - coords[1]
             read_type = line[4]
             read_name = line[3]
-            if (gapsize <= 0) or (name in written_tes) or (length > gapsize):
+            if (gapsize <= 0) or (name in written_tes) or (length > gapsize + 50):
                 pass
             else:
                 if name not in tes.keys():  # first time seeing this TE, add to dict
@@ -1157,7 +1158,7 @@ def discover_se(options):
         quality_filter_ins = 10
         quality_filter_dels = 10
     else:
-        deletion_reads = int(cov/5) if (int(cov/5) > 4) else 4
+        deletion_reads = int(cov/10) if (int(cov/10) > 4) else 4
         insertion_reads_low = int(cov/10) if (int(cov/10) > 2) else 2
         insertion_reads_high = int(cov/5) if (int(cov/5) > 2) else 2
         quality_filter_ins = 5
@@ -1213,4 +1214,4 @@ def discover_se(options):
         temp = glob('./*.temp')
         for i in temp:
             os.remove(i)
-        os.remove('disc_sorted.bam')
+
