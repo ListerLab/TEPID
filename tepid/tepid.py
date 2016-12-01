@@ -1123,7 +1123,13 @@ def calc_read_length(bam):
     """
     lengths = []
     bamfile = pysam.AlignmentFile(bam, "rb")
-    for read in bamfile.fetch('chr1', 1, 10000):
+    nms = []
+    for i in bamfile.header['SQ']:
+        if 'scaffold' in i['SN']:
+            pass
+        else:
+            nms.append(i['SN'])
+    for read in bamfile.fetch(nms[0], 1, 10000):
         lengths.append(read.alen)
     bamfile.close()
     av_len = int(sum(lengths) / len(lengths))
