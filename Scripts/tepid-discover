@@ -5,6 +5,8 @@ if __name__ == "__main__":
     import pkg_resources
     import os
     from tepid import tepid
+    import random
+    import string
 
     version = pkg_resources.require("TEPID")[0].version
 
@@ -34,6 +36,9 @@ if __name__ == "__main__":
         options.mask = ",".join(m)
     else:
         pass
+
+    # generate a unique string prefix for the intermediate files
+    options.prefix = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6)) + "_"
 
     if options.se is False:
         tepid.discover_pe(options)

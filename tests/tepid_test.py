@@ -3,7 +3,8 @@
 from tepid import tepid
 import os
 from glob import glob
-
+import random
+import string
 
 def test():
 
@@ -28,6 +29,7 @@ def test():
     discover.conc =  "../conc.bam"
     discover.split = "../split.bam"
     discover.te = "../../Annotation/Arabidopsis/TAIR9_TE.bed.gz"
+    discover.prefix = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6)) + "_"
 
     tepid.discover_pe(discover)
     test_ins = [a for a in open("./insertions_run.bed")]

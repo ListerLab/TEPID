@@ -109,14 +109,14 @@ def check_te_overlaps(te, bamfile, te_list):
     return reads
 
 
-def check_te_overlaps_dels(te, bamfile, te_list):
-    pybedtools.BedTool(bamfile).bam_to_bed().saveas('split.temp')
-    convert_split_pairbed('split.temp', 'split_bedpe.temp')
-    split = pybedtools.BedTool('split_bedpe.temp').each(append_origin, word='split').saveas()
-    create_deletion_coords(split, 'second_pass_del_coords.temp')
-    dels = pybedtools.BedTool('second_pass_del_coords.temp').sort()
+def check_te_overlaps_dels(te, bamfile, te_list, prefix):
+    pybedtools.BedTool(bamfile).bam_to_bed().saveas(prefix + 'split.temp')
+    convert_split_pairbed(prefix + 'split.temp', prefix + 'split_bedpe.temp')
+    split = pybedtools.BedTool(prefix + 'split_bedpe.temp').each(append_origin, word='split').saveas()
+    create_deletion_coords(split, prefix + 'second_pass_del_coords.temp')
+    dels = pybedtools.BedTool(prefix + 'second_pass_del_coords.temp').sort()
     intersections = dels.intersect(te, wb=True, nonamecheck=True, sorted=True)
-    os.remove('second_pass_del_coords.temp')
+    os.remove(prefix + 'second_pass_del_coords.temp')
     reads = []
     for r in intersections:
         if r[-3] in te_list:
@@ -192,7 +192,7 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
                         if indel == 'insertion':
                             read_names = check_te_overlaps(te, extracted, te_list)
                         elif indel == 'deletion':
-                            read_names = check_te_overlaps_dels(te, extracted, te_list)
+                            read_names = check_te_overlaps_dels(te, extracted, te_list, options.prefix)
                         else:
                             raise Exception()
                         if len(read_names) >= refine_read_count:  # enough evidence to call indel
@@ -233,8 +233,8 @@ def refine(options):
     if options.deletions is not False:
         deletions = getOtherLines(names, options.deletions)  # format ([data], [inverse_accessions])
     print "Processing "+options.name
-    chrom_sizes = check_bam(options.conc, options.proc)
-    check_bam(options.split, options.proc, make_new_index=True)
+    chrom_sizes = check_bam(options.conc, options.proc, options.prefix)
+    check_bam(options.split, options.proc, options.prefix, make_new_index=True)
     cov = calc_cov(options.conc, 100000, 120000)
     concordant = pysam.AlignmentFile(options.conc, 'rb')
     split_alignments = pysam.AlignmentFile(options.split, 'rb')
@@ -670,11 +670,11 @@ def _get_features(inp):
     return coords, read, strand
 
 
-def calc_mean(bam_name, p):
+def calc_mean(bam_name, p, prefix):
     """
     calculates mean and standard deviation insert size
     """
-    check_bam(bam_name, p)
+    check_bam(bam_name, p, prefix)
     bam = pysam.AlignmentFile(bam_name)
     lengths = []
     rd = []
@@ -776,7 +776,7 @@ def get_coverages(chrom, start, stop, bam, chrom_sizes):
     return ratio
 
 
-def check_bam(bam, p, make_new_index=False):
+def check_bam(bam, p, prefix, make_new_index=False):
     """
     Sort and index bam file
     returns dictionary of chromosome names and lengths
@@ -791,17 +791,17 @@ def check_bam(bam, p, make_new_index=False):
         test_head.header['HD']['SO']
     except KeyError:
         print '  sorting bam file'
-        pysam.sort('-@', p, bam, 'sorted.temp')
+        pysam.sort('-@', p, bam, prefix + 'sorted.temp')
         os.remove(bam)
-        os.rename('sorted.temp.bam', bam)
+        os.rename(prefix + 'sorted.temp.bam', bam)
     else:
         if test_head.header['HD']['SO'] == 'coordinate':
             pass
         else:
             print '  sorting bam file'
-            pysam.sort('-@', p, bam, 'sorted.temp')
+            pysam.sort('-@', p, bam, prefix + 'sorted.temp')
             os.remove(bam)
-            os.rename('sorted.temp.bam', bam)
+            os.rename(prefix + 'sorted.temp.bam', bam)
     test_head.close()
     # check if indexed
     if '{}.bai'.format(bam) in os.listdir('.') and make_new_index is False:
@@ -812,7 +812,7 @@ def check_bam(bam, p, make_new_index=False):
     return chrom_sizes
 
 
-def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
+def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file, prefix):
     """
     Calls deletions where the gap between paired reads is at
     least 80 percent the length of the TE
@@ -824,7 +824,7 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
     x = 0
     tes = {}
     written_tes = []
-    chrom_sizes = check_bam(bam, p)
+    chrom_sizes = check_bam(bam, p, prefix)
     allreads = pysam.AlignmentFile(bam, 'rb')
 
     with open(inp, 'r') as infile, open('deletions_{}.bed'.format(acc), 'w+') as outfile, open('deletion_reads_{}.txt'.format(acc), 'w+') as deletions_reads:
@@ -867,14 +867,14 @@ def annotate_deletions(inp, acc, num_reads, bam, mn, p, te_file):
     allreads.close()
 
 
-def annotate_deletions_se(inp, acc, num_reads, bam, p, te_file):
+def annotate_deletions_se(inp, acc, num_reads, bam, p, te_file, prefix):
     """
     Single end mode
     """
     x = 0
     tes = {}
     written_tes = []
-    chrom_sizes = check_bam(bam, p)
+    chrom_sizes = check_bam(bam, p, prefix)
     allreads = pysam.AlignmentFile(bam, 'rb')
 
     with open(inp, 'r') as infile, open('deletions_{}.bed'.format(acc), 'w+') as outfile, open('deletion_reads_{}.txt'.format(acc), 'w+') as deletions_reads:
@@ -957,7 +957,7 @@ def reorder_intersections(feature, read_count):
         pass
 
 
-def check_name_sorted(bam, p):
+def check_name_sorted(bam, p, prefix):
     """
     Sort bam file by name if position sorted
     """
@@ -967,17 +967,17 @@ def check_name_sorted(bam, p):
         test_head.header['HD']['SO']
     except KeyError:
         print '  sorting bam file'
-        pysam.sort('-@', p, '-n', bam, 'sorted.temp')
+        pysam.sort('-@', p, '-n', bam, prefix + 'sorted.temp')
         os.remove(bam)
-        os.rename('sorted.temp.bam', bam)
+        os.rename(prefix + 'sorted.temp.bam', bam)
     else:
         if test_head.header['HD']['SO'] == 'queryname':
             pass
         else:
             print '  sorting bam file'
-            pysam.sort('-@', p, '-n', bam, 'sorted.temp')
+            pysam.sort('-@', p, '-n', bam, prefix + 'sorted.temp')
             os.remove(bam)
-            os.rename('sorted.temp.bam', bam)
+            os.rename(prefix + 'sorted.temp.bam', bam)
     test_head.close()
 
 
@@ -992,7 +992,7 @@ def discover_pe(options):
     print "Processing "+options.name
     print "Running paired-end mode"
     print 'Estimating mean insert size and coverage'
-    mn, std, rd_len = calc_mean(options.conc, options.proc)
+    mn, std, rd_len = calc_mean(options.conc, options.proc, options.prefix)
     cov = calc_cov(options.conc, 100000, 120000)
     if cov <= 10:
         print '  Warning: coverage may not be sufficiently high to reliably discover polymorphic TE insertions'
@@ -1022,99 +1022,100 @@ def discover_pe(options):
         quality_filter_dels = 0
 
     print 'Processing split reads'
-    check_name_sorted(options.split, options.proc)
+    check_name_sorted(options.split, options.proc, options.prefix)
     split_unfiltered = pybedtools.BedTool(options.split).bam_to_bed().saveas().filter(lambda x: x[0] not in mask_chroms).saveas()
-    split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_ins).saveas('split_hq.temp')
-    split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_dels).saveas('split.temp')
-    convert_split_pairbed('split_hq.temp', 'split_hq_bedpe.temp')
-    convert_split_pairbed('split.temp', 'split_bedpe.temp')
-    split_bedpe = pybedtools.BedTool('split_hq_bedpe.temp').each(append_origin, word='split').saveas().sort()
-    split_bedpe_dels = pybedtools.BedTool('split_bedpe.temp').each(append_origin, word='split').saveas().sort()
+    split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_ins).saveas(options.prefix + 'split_hq.temp')
+    split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_dels).saveas(options.prefix +'split.temp')
+    convert_split_pairbed(options.prefix + 'split_hq.temp', options.prefix + 'split_hq_bedpe.temp')
+    convert_split_pairbed(options.prefix + 'split.temp',options.prefix + 'split_bedpe.temp')
+    split_bedpe = pybedtools.BedTool(options.prefix + 'split_hq_bedpe.temp').each(append_origin, word='split').saveas().sort()
+    split_bedpe_dels = pybedtools.BedTool(options.prefix + 'split_bedpe.temp').each(append_origin, word='split').saveas().sort()
     split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
 
     if options.discordant is False:
         print 'Finding discordant reads'
-        filter_discordant(options.conc, max_dist, 'disc_bam.temp')
-        pysam.sort('-@', str(options.proc), '-n', 'disc_bam.temp', 'disc_sorted')
-        disc = pybedtools.BedTool('disc_sorted.bam')\
+        filter_discordant(options.conc, max_dist, options.prefix + 'disc_bam.temp')
+        pysam.sort('-@', str(options.proc), '-n', options.prefix + 'disc_bam.temp', options.prefix + 'disc_sorted')
+        disc = pybedtools.BedTool(options.prefix + 'disc_sorted.bam')\
         .bam_to_bed(bedpe=True, mate1=True)\
         .filter(lambda x: x[0] not in mask_chroms).saveas()\
         .each(append_origin, word='disc').saveas()
     else:
-        check_bam(options.discordant, options.proc)
+        check_bam(options.discordant, options.proc, options.prefix)
         disc = pybedtools.BedTool(options.discordant)\
         .bam_to_bed(bedpe=True, mate1=True)\
         .filter(lambda x: x[0] not in mask_chroms).saveas()\
         .each(append_origin, word='disc').saveas()
-    disc_split_dels = split_bedpe_dels.cat(disc, postmerge=False).sort().saveas('disc_split_dels.temp')
-    disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas('disc_split_ins.temp')
+    disc_split_dels = split_bedpe_dels.cat(disc, postmerge=False).sort().saveas(options.prefix + 'disc_split_dels.temp')
+    disc_split_ins = split_ins.cat(disc, postmerge=False).sort().saveas(options.prefix + 'disc_split_ins.temp')
 
     print 'Processing TE annotation'
     te = pybedtools.BedTool(options.te).sort()
-    disc_split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
+    disc_split_ins.pair_to_bed(te, f=0.80).saveas(options.prefix + 'intersect_ins.temp')
 
     if options.insertions is True:  # finding insertions only, so skip deletions
         pass
     else:
         print 'Finding deletions'
-        create_deletion_coords(disc_split_dels, 'del_coords.temp')
-        dels = pybedtools.BedTool('del_coords.temp').sort()
+        create_deletion_coords(disc_split_dels, options.prefix + 'del_coords.temp')
+        dels = pybedtools.BedTool(options.prefix + 'del_coords.temp').sort()
         merged_te = te.merge()
         dels = dels.intersect(merged_te, f=0.8, wa=True)
-        dels.intersect(te, F=0.8, sorted=True, wb=True, nonamecheck=True).sort().saveas('deletions.temp')
-        annotate_deletions('deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te)
+        dels.intersect(te, F=0.8, sorted=True, wb=True, nonamecheck=True).sort().saveas(options.prefix + 'deletions.temp')
+        annotate_deletions(options.prefix + 'deletions.temp', options.name, deletion_reads, options.conc, mn, str(options.proc), te, options.prefix)
 
     if options.deletions is True:  # finding deletions only, so skip insertions
         pass
     else:
         print 'Finding insertions'
-        reorder('intersect_ins.temp', 'reorder_split.temp', 'forward_disc.temp', 'reverse_disc.temp')
+        reorder(options.prefix + 'intersect_ins.temp', options.prefix + 'reorder_split.temp', options.prefix + 'forward_disc.temp', options.prefix + 'reverse_disc.temp')
 
         def merge_bed(infile, outfile):
             pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11,12,13,14',
                                                   o='collapse,collapse,collapse,distinct,collapse,count,collapse,collapse,collapse')\
             .saveas(outfile)
 
-        file_pairs = [['reorder_split.temp','split_merged.temp'],
-                      ['forward_disc.temp', 'forward_merged.temp'],
-                      ['reverse_disc.temp', 'reverse_merged.temp']]  # probem when these files are empty
-
+        file_pairs = [[options.prefix + 'reorder_split.temp', options.prefix + 'split_merged.temp'],
+                      [options.prefix + 'forward_disc.temp', options.prefix + 'forward_merged.temp'],
+                      [options.prefix + 'reverse_disc.temp', options.prefix + 'reverse_merged.temp']]  # probem when these files are empty
+        
         for x in xrange(3):
             merge_bed(file_pairs[x][0], file_pairs[x][1])
 
-        info = [['split_merged.temp', 'split_processed.temp', 'split'],
-                ['forward_merged.temp', 'forward_processed.temp', 'disc_forward'],
-                ['reverse_merged.temp', 'reverse_processed.temp', 'disc_reverse']]
+        info = [[options.prefix + 'split_merged.temp', options.prefix + 'split_processed.temp', 'split'],
+                [options.prefix + 'forward_merged.temp', options.prefix + 'forward_processed.temp', 'disc_forward'],
+                [options.prefix + 'reverse_merged.temp', options.prefix + 'reverse_processed.temp', 'disc_reverse']]
 
         for x in xrange(3):
             process_merged(info[x][0], info[x][1], info[x][2])
 
-        pybedtools.BedTool('forward_processed.temp').cat('reverse_processed.temp', postmerge=True,
+        pybedtools.BedTool(options.prefix + 'forward_processed.temp').cat(options.prefix + 'reverse_processed.temp', postmerge=True,
             c='4,5,6,7,8,9,10',
             o='collapse,collapse,collapse,distinct,distinct,sum,distinct',
-            d='200').sort().saveas('condensed_disc.temp')
+            d='200').sort().saveas(options.prefix + 'condensed_disc.temp')
 
-        process_merged_disc('condensed_disc.temp', 'processed_disc.temp', 2, (mn+std), rd_len)
-        pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_reads_high <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
-        disc_split = pybedtools.BedTool('split_processed.temp')\
+        process_merged_disc(options.prefix + 'condensed_disc.temp', options.prefix + 'processed_disc.temp', 2, (mn+std), rd_len)
+        pybedtools.BedTool(options.prefix + 'split_processed.temp').filter(lambda x: insertion_reads_high <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto(options.prefix + 'high.temp')
+        disc_split = pybedtools.BedTool(options.prefix + 'split_processed.temp')\
         .filter(lambda x: insertion_reads_high > int(x[8]))\
         .saveas().sort()\
-        .intersect('processed_disc.temp', wo=True, nonamecheck=True)\
+        .intersect(options.prefix + 'processed_disc.temp', wo=True, nonamecheck=True)\
         .each(reorder_intersections, read_count=insertion_reads_low).saveas().sort().saveas()
         if len(disc_split) > 0:
-            disc_split.cat('high.temp', postmerge=False).saveas().sort().saveas().moveto('insertions.temp')
-            nm = 'insertions.temp'
+            disc_split.cat(options.prefix + 'high.temp', postmerge=False).saveas().sort().saveas().moveto(options.prefix + 'insertions.temp')
+            nm = options.prefix + 'insertions.temp'
         else:
-            nm = 'high.temp'
+            nm = options.prefix + 'high.temp'
         separate_reads(nm, 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
     with open("tepid_discover_log_{}.txt".format(options.name), 'a') as logfile:
         logfile.write("tepid-discover finished normally at {}\n".format(ctime()))
 
     if options.keep is False:
         temp = glob('./*.temp')
-        for i in temp:
+        mytempfiles = [x for x in temp if x.startswith(options.prefix)]
+        for i in mytempfiles:
             os.remove(i)
-        os.remove('disc_sorted.bam')
+        os.remove(options.prefix + 'disc_sorted.bam')
 
 
 def calc_read_length(bam):
@@ -1171,53 +1172,54 @@ def discover_se(options):
         quality_filter_dels = 0
 
     print 'Processing split reads'
-    check_name_sorted(options.split, options.proc)
+    check_name_sorted(options.split, options.proc, options.prefix)
     split_unfiltered = pybedtools.BedTool(options.split).bam_to_bed().saveas().filter(lambda x: x[0] not in mask_chroms).saveas()
-    split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_ins).saveas('split_hq.temp')
-    split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_dels).saveas('split.temp')
-    convert_split_pairbed('split_hq.temp', 'split_hq_bedpe.temp')
-    convert_split_pairbed('split.temp', 'split_bedpe.temp')
-    split_bedpe = pybedtools.BedTool('split_hq_bedpe.temp').each(append_origin, word='split').saveas().sort()
-    split_bedpe_dels = pybedtools.BedTool('split_bedpe.temp').each(append_origin, word='split').saveas().sort()
+    split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_ins).saveas(options.prefix + 'split_hq.temp')
+    split_unfiltered.filter(lambda x: int(x[4]) >= quality_filter_dels).saveas(options.prefix + 'split.temp')
+    convert_split_pairbed(options.prefix + 'split_hq.temp', options.prefix + 'split_hq_bedpe.temp')
+    convert_split_pairbed(options.prefix + 'split.temp', options.prefix + 'split_bedpe.temp')
+    split_bedpe = pybedtools.BedTool(options.prefix + 'split_hq_bedpe.temp').each(append_origin, word='split').saveas().sort()
+    split_bedpe_dels = pybedtools.BedTool(options.prefix + 'split_bedpe.temp').each(append_origin, word='split').saveas().sort()
     split_ins = split_bedpe.filter(lambda x: (abs(int(x[1]) - int(x[4])) > 5000) or (x[0] != x[3])).saveas()
 
     print 'Processing TE annotation'
     te = pybedtools.BedTool(options.te).sort()
-    split_ins.pair_to_bed(te, f=0.80).saveas('intersect_ins.temp')
+    split_ins.pair_to_bed(te, f=0.80).saveas(options.prefix + 'intersect_ins.temp')
 
     if options.insertions is True:  # finding insertions only, so skip deletions
         pass
     else:
         print 'Finding deletions'
-        create_deletion_coords(split_bedpe_dels, 'del_coords.temp')
-        dels = pybedtools.BedTool('del_coords.temp').sort()
+        create_deletion_coords(split_bedpe_dels, options.prefix + 'del_coords.temp')
+        dels = pybedtools.BedTool(options.prefix + 'del_coords.temp').sort()
         merged_te = te.merge()
         dels = dels.intersect(merged_te, f=0.8, wa=True)
-        dels.intersect(te, F=0.8, sorted=True, wb=True, nonamecheck=True).sort().saveas('deletions.temp')
+        dels.intersect(te, F=0.8, sorted=True, wb=True, nonamecheck=True).sort().saveas(options.prefix + 'deletions.temp')
         # works without the discordant reads
-        annotate_deletions_se('deletions.temp', options.name, deletion_reads, options.conc, str(options.proc), te)
+        annotate_deletions_se(options.prefix + 'deletions.temp', options.name, deletion_reads, options.conc, str(options.proc), te, options.prefix)
 
     if options.deletions is True:  # finding deletions only, so skip insertions
         pass
     else:
         print 'Finding insertions'
-        reorder_se('intersect_ins.temp', 'reorder_split.temp')
+        reorder_se(options.prefix + 'intersect_ins.temp', options.prefix + 'reorder_split.temp')
 
         def merge_bed(infile, outfile):
             pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11,12,13,14',
                                                   o='collapse,collapse,collapse,distinct,collapse,count,collapse,collapse,collapse')\
             .saveas(outfile)
 
-        merge_bed('reorder_split.temp','split_merged.temp')
-        process_merged ('split_merged.temp', 'split_processed.temp', 'split')
+        merge_bed(options.prefix + 'reorder_split.temp',options.prefix + 'split_merged.temp')
+        process_merged(options.prefix + 'split_merged.temp', options.prefix + 'split_processed.temp', 'split')
 
-        pybedtools.BedTool('split_processed.temp').filter(lambda x: insertion_reads_high <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto('high.temp')
-        separate_reads("high.temp", 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
+        pybedtools.BedTool(options.prefix + 'split_processed.temp').filter(lambda x: insertion_reads_high <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto(options.prefix + 'high.temp')
+        separate_reads(options.prefix + "high.temp", 'insertions_{}.bed'.format(options.name), 'insertion_reads_{}.txt'.format(options.name))
     with open("tepid_discover_log_{}.txt".format(options.name), 'a') as logfile:
         logfile.write("tepid-discover finished normally at {}\n".format(ctime()))
 
     if options.keep is False:
         temp = glob('./*.temp')
-        for i in temp:
+        mytempfiles = [x for x in temp if x.startswith(options.prefix)]
+        for i in mytempfiles:
             os.remove(i)
 
