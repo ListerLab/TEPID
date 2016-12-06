@@ -4,6 +4,8 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     import pkg_resources
     from tepid import tepid
+    import random
+    import string
 
     version = pkg_resources.require("TEPID")[0].version
 
@@ -19,6 +21,10 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--split', help='split reads bam file from yaha', required=True)
     parser.add_argument('-a', '--all_samples', help='List of all sample names', required=True)
     options = parser.parse_args()
+
+    # generate a unique string prefix for the intermediate files
+    options.prefix = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6)) + "_"
+
     if options.insertions is False and options.deletions is False:
         import sys
         sys.exit("Error -- you have not supplied an insertions or deletions file")
