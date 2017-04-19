@@ -166,7 +166,7 @@ To do this, the `merge_insertions.py` and `merge_deletions.py` scripts included 
 
 * [bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) >= v2.1.0  
 * [yaha](https://github.com/GregoryFaust/yaha) >= v0.1.82  
-* [samtools](http://www.htslib.org/download/) >= v1.1, < v1.3  
+* [samtools](http://www.htslib.org/download/) > v1.3  
 * [samblaster](https://github.com/GregoryFaust/samblaster) >= v0.1.19 (needed for paired-end data only)  
 * [bedtools](http://bedtools.readthedocs.org/en/latest/) >= v2.25.0  
 
