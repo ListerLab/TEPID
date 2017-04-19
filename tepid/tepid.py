@@ -9,6 +9,7 @@ import heapq
 import pybedtools
 from glob import glob
 from time import ctime
+import sys
 
 
 def readNames(names):
@@ -981,6 +982,18 @@ def check_name_sorted(bam, p, prefix):
     test_head.close()
 
 
+def merge_bed(infile, outfile, options):
+    if os.path.exists(infile) and os.path.getsize(infile) > 0:
+        pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11,12,13,14',
+                                              o='collapse,collapse,collapse,distinct,collapse,count,collapse,collapse,collapse')\
+        .saveas(outfile)
+        return(0)
+    else:
+        print "Error: no reads intersecting TEs found"
+        remove_temp(options)
+        return(1)
+
+
 def discover_pe(options):
     """
     Paired-end mode
@@ -1070,17 +1083,14 @@ def discover_pe(options):
         print 'Finding insertions'
         reorder(options.prefix + 'intersect_ins.temp', options.prefix + 'reorder_split.temp', options.prefix + 'forward_disc.temp', options.prefix + 'reverse_disc.temp')
 
-        def merge_bed(infile, outfile):
-            pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11,12,13,14',
-                                                  o='collapse,collapse,collapse,distinct,collapse,count,collapse,collapse,collapse')\
-            .saveas(outfile)
-
         file_pairs = [[options.prefix + 'reorder_split.temp', options.prefix + 'split_merged.temp'],
                       [options.prefix + 'forward_disc.temp', options.prefix + 'forward_merged.temp'],
-                      [options.prefix + 'reverse_disc.temp', options.prefix + 'reverse_merged.temp']]  # probem when these files are empty
+                      [options.prefix + 'reverse_disc.temp', options.prefix + 'reverse_merged.temp']]
         
         for x in xrange(3):
-            merge_bed(file_pairs[x][0], file_pairs[x][1])
+            status = merge_bed(file_pairs[x][0], file_pairs[x][1], options)
+            if status == 1:
+                return(1)
 
         info = [[options.prefix + 'split_merged.temp', options.prefix + 'split_processed.temp', 'split'],
                 [options.prefix + 'forward_merged.temp', options.prefix + 'forward_processed.temp', 'disc_forward'],
@@ -1110,6 +1120,10 @@ def discover_pe(options):
     with open("tepid_discover_log_{}.txt".format(options.name), 'a') as logfile:
         logfile.write("tepid-discover finished normally at {}\n".format(ctime()))
 
+    remove_temp(options)
+
+
+def remove_temp(options):
     if options.keep is False:
         temp = glob('./*.temp')
         mytempfiles = [x for x in temp if x.startswith(options.prefix)]
@@ -1203,13 +1217,9 @@ def discover_se(options):
     else:
         print 'Finding insertions'
         reorder_se(options.prefix + 'intersect_ins.temp', options.prefix + 'reorder_split.temp')
-
-        def merge_bed(infile, outfile):
-            pybedtools.BedTool(infile).sort().merge(c='4,5,6,9,10,11,12,13,14',
-                                                  o='collapse,collapse,collapse,distinct,collapse,count,collapse,collapse,collapse')\
-            .saveas(outfile)
-
-        merge_bed(options.prefix + 'reorder_split.temp',options.prefix + 'split_merged.temp')
+        status = merge_bed(options.prefix + 'reorder_split.temp',options.prefix + 'split_merged.temp', options)
+        if status == 1:
+            return(1)
         process_merged(options.prefix + 'split_merged.temp', options.prefix + 'split_processed.temp', 'split')
 
         pybedtools.BedTool(options.prefix + 'split_processed.temp').filter(lambda x: insertion_reads_high <= int(x[8])).saveas().each(lambda x: x[:-2]).moveto(options.prefix + 'high.temp')
@@ -1217,9 +1227,4 @@ def discover_se(options):
     with open("tepid_discover_log_{}.txt".format(options.name), 'a') as logfile:
         logfile.write("tepid-discover finished normally at {}\n".format(ctime()))
 
-    if options.keep is False:
-        temp = glob('./*.temp')
-        mytempfiles = [x for x in temp if x.startswith(options.prefix)]
-        for i in mytempfiles:
-            os.remove(i)
-
+    remove_temp(options)
