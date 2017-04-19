@@ -39,6 +39,22 @@ def test():
     assert test_ins == true_ins
     assert test_del == true_del
 
+    empty = Arg()
+    empty.keep = True
+    empty.deletions = False
+    empty.insertions = False
+    empty.strict = False
+    empty.mask = ""
+    empty.discordant = False
+    empty.proc = 1
+    empty.name = "run"
+    empty.conc =  "../conc_empty.bam"
+    empty.split = "../split_empty.bam"
+    empty.te = "../../Annotation/Arabidopsis/TAIR9_TE.bed.gz"
+    empty.prefix = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6)) + "_"
+
+    assert tepid.discover_pe(empty) == 1, "Empty output test failed"
+
 
 def tearDown():
     temp = glob('./*')
