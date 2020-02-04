@@ -177,7 +177,7 @@ def write_ambiguous(fname, data):
     fname.write("\t".join(coords)+"\t"+data[-2]+"\n")
 
 
-def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te, refine_read_count, chrom_sizes):
+def process_missed(data, indel, concordant, split_alignments, name_indexed, acc, te, refine_read_count, chrom_sizes, prefix):
     read_file_name = "second_pass_reads_{t}_{a}.txt".format(t=indel, a=acc)
     te_file_name = "second_pass_{t}_{a}.bed".format(t=indel, a=acc)
     ambiguous_file_name = 'ambiguous_{t}_{a}.bed'.format(t=indel, a=acc)
@@ -193,7 +193,7 @@ def process_missed(data, indel, concordant, split_alignments, name_indexed, acc,
                         if indel == 'insertion':
                             read_names = check_te_overlaps(te, extracted, te_list)
                         elif indel == 'deletion':
-                            read_names = check_te_overlaps_dels(te, extracted, te_list, options.prefix)
+                            read_names = check_te_overlaps_dels(te, extracted, te_list, prefix)
                         else:
                             raise Exception()
                         if len(read_names) >= refine_read_count:  # enough evidence to call indel
@@ -243,12 +243,12 @@ def refine(options):
     name_indexed.build()
     if options.deletions is not False:
         print "  checking deletions"
-        process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, options.name, te, cov/5, chrom_sizes)
+        process_missed(deletions, "deletion", concordant, split_alignments, name_indexed, options.name, te, cov/5, chrom_sizes, options.prefix)
     else:
         pass
     if options.insertions is not False:
         print "  checking insertions"
-        process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, options.name, te, cov/10, chrom_sizes)
+        process_missed(insertions, "insertion", concordant, split_alignments, name_indexed, options.name, te, cov/10, chrom_sizes, options.prefix)
     else:
         pass
 
