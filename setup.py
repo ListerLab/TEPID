@@ -6,7 +6,7 @@ import subprocess
 
 
 def samtools():
-    v = subprocess.check_output(['samtools', '--version']).split()[1].split('.')
+    v = subprocess.check_output(['samtools', '--version']).decode().split()[1].split('.')
     major = int(v[0])
     minor = int(v[1])
     if major >= 1 and minor >= 4:
@@ -15,7 +15,7 @@ def samtools():
 
 
 def bedtools():
-    v = subprocess.check_output(['bedtools', '--version']).split()[1].split('.')
+    v = subprocess.check_output(['bedtools', '--version']).decode().split()[1].split('.')
     major = v[0].strip('v')
     if int(major) >= 2 and int(v[1]) >= 24:
         return True
